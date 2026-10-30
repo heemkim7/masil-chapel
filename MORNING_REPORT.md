@@ -170,3 +170,9 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 ### Status after batch 10
 - All items from the 00:26 request are done: autumn (batch 8), the spring SW hem (batch 8), the boy shorts piping (batch 9), the choir seam (batch 9) and the girl hairs (batch 10).
 - Still needs your call: the stray Vercel project "exp". It's not deleted.
+
+## Batch 11 — face accessories eye-anchored (안경 삐뚤어짐 fix)
+- Cause: face items were placed from the head box (top+0.6·head height) with the image's bounding box centred, not its lenses. The glasses art has a temple arm on one side only, and the right lens sits 2–4° lower (c16 2.1°, c17 2.4°, c18 3.9°), so the glasses read off-centre, crooked and 11–15px below the eyes. In W the full front-view pair floated on the cheek.
+- Fix: per-character EYE table (measured eye centres S/SW/W), lens anchors per item; affine draw maps the lens centres → the eye centres (rotation cancels the art tilt, SW horizontal foreshortening, the bridge on the nose midpoint). W = the near lens + temple only, on the eye. Monocle on one eye; blush = one heart under each eye (one in W); mustache/mask anchored to the eye midpoint + eye-distance offsets.
+- Walk/mirror: the face layer is baked into the still, so the bob/tilt/flip move it with the head (checked in walk captures).
+- Sheets: /workspace/mk/prod/glasses_before.jpg, glasses_after.jpg. Beta suite 160/160.

@@ -30,8 +30,8 @@ export const COS = {
   c04: D('꽃 화관', 'hat', '희귀', { w: 1.1, sink: .14 }), c05: D('황금 왕관', 'hat', '전설', { w: .72, sink: .12 }), c06: D('신사 실크햇', 'hat', '영웅', { w: 1.0, sink: .2 }), c07: D('토끼 머리띠', 'hat', '희귀', { w: .95, sink: .18 }),
   c08: D('고양이 머리띠', 'hat', '희귀', { w: 1.0, sink: .2 }), c09: D('산타 모자', 'hat', '희귀', { w: 1.2, sink: .32 }), c10: D('학사모', 'hat', '영웅', { w: 1.15, sink: .2 }), c11: D('요리사 모자', 'hat', '희귀', { w: .95, sink: .22 }),
   c12: D('천사 링', 'hat', '전설', { w: .72, sink: -.12 }), c13: D('분홍 리본', 'hat', '일반', { w: .6, sink: .1, dx: .3 }), c14: D('썬바이저', 'hat', '일반', { w: 1.08, sink: .3 }), c15: D('초록 벙거지', 'hat', '희귀', { w: 1.2, sink: .34 }),
-  c16: D('동글 안경', 'face', '일반', { w: .78 }), c17: D('하트 선글라스', 'face', '희귀', { w: .8 }), c18: D('별 선글라스', 'face', '영웅', { w: .84 }), c19: D('외눈 안경', 'face', '희귀', { w: .38, dx: -.18, dy: -.035, dxsw: -.09 }),
-  c20: D('하트 볼터치', 'face', '일반', { w: .7, dy: .12 }), c21: D('콧수염', 'face', '희귀', { w: .4, dy: .2 }), c22: D('하얀 마스크', 'face', '일반', { w: .58, dy: .06 }), c23: D('나비 핀', 'hat', '희귀', { w: .32, sink: .45, dx: .4 }),
+  c16: D('동글 안경', 'face', '일반', { w: .78, lens: [23.3, 23, 74.3, 24.9, 47] }), c17: D('하트 선글라스', 'face', '희귀', { w: .8, lens: [23.8, 21.9, 78.2, 24.2, 50] }), c18: D('별 선글라스', 'face', '영웅', { w: .84, lens: [26.1, 27.5, 78.9, 31.1, 53] }), c19: D('외눈 안경', 'face', '희귀', { w: .38, mono: [30, 30.2, 29.7] }),
+  c20: D('하트 볼터치', 'face', '일반', { w: .7, cheek: [0, 2, 50, 46] }), c21: D('콧수염', 'face', '희귀', { w: .4, at: [46, 16, 1.05, .62, -.02] }), c22: D('하얀 마스크', 'face', '일반', { w: .58, at: [55, 28, 1.6, .52, .2] }), c23: D('나비 핀', 'hat', '희귀', { w: .32, sink: .45, dx: .4 }),
   c24: D('천사 날개', 'back', '전설', { w: 1.35, ay: .45 }), c25: D('나비 날개', 'back', '영웅', { w: 1.2, ay: .5 }), c26: D('빨간 망토', 'back', '희귀', { w: .8, ay: .12 }), c27: D('노란 백팩', 'back', '일반', { w: .62, ay: .12 }),
   c28: D('곰돌이 백팩', 'back', '희귀', { w: .66, ay: .2 }), c29: D('기타', 'back', '영웅', { w: .7, ay: .35 }), c30: D('무지개 목도리', 'back', '희귀', { w: .6, ay: .02, front: 1 }), c31: D('요정 날개', 'back', '전설', { w: 1.2, ay: .5 }),
   c32: D('꽃다발', 'held', '희귀'), c33: D('하트 풍선', 'held', '일반', { w: .34, dy: -.5 }), c34: D('등불', 'held', '희귀'), c35: D('작은 성경', 'held', '일반'),
@@ -202,6 +202,22 @@ const LP = 'assets/characters/layered/';
 function layerSrcs(a, d) { const ch = GENDER[a.g].char, of = OUTFITS[a.g].find(x => x[0] === shipOutfit(a.g, a.o)), hp = HAIRS[a.g][shipHair(a.g, a.hs)][1];
   return { base: `${LP}${ch}_base_${d}.png`, out: `${LP}${ch}_outfit_${of[2]}_${d}.png`, tint: of[3] ? `${LP}${ch}_outfit_${of[2]}_tint_${d}.png` : null, hair: `${LP}${ch}_hair_${hp || 'base'}_${d}.png`, oft: of[3] }; }
 export function layeredReady(a, d = 'S') { const L = layerSrcs(a, d); return !!(img(L.base) && img(L.out) && img(L.hair) && (!L.tint || img(L.tint))); }
+// eye centres measured on the layered bases (tools: eyes.py) — [lx, ly, rx, ry, eyeW]; W shows one eye
+const EYE = { player: { S: [79.3, 135.2, 121.2, 135.4, 21], SW: [74.7, 132.3, 110, 131.9, 18], W: [74.2, 130.8, 74.2, 130.8, 12] },
+  boy: { S: [82, 115.7, 118.5, 115.7, 19], SW: [75.5, 114.8, 108.1, 114.6, 17], W: [72.5, 112.6, 72.5, 112.6, 11] } };
+// eye-anchored face items: lens centres map onto eye centres (level, centred, bridge on nose); profile = near lens only
+function drawFace(g, im, C, E, S0, d) { const D0 = S0[2] - S0[0], side = d === 'W', sw = d === 'SW', D = side ? D0 * .55 : E[2] - E[0], sq = D / D0,
+    ex = (E[0] + E[2]) / 2, ey = (E[1] + E[3]) / 2, th = side ? 0 : Math.atan2(E[3] - E[1], E[2] - E[0]);
+  const put = (sx, sy, rot, tx, ty, ax, ay, cr) => { g.save(); g.translate(tx, ty); g.rotate(rot); g.scale(sx, sy); cr ? g.drawImage(im, cr[0], cr[1], cr[2], cr[3], cr[0] - ax, cr[1] - ay, cr[2], cr[3]) : g.drawImage(im, -ax, -ay); g.restore(); };
+  if (C.lens) { const [ax, ay, bx, by, br] = C.lens, s = D0 / Math.hypot(bx - ax, by - ay);
+    if (side) put(s * .6, s, -Math.atan2(by - ay, bx - ax) * 0, E[0], E[1], bx, by, [br, 0, im.width - br, im.height]);
+    else { const sx = s * sq, rot = th - Math.atan2((by - ay) * s, (bx - ax) * sx); put(sx, s, rot, ex, ey, (ax + bx) / 2, (ay + by) / 2); } }
+  else if (C.mono) { const s = S0[4] * .85 / C.mono[2]; put(s * (side ? .6 : sw ? .8 : 1), s, 0, E[0], E[1], C.mono[0], C.mono[1]); }
+  else if (C.cheek) { const [x, y, w, h] = C.cheek, s = .42 * D0 / w, cy = E[1] + .42 * D0, hx = x + w / 2, hy = y + h / 2;
+    if (side) put(s * .65, s, 0, E[0] + .22 * D0, cy, hx, hy, C.cheek);
+    else { put(s * (sw ? .7 : 1), s, 0, E[0] - (sw ? 0 : .1) * D0, E[1] + .42 * D0, hx, hy, C.cheek); put(s, s, 0, E[2] + .1 * D0, E[3] + .42 * D0, hx, hy, C.cheek); } }
+  else if (C.at) { const [ax, ay, wf, yd, sdx = -.18] = C.at, s = wf * D0 / im.width; put(s * (side ? .55 : sq), s, th, ex + (side ? sdx : sw ? -.04 : 0) * D0, ey + yd * D0, ax, ay); }
+  else return 0; return 1; }
 const lcache = new Map();
 function lpix(im) { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); return [c, g, g.getImageData(0, 0, c.width, c.height)]; }
 export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d = LDIR[d] || 'S'; const k = encode(a) + '|' + d; let c = lcache.get(k); if (c) return c;
@@ -224,7 +240,7 @@ export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d 
   let htop = H; for (let i = 3, j = 0; i < hp.length; i += 4, j++) if (hp[i] > 40) { htop = (j / W) | 0; break; }
   const cos = (slot, over) => { const id = a[slot]; if (!id || id === '-' || !COS[id]) return; const C = COS[id], im = img(`assets/cos/${id}.png`); if (!im) return; let w, cx = hcx + (C.dx || 0) * hw * (back ? -1 : 1), cy, h;
     if (slot === 'hat') { w = hw * (C.w || 1) * .95; h = w * im.height / im.width; cy = Math.min(htop, top) + hh * (C.sink || 0) * .9 - h / 2; }
-    else if (slot === 'face') { if (back) return; w = hw * (C.w || .8) * (side ? .7 : 1); h = w * im.height / im.width; cx = side ? hcx - hw * .2 : cx + (d === 'SW' ? (C.dxsw || 0) * hw : 0); cy = top + hh * (.6 + (C.dy || 0)); }
+    else if (slot === 'face') { if (back) return; const EB = EYE[/boy/.test(L.base) ? 'boy' : 'player']; if (EB && drawFace(g, im, C, EB[d], EB.S, d)) return; w = hw * (C.w || .8) * (side ? .7 : 1); h = w * im.height / im.width; cx = side ? hcx - hw * .2 : cx + (d === 'SW' ? (C.dxsw || 0) * hw : 0); cy = top + hh * (.6 + (C.dy || 0)); }
     else if (slot === 'back') { if ((C.front ? !back : back) !== over) return; w = hw * (C.w || .8) * 1.15; h = w * im.height / im.width; cy = top + hh * (.93 + (C.dy || 0)) + 8 - h * (C.ay ?? .3); }
     else { if (back) return; w = hw * (C.w || .32) * 1.5; h = w * im.height / im.width; const nk = top + hh * .93, hy = nk + (272 - nk) * .5; cx = side ? hcx - hw * .3 : hcx + hw * .42; cy = hy - h * .6 + hh * (C.dy || 0); }
     g.drawImage(im, cx - w / 2, cy, w, h); };
