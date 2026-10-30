@@ -7,7 +7,7 @@
 - Protestant exterior: 5 new level arts (brick + white steeple + plain/red cross, no rose windows), level names 동네 작은 교회 / 함께 자라는 교회 / 교육관이 있는 교회 / 카페가 있는 교회 / 온 동네의 교회. Old art in assets/v7/catholic_bak/. Screens: shots/prot_world_l1.png, shots/prot_levels.png (before: shots/ui/reset_3_confirm.png background).
 
 ## Remaining
-- Protestant interior, icon set, place switcher, CHURCH_RESEARCH.md + WORSHIP_DESIGN.md + 100-person worship mode, UX_AUDIT.md strict pass.
+- See the end of this file (items 1-8 done).
 
 ## Interior (Protestant) — deployed
 - deploy maeul-chapel-25d-rclar0uth, commit 9591f9e. Screenshot shots/prot_in_t1.png (before: assets/catholic_bak/).
@@ -21,3 +21,52 @@
 - Top-bar place switcher (`#dongbtn` → `V.openPlaces()`): shows current place (`current()`), lists 모두의 광장 / 우리 동네 / up to 4 recently visited dongs / 다른 동네 찾기 / 같은 장소 다른 방 / 혼자 모드, marks "지금 여기". `goPlace('plaza'|'home')` resets shard; tickRoom() rejoins the new room. Phones drop the "마실채플 ·" prefix so the place name fits.
 - Test tools/test_places.py: 12/12 pass, 0 page errors (room id d0:in ↔ d{home}:in verified). Shots: shots/ui/places_390.png, places_list_390.png.
 - Fixed: 오병이어 button moved left of the right menu column; toast + counter moved below the top HUD on ≤760px. Stair labels moved to the stair foot (no longer overlap seated name tags / pulpit). Before: shots/ui/in_b_{1366,390}.png, after: in_c_{1366,390}.png.
+
+- Deploy for the place switcher: maeul-chapel-25d-cz9rpdipl (dpl_3L7yXKrBWoaPuwUx8twxoVkgotGR), commit 6627f65.
+
+## Item 7: worship hall (본당 예배) — deployed
+- Docs: CHURCH_RESEARCH.md (common elements) and WORSHIP_DESIGN.md.
+- Code and assets: js/worship.js, css/worship.css, assets/worship/ (hall, 4 rest spots, window mask).
+- Entry points:
+  - the 예배 side button
+  - the 성가대 spot inside the chapel
+  - the timetable card on the board, with a 본당 입장 button
+- The view is a 3/4 elevated rear-diagonal over 120 seats. Empty seats are filled by pilgrims (38% at dawn).
+- Weather and time windows: dawn, sunset, night, rainy night, rain, snow. Soft traffic and rain ambience.
+- Bottom bar: 기도 / 찬양 / 아멘. Lyrics karaoke, subtitles, front-facing reaction inset, and a crowd "아멘!" ripple.
+- Services follow a 7-phase order on a shared clock, led by a host NPC.
+- Sheet tabs:
+  - 시간표, with countdowns and 10-minute and start notifications
+  - 섬기는 사람들 (8 roles, NPC now, assignable to users later)
+  - 프로그램 (6)
+  - 공동체: members, greet, report and block, 중보기도 with a pray counter, cell, streak
+  - 쉼터 (4 spots with 묵상, 말씀, 피아노, 설교)
+- Rewards are free 달란트 only, through the existing 'service' rule after 2 minutes.
+- QA:
+  - 120 seats plus 30 simulated clients: 60 fps at 1366x768 and 60 fps at 390x844, unthrottled, 0 page errors.
+  - Emulated mobile at 390x844, dpr 3 and CPU x4 throttle, on a box with no GPU: 34-38 fps. It was 22 fps before I added the adaptive dpr and the cached static crowd layer.
+  - Two-context realtime test: each client sees the other (peers 1/1), and state syncs.
+- Shots:
+  - shots/ui/wh_a_1366.png and wh_b_390_amen.png
+  - wh_b_390_sheet.png, wh_c_dawn390.png, wh_c_roof390.png
+  - wh_d3.png (dawn) and wh_d4.png (rainy night)
+- Bug found and fixed: the window mask had no alpha.
+- Deploy maeul-chapel-25d-1hztb885w, commit bcd4060.
+- Risks:
+  - There is no user hosting or role assignment yet; the host is a clock-synced NPC.
+  - Browser notifications only fire while a tab is open.
+
+## Item 8: UX audit — see UX_AUDIT.md
+- 6 viewports x 6 screens, with bounding-box overlap and tap-size checks.
+- Overlaps between hit-testable controls: 0 on all 36 screens after the fixes.
+- Touch tap targets under 44px: from 25-28 per screen down to 1-3, and only low-severity ones remain.
+- Fixed:
+  - the 360px top bar overflow
+  - the 나가기 label under the emotes
+  - a flush, consistent right column
+  - the nowrap action label
+  - 44px touch targets
+  - keep-all line breaks
+  - the worship portrait layout
+- Shots: shots/ux/a_* (before), c_* (after).
+- Deploy: maeul-chapel-25d-k05salpzw (aliased to maeul-chapel-25d.vercel.app).

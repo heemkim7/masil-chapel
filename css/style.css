@@ -294,3 +294,20 @@ html,body{overscroll-behavior:none}
 /* toast clears the top HUD + right menu column on phones/tablets */
 @media (max-width:760px){#toast{top:calc(150px + env(safe-area-inset-top));max-width:calc(100vw - 160px);font-size:14px;padding:9px 14px}}
 @media (max-width:760px){.obibtn{top:calc(262px + env(safe-area-inset-top));padding:8px 12px;font-size:14px;min-height:44px}}
+/* v13 UX audit: mobile HUD right column + top bar */
+@media (max-width:700px) and (orientation:portrait){
+  #chlv{display:none!important}
+  #top{overflow:visible!important}
+  #btn-set,#btn-menu{width:44px!important;height:44px!important;min-width:44px;min-height:44px;padding:0!important;flex:none;display:inline-flex;align-items:center;justify-content:center}
+  #online{min-height:44px}
+  #top #dongbtn{min-height:44px;max-width:none!important;flex:0 1 auto;min-width:0}
+  #emotes{left:auto!important;right:calc(var(--sr,0px) + 8px)!important;bottom:calc(var(--sb,0px) + 172px)!important;flex-direction:column!important;gap:10px!important}
+  #emotes button{width:50px!important;height:50px!important}
+  #btn-jump{right:calc(var(--sr,0px) + 8px)!important;bottom:calc(var(--sb,0px) + 112px)!important;width:50px!important;height:50px!important}
+  #btn-act{right:calc(var(--sr,0px) + 8px)!important;bottom:calc(var(--sb,0px) + 14px)!important;width:84px!important;height:84px!important;white-space:nowrap;font-size:16px!important;padding:0}
+  #chat{width:calc(100vw - 112px - var(--sl,0px) - var(--sr,0px))!important}
+}
+#btn-act{white-space:nowrap}
+@media (pointer:coarse){.chip{min-height:44px!important;min-width:44px!important}#online{min-height:44px!important}#btn-set,#btn-menu,#dongbtn{min-height:44px!important}#btn-set{min-width:44px!important}}
+@media (max-width:700px) and (orientation:portrait){#online{min-height:44px!important}}
+body{word-break:keep-all;overflow-wrap:anywhere}
