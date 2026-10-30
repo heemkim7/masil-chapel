@@ -40,6 +40,6 @@ export function open() { const G = window.G, S = G.S; S.cos ||= []; let m = docu
 export function shelf(el, redraw) { const G = window.G, S = G.S; S.cos ||= [];
   const ids = Object.keys(AV.COS); el.insertAdjacentHTML('beforeend', `<h4>✨ 꾸미기 아이템 <small>(${S.cos.length}/${ids.length} 보유)</small></h4><div class="shopgrid cosgrid">${ids.map(id => { const c = AV.COS[id], own = S.cos.includes(id);
     return `<button class="sitem" data-cos="${id}" ${own || S.coins < c.price ? 'disabled' : ''} style="--rc:${RC[c.rar]}"><img src="assets/cos/${id}.png" alt=""><b>${esc(c.name)}</b><i class="rar">${c.rar}</i><small>${own ? '보유 중' : TAL + c.price}</small></button>`; }).join('')}</div>`);
-  el.querySelectorAll('[data-cos]').forEach(b => b.onclick = () => { const id = b.dataset.cos, c = AV.COS[id]; if (S.coins < c.price || S.cos.includes(id)) return; S.coins -= c.price; S.cos.push(id);
+  el.querySelectorAll('[data-cos]').forEach(b => b.onclick = () => { const id = b.dataset.cos, c = AV.COS[id]; if (S.coins < c.price || S.cos.includes(id)) return; S.coins -= c.price; S.cos.push(id); window.W?.spend(c.price, 'cos:' + id);
     const a = AV.parse(S.av); a[c.slot] = id; S.av = AV.encode(a); AV.apply(G.player, S.av); G.refreshHud(); G.coinFx?.(); G.persist(); window.P2?.sfx?.('coin'); G.toast(`✨ ${c.name} 착용! · 👗 꾸미기에서 바꿀 수 있어요`); redraw(); }); }
 export const Cust = { init, mount, open, shelf }; window.Cust = Cust;

@@ -47,9 +47,9 @@ export const Svc = {
     $('#svmsg').style.display = this.msg ? 'block' : 'none'; if (this.msg) $('#svmsg').textContent = `💬 ${this.msg.name}: ${this.msg.text}`; },
   amen() { const a = this.a; a.say('아멘 🙏'); a.emote('pray'); this.amens++; for (const n of a.npcs()) if (Math.random() < .6) setTimeout(() => n.say('아멘', 1.6), 200 + Math.random() * 900); },
   give(g) { const a = this.a, S = a.S(); if (this.given) return; if (g > S.coins) return a.toast('달란트가 부족해요'); this.given = true;
-    if (g) { S.coins -= g; a.addXp(Math.round(g / 2)); a.toast(`💝 헌금 ${g} 달란트를 드렸어요 (게임 내 달란트)`); } else a.toast('마음으로 드렸어요 🙏'); a.refreshHud(); this.next(false); },
+    if (g) { S.coins -= g; window.W?.spend(g, null); a.addXp(Math.round(g / 2)); a.toast(`💝 헌금 ${g} 달란트를 드렸어요 (게임 내 달란트)`); } else a.toast('마음으로 드렸어요 🙏'); a.refreshHud(); this.next(false); },
   finish() { const a = this.a, S = a.S(); this.phase = -1; $('#svc').style.display = 'none'; document.body.classList.remove('service');
-    S.svcN = (S.svcN || 0) + 1; S.coins += 20; a.addXp(40); a.V.done('pray'); a.coinFx(); a.refreshHud(); a.persist();
+    S.svcN = (S.svcN || 0) + 1; S.coins += 20; window.W?.earn('service'); a.addXp(40); a.V.done('pray'); a.coinFx(); a.refreshHud(); a.persist();
     for (const n of a.npcs()) n.doEmote('jump'); a.dialog('예배를 마쳤어요 ✨', `함께 예배해 주셔서 고마워요!\n출석 보상 +20 달란트 · 경험치 +40 · 오늘의 미션 '기도' 완료`, [['아멘 🙏', null]]); },
   stop() { if (this.a.worshipOn()) this.a.endWorship(true); this.phase = -1; $('#svc').style.display = 'none'; document.body.classList.remove('service'); },
   // ---- 오늘의 인도자 (one per room)

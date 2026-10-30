@@ -38,7 +38,7 @@ function nextToast() { const it = tq.shift(); if (!it) { tbusy = 0; return; } tb
   setTimeout(() => { d.classList.add('out'); setTimeout(() => d.remove(), 400); nextToast(); }, 2300); }
 function modal(id, title, wide) { let m = document.getElementById(id); if (!m) { m = document.createElement('div'); m.id = id; m.className = 'modal'; m.innerHTML = `<div class="panel ${wide ? 'wide' : ''}"><button class="close">✕</button><h2>${title}</h2><div class="body"></div></div>`; document.body.append(m); m.querySelector('.close').onclick = () => G().closeModal(); } return m; }
 function toggle(id, fn) { if (G().modal === '#' + id) { G().closeModal(); return; } fn(); }
-function addCoins(n) { S().coins += n; G().coinFx(); G().refreshHud(); save(); }
+function addCoins(n) { S().coins += n; window.W?.earn('collect', n); G().coinFx(); G().refreshHud(); save(); }
 function celebrate(text) { const f = document.createElement('div'); f.className = 'p2cele'; f.innerHTML = `<div>${text}</div>` + Array.from({ length: 24 }, (_, i) => `<i style="--a:${i * 15}deg;--d:${(i % 4) * .08}s"></i>`).join(''); document.body.append(f); sfx('fanfare'); setTimeout(() => f.remove(), 2600); }
 function ach(id, label) { const p = st(); if (p.ach[id]) return; p.ach[id] = today(); celebrate('🏆 업적 달성!<br><b>' + label + '</b>'); save(); }
 
@@ -67,7 +67,7 @@ const seatApi = { seatTaken: i => seats.has(i) && seats.get(i).id !== 'me', clai
 // ---------- church tier ----------
 function setTotal(t, tr) { total = Math.max(total, +t || 0); tier = Math.max(tier, tr || 1); const ins = G().inside; if (ins) ins.tier = ART(tier); lvHud(); }
 async function loadTotal() { const d = G().V?.current?.(), sb = G().net?.sb; if (!d) { const L = +localStorage.getItem('p2_local_total') || 0; setTotal(L, lvOf(L)); return; }
-  try { const r = await sb.from('churches').select('total').eq('dong', d.cd).maybeSingle(); const t = r.data?.total || 0; const tr = await sb.rpc('church_tier', { t }); setTotal(t, tr.data || 1); } catch { } }
+  try { const r = await sb.from('churches').select('total').eq('dong', d.cd === '0' ? '0000000000' : d.cd).maybeSingle(); const t = r.data?.total || 0; const tr = await sb.rpc('church_tier', { t }); setTotal(t, tr.data || 1); } catch { } }
 function upgradeFx() { if (!Aud.P().nlvl) return; celebrate(`⛪ 예배당이 새로워졌어요!<br><b>Lv${tier} ${LEVELS[tier - 1]?.name || ''}</b>`); voiceCat('pastor', 'upgrade'); }
 
 // ---------- offering ritual ----------
@@ -75,27 +75,40 @@ function openOffer(atBox) { if (!S()) return; const m = modal('p2offer', '💝 �
   b.innerHTML = `<p class="mnote">${atBox ? '⛪ 예배당 헌금함 앞이에요 · 더 큰 축복의 기회!' : '어디서든 감사의 마음을 드릴 수 있어요'}</p>
   <div class="row amt">${[10, 30, 100, 300].map(a => `<button class="am" data-a="${a}" ${S().coins < a ? 'disabled' : ''}>${TAL}${a}</button>`).join('')}</div>
   <input id="p2pray" maxlength="40" placeholder="기도제목 한 줄 (선택 · 기도벽에 올라가요)">
-  <p class="mnote">내 달란트: <b>${S().coins}</b> · 게임 속 달란트로만 드려요 (실제 결제 없음)</p><button id="p2give" class="big" disabled>헌금 드리기</button>`;
+  <p class="mnote">내 달란트: <b>${S().coins}</b> · 게임 속 달란트로만 드려요 (실제 결제 없음) · <a href="#" id="p2odds">🎲 확률 보기</a></p><button id="p2give" class="big" disabled>헌금 드리기</button>`;
+  $('#p2odds').onclick = e => { e.preventDefault(); openOdds(); };
   let amt = 0; b.querySelectorAll('.am').forEach(x => x.onclick = () => { amt = +x.dataset.a; b.querySelectorAll('.am').forEach(y => y.classList.toggle('on', y === x)); $('#p2give').disabled = false; sfx('click'); });
   $('#p2give').onclick = () => give(amt, $('#p2pray').value.trim(), atBox);
   G().openModal('#p2offer'); }
+async function openOdds() { let rows = await window.W?.odds?.().catch(() => null); const pool = C().gacha.pool, tw = pool.reduce((a, p) => a + p.w, 0);
+  if (!rows) rows = pool.map(p => ({ name: p.name, rar: p.rar, pct: +(100 * p.w / tw).toFixed(2), pct_box: null }));
+  const m = modal('p2odds_m', '🎲 축복 선물 확률'); m.querySelector('.body').innerHTML = `<p class="mnote">헌금(게임 속 달란트)을 드리면 아래 확률로 선물 1개를 받아요. 확률은 서버에서 정하고 기록돼요. 실제 돈으로는 뽑을 수 없어요.</p>
+  <table class="odds"><tr><th>선물</th><th>등급</th><th>확률</th><th>헌금함 앞</th></tr>${rows.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.rar)}</td><td>${r.pct}%</td><td>${r.pct_box ?? '-'}%</td></tr>`).join('')}</table>
+  <p class="mnote">이미 가진 장신구가 나오면 ${C().gacha.dupRefund}달란트로 돌려드려요 · 40% 확률로 위 선물 대신 옷장 코스튬(외형만)이 나와요</p><button class="big" onclick="G.closeModal()">확인</button>`; G().openModal('#p2odds_m'); }
 function roll(atBox) { const pool = C().gacha.pool.map(p => ({ ...p, w: p.rar === '일반' ? p.w : p.w * (atBox ? 1.8 : 1) })); let r = Math.random() * pool.reduce((a, p) => a + p.w, 0); for (const p of pool) if ((r -= p.w) < 0) return p; return pool[0]; }
 async function give(amt, pray, atBox) { const s = S(); if (!amt || s.coins < amt) return; s.coins -= amt; G().refreshHud(); G().closeModal(); save();
   const pl = G().player; pl.kneel = 1; sfx('page');
-  const it = (window.AV && Math.random() < .4 && window.AV.rollCos(atBox, s.cos ||= [])) || roll(atBox), v = VERSES[Math.floor(Math.random() * VERSES.length)];
+  const d = G().V?.current?.(), net = G().net, online = !!(d && net?.sb && window.W?.online);
+  // server decides the reward (server-side random + gacha_logs); local roll only when offline
+  const srv = online ? Promise.resolve(net.sb.rpc('offer', { p_dong: d.cd, p_dong_name: d.name, p_name: s.name, p_amount: amt, p_secret: net.secret(), p_at_box: !!atBox })).catch(e => ({ error: e })) : null;
+  const v = VERSES[Math.floor(Math.random() * VERSES.length)];
   const fx = document.createElement('div'); fx.id = 'p2ritual'; fx.className = atBox ? 'grand' : ''; fx.innerHTML = `<canvas></canvas><small>탭하면 건너뛰기</small>`; document.body.append(fx);
   const cv = fx.querySelector('canvas'); let skip = false; fx.onclick = () => skip = true;
   const t0 = performance.now(), D = atBox ? 3600 : 3000; setTimeout(() => sfx('bell'), 200); setTimeout(() => sfx('amen'), 1500);
   await new Promise(res => { const step = () => { const t = (performance.now() - t0) / D; drawRitual(cv, Math.min(1, t), atBox); if (t >= 1 || skip) return res(); requestAnimationFrame(step); }; step(); });
-  fx.remove(); pl.kneel = 0;
+  const R = srv ? await srv : null; fx.remove(); pl.kneel = 0;
+  if (R && (R.error || !R.data)) { const m = String(R.error?.message || ''); s.coins += amt; await window.W?.sync(); G().refreshHud(); return G().toast(m.includes('insufficient') ? '달란트가 부족해요' : m.includes('rate') || m.includes('cap') ? '잠시 후 다시 드려주세요 🙏' : '헌금을 전하지 못했어요. 잠시 후 다시 시도해요'); }
+  const SI = R?.data?.item; let it;
+  if (SI) it = (SI.cos && window.AV && window.AV.rollCos(atBox, s.cos ||= [])) || C().gacha.pool.find(p => p.id === SI.id) || { id: SI.id, name: SI.name, rar: SI.rar, kind: SI.kind === 'decor' ? 'decor' : undefined };
+  else it = (window.AV && Math.random() < .4 && window.AV.rollCos(atBox, s.cos ||= [])) || roll(atBox);
   // reward
   const p = st(); p.offered += amt; p.fruit += 1; let dup = false, glass = null;
-  if (it.kind === 'cos') { s.cos ||= []; s.cos.push(it.id); } else if (it.kind === 'decor') s.decorInv[it.id] = (s.decorInv[it.id] || 0) + 1; else if (s.inv.includes(it.id)) { dup = true; s.coins += C().gacha.dupRefund; } else s.inv.push(it.id);
-  if (Math.random() < (atBox ? .6 : .35)) glass = addGlass();
+  if (it.kind === 'cos') { s.cos ||= []; s.cos.push(it.id); } else if (it.kind === 'decor') s.decorInv[it.id] = (s.decorInv[it.id] || 0) + 1; else if (s.inv.includes(it.id)) { dup = true; if (!R) s.coins += C().gacha.dupRefund; } else s.inv.push(it.id);
+  if (SI ? SI.glass : Math.random() < (atBox ? .6 : .35)) glass = addGlass();
+  if (R?.data && typeof R.data.talent === 'number') s.coins = R.data.talent;
   G().addXp(Math.round(amt / 5) + 5); save(); reveal(it, v, dup, glass, atBox);
   // server: dong gauge / leaderboard / broadcast
-  const d = G().V?.current?.(), net = G().net;
-  if (d && net?.sb) { try { const r = await net.sb.rpc('offer', { p_dong: d.cd, p_dong_name: d.name, p_name: s.name, p_amount: Math.min(500, amt), p_secret: net.secret() }); if (!r.error && r.data) { const before = tier; const tr = (await net.sb.rpc('church_tier', { t: r.data.total })).data || tier; setTotal(r.data.total, tr); net.send('offer', { name: s.name, amount: amt, total: r.data.total, tier: tr }); if (tr > before) { net.send('tier', { tier: tr, total: r.data.total }); setTimeout(upgradeFx, 2500); } } } catch (e) { console.warn('[offer]', e); } }
+  if (R) { try { const r = R; if (!r.error && r.data) { const before = tier; const tr = (await net.sb.rpc('church_tier', { t: r.data.total })).data || tier; setTotal(r.data.total, tr); net.send('offer', { name: s.name, amount: amt, total: r.data.total, tier: tr }); if (tr > before) { net.send('tier', { tier: tr, total: r.data.total }); setTimeout(upgradeFx, 2500); } } } catch (e) { console.warn('[offer]', e); } }
   else { const L = (+localStorage.getItem('p2_local_total') || 0) + amt; localStorage.setItem('p2_local_total', L); const before = tier; setTotal(L, L >= 5000 ? 3 : L >= 1000 ? 2 : 1); if (tier > before) setTimeout(upgradeFx, 2500); }
   if (pray && d && net?.sb) { try { await net.postPrayer(d.cd, s.name, pray.slice(0, 40), true); } catch { } }
   if (p.offered >= 1000) ach('off1000', '헌금 1000달란트'); }
@@ -122,7 +135,7 @@ function openShop(sh) { const m = modal('p2shop', '🛍️ 상점', true); m.que
     m.querySelectorAll('.sitem').forEach(b => b.onclick = () => buy(sh, C().shopItems[sh.id][+b.dataset.i], draw));
     if (sh.id === 'clothes' && window.Cust) { const bd = m.querySelector('.body'); bd.insertAdjacentHTML('afterbegin', `<button class="big" id="shopcz" style="width:100%;margin-bottom:8px">👗 캐릭터 꾸미기 (성별·나이·헤어·옷)</button>`); bd.querySelector('#shopcz').onclick = () => { G().closeModal(); window.Cust.open(); }; window.Cust.shelf(bd, draw); } };
   draw(); G().openModal('#p2shop'); sfx('door'); }
-function buy(sh, x, redraw) { const s = S(); if (s.coins < x.price) return; s.coins -= x.price; const f = itemInfo(x);
+function buy(sh, x, redraw) { const s = S(); if (s.coins < x.price) return; s.coins -= x.price; window.W?.spend(x.price, 'shop:' + x.id); const f = itemInfo(x);
   if (x.kind === 'acc') s.inv.push(x.id); else if (x.kind === 'decor') s.decorInv[x.id] = (s.decorInv[x.id] || 0) + 1; else { st().food++; G().addXp(x.xp || 5); }
   G().refreshHud(); G().coinFx(); save(); sfx('coin'); G().toast(x.kind === 'food' ? `${f.icon} ${f.name} 냠냠! 경험치 +${x.xp}` : `🛍️ ${f.name}을(를) 샀어요 · 가방(I)에서 확인`); redraw(); }
 

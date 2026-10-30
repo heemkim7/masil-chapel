@@ -29,7 +29,7 @@ export const C = {
     const st = this.st(), S = this.a.S(); this.gone.add(room + it.id); st.picked.push(room + it.id); if (st.picked.length > 400) st.picked.splice(0, 100);
     this.a.net.send('pick', { iid: it.id, room }); this.pop(it);
     const g = Math.min(it.kd.gold, DAY_CAP - st.gold); st.n++;
-    if (g > 0) { st.gold += g; S.coins += g; this.a.coinFx(); this.a.toast(`${it.kd.rare ? '🌈 희귀! ' : '✨ '}${it.kd.name} +${g} 달란트 (오늘 ${st.gold}/${DAY_CAP})`); }
+    if (g > 0) { st.gold += g; S.coins += g; window.W?.earn('collect', g); this.a.coinFx(); this.a.toast(`${it.kd.rare ? '🌈 희귀! ' : '✨ '}${it.kd.name} +${g} 달란트 (오늘 ${st.gold}/${DAY_CAP})`); }
     else this.a.toast(`✨ ${it.kd.name} — 오늘 모을 수 있는 달란트를 다 모았어요! 내일 또 만나요`);
     this.a.refreshHud(); this.a.persist(); },
   pop(it) { this.fx.push({ x: it.x, y: it.y, t: 0, kd: it.kd }); },

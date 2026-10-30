@@ -9,6 +9,7 @@ import { World, Char, rr } from './world.js';
 import { Interior } from './interior.js';
 import * as St from './state.js';
 import { Net } from './net.js';
+import { W } from './wallet.js';
 import { C as Col } from './collect.js';
 import { Svc } from './service.js';
 import { V } from './v6.js';
@@ -75,7 +76,7 @@ function startGame(save) { touchSess();
   for (const n of cfg.interiorNpcs) { let x = n.x, y = n.y; if (n.pew != null) { const st = inside.seat(n.pew); x = st.x; y = st.y; }
     const c = new Char(SP, n.char, n.outfit, x, y, { name: n.name, tagColor: n.sit ? '#d7e6ff' : '#c8f7d6', cfg }); c.id = n.id; c.sit = !!n.sit; c.pewI = n.pew; c.face = n.sit ? 'W' : n.id === 'pastor' ? 'E' : c.face; inNpcs.push(c); }
   if (S.scene === 'inside') enterChapel(true); else { scene = 'field'; let p = S.pos || { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; if (!world.walkable(p.x, p.y)) p = { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; player.x = p.x; player.y = p.y; }
-  spawnPickups(); snapCam(); refreshHud(); persist(); netReady ||= net.init(); toast(`${S.name}님, 마실채플에 오신 걸 환영해요!`);
+  spawnPickups(); snapCam(); refreshHud(); persist(); netReady ||= net.init(); Promise.resolve(netReady).then(() => W.sync()); toast(`${S.name}님, 마실채플에 오신 걸 환영해요!`);
   if (!S.dong && !S.solo && !S.hintDong) { S.hintDong = 1; setTimeout(() => toast('🌈 지금은 모두의 광장이에요. 위쪽 📍 버튼으로 우리 동네를 인증하면 동네 방에 들어가요'), 2500); }
 }
 // ---------- multiplayer glue ----------
@@ -127,7 +128,7 @@ function talkTo(npc) {
     if (q.stage === 0) { dialog('목사님', '어서 와요! 우리 마을 친구 하은이와 양이에게 먼저 인사해 볼래요? 바깥 마당에 있어요.', [['네! 다녀올게요', () => { q.stage = 1; }]]); npc.doEmote('wave'); }
     else if (q.stage === 1) dialog('목사님', '하은이와 양이를 만나고 오세요 😊');
     else if (q.stage === 2) dialog('목사님', `섬 곳곳에 축복의 별과 꽃잎 ${cfg.quest.needStars}개가 숨겨져 있대요. (${q.got.length}/${cfg.quest.needStars})`);
-    else if (q.stage === 3) { npc.doEmote('pray'); dialog('목사님', `와! 별을 모두 모아왔군요. 고마워요! 헌금 달란트 ${cfg.quest.rewardCoins}개를 드릴게요. 이제 예배에 함께해요!`, [['감사합니다!', () => { S.coins += cfg.quest.rewardCoins; addXp(cfg.quest.rewardXp); q.stage = 4; coinFx(); }]]); }
+    else if (q.stage === 3) { npc.doEmote('pray'); dialog('목사님', `와! 별을 모두 모아왔군요. 고마워요! 헌금 달란트 ${cfg.quest.rewardCoins}개를 드릴게요. 이제 예배에 함께해요!`, [['감사합니다!', () => { S.coins += cfg.quest.rewardCoins; W.earn('quest'); addXp(cfg.quest.rewardXp); q.stage = 4; coinFx(); }]]); }
     else if (q.stage === 4) dialog('목사님', '곧 찬양 예배가 시작돼요. 함께 찬양할까요? 박자에 맞춰 ♪ 버튼(스페이스/E)을 눌러요.', svcOpts([['조금 있다가', null]]));
     else dialog('목사님', '오늘도 함께해서 기뻐요. 또 별을 찾아 줄래요? 아니면 예배를 한 번 더 드릴까요?', [['새 별 찾기', () => { q.stage = 2; q.got = []; q.round++; spawnPickups(); }], ...svcOpts([['괜찮아요', null]])]);
   } else if (id === 'haeun' || id === 'lamb') {
@@ -203,7 +204,7 @@ function updateWorship(dt) {
   if (w.t > w.end) finishWorship();
 }
 function finishWorship() { try { window.Aud?.stopMusic(); scene === 'inside' && window.Aud?.music('old100'); } catch { } const w = worship; worship = null; document.body.classList.remove('worship'); $('#worship').style.display = 'none';
-  const coins = w.hits * cfg.worship.coinPerHit + w.perfect * 4, xp = w.hits * cfg.worship.xpPerHit; S.coins += coins; addXp(xp); S.worshipBest = Math.max(S.worshipBest || 0, w.hits);
+  const coins = w.hits * cfg.worship.coinPerHit + w.perfect * 4, xp = w.hits * cfg.worship.xpPerHit; S.coins += coins; W.earn('worship', coins); addXp(xp); S.worshipBest = Math.max(S.worshipBest || 0, w.hits);
   if (S.quest.stage === 4) S.quest.stage = 5; for (const n of inNpcs) n.doEmote(n.char === 'pastor' ? 'pray' : 'jump');
   if (w.svc) { toast(`🎵 찬양 ${w.hits}/${w.notes.length} · 달란트 +${coins}`); coinFx(); refreshHud(); persist(); Svc.afterPraise(); return; }
   dialog('찬양 예배 끝!', `${w.hits}/${w.notes.length} 박자 성공 (완벽 ${w.perfect})\n헌금 달란트 +${coins} · 예배당 경험치 +${xp}`, [['아멘 🙏', null]]); coinFx(); refreshHud(); persist(); }

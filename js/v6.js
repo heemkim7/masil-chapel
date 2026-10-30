@@ -119,9 +119,9 @@ export const V = {
   // ---------- missions ----------
   mis() { const S = this.S; if (!S.mis || S.mis.date !== today()) S.mis = { date: today(), done: {} }; return S.mis; },
   lv() { const x = this.S.mxp || 0; return 1 + Math.floor(x / 4); },
-  done(k) { const m = this.mis(); if (m.done[k]) return; m.done[k] = 1; const S = this.S; S.mxp = (S.mxp || 0) + 1; S.coins += 20; A.addXp(6); A.coinFx();
+  done(k) { const m = this.mis(); if (m.done[k]) return; m.done[k] = 1; const S = this.S; S.mxp = (S.mxp || 0) + 1; S.coins += 20; window.W?.earn('mission'); A.addXp(6); A.coinFx();
     const M = MISSIONS.find(q => q[0] === k), n = Object.keys(m.done).length; A.toast(`${M[1]} 오늘의 임무 '${M[2]}' 완료! +20달란트 (${n}/4)`);
-    if (n === 4) setTimeout(() => A.toast('🎉 오늘의 임무를 모두 마쳤어요! 보너스 +50달란트'), 2700), S.coins += 50; this.hud(); A.persist(); },
+    if (n === 4) setTimeout(() => A.toast('🎉 오늘의 임무를 모두 마쳤어요! 보너스 +50달란트'), 2700), (S.coins += 50, window.W?.earn('mission_bonus')); this.hud(); A.persist(); },
   openMissions() { A.openModal('#missions'); const m = this.mis(); $('#mlv').textContent = `Lv.${this.lv()} · 오늘 ${Object.keys(m.done).length}/4`;
     $('#mlist').innerHTML = MISSIONS.map(([k, ic, t, d]) => `<div class="mi ${m.done[k] ? 'ok' : ''}"><span>${ic}</span><div><b>${t}</b><small>${d}</small></div><em>${m.done[k] ? '✅' : '⬜'}</em></div>`).join(''); },
   // ---------- praise mode ----------
