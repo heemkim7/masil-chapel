@@ -177,8 +177,8 @@ function cpRender() { const P = $('#chplan'), T = P.querySelector('.cp-tabs'), L
   L.innerHTML = CP[cpTab].rooms.map(([id, ic, nm, sub, x, y, w, h, cls]) => `<button class="cp-room ${cls || ''}" data-room="${id}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><span class="ic">${ic}</span>${nm}<small>${sub}</small>${id === 'hall' ? '<span class="cp-rows">' + '<i></i>'.repeat(8) + '</span>' : ''}</button>`).join('') + (cpTab === '1F' ? '<span class="cp-you">▲ 지금 여기 (정문)</span><span class="cp-door">🚪 정문</span>' : '');
   T.querySelectorAll('button').forEach(b => b.onclick = () => { cpTab = b.dataset.f; cpRender(); });
   L.querySelectorAll('.cp-room').forEach(b => b.onclick = () => cpPick(b.dataset.room)); }
-function cpPick(id) { closeModal(); (CPGO[id] || enterChapel)(); }
-function openChPlan() { cpTab = '1F'; cpRender(); const P = $('#chplan'); P.querySelector('.cp-go').onclick = () => cpPick('hall'); P.querySelector('.cp-stay').onclick = () => closeModal(); P.querySelector('.close').onclick = () => closeModal(); openModal('#chplan'); clickTarget = null; cpPending = false; }
+function cpPick(id) { if (performance.now() - (+$('#chplan').dataset.t0 || 0) < 450) return; closeModal(); (CPGO[id] || enterChapel)(); }
+function openChPlan() { cpTab = '1F'; cpRender(); const P = $('#chplan'); const t0 = performance.now(), ok = () => performance.now() - t0 > 450; /* ignore the touch ghost-click that follows the opening tap */ P.querySelector('.cp-go').onclick = () => ok() && cpPick('hall'); P.querySelector('.cp-stay').onclick = () => ok() && closeModal(); P.querySelector('.close').onclick = () => ok() && closeModal(); P.dataset.t0 = t0; openModal('#chplan'); clickTarget = null; cpPending = false; }
 let cpPending = false;
 function nearest() {
   let best = null, bd = 140;

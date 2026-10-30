@@ -150,13 +150,13 @@ function resize() { vw = innerWidth; vh = innerHeight; const coarse = matchMedia
   el.classList.toggle('wh-portrait', hh < vh - 120); panX = null; }
 
 // ---------------- open / close
-export function enter(opt = {}) { const g = G(); if (!g || !g.S) return; ensureDom(); mode = opt.mode || (kstNow().getUTCHours() >= 4 && kstNow().getUTCHours() < 6 ? 'dawn' : 'service'); weather = opt.weather || 'auto';
+export function enter(opt = {}) { const g = G(); if (!g || !g.S) return; VO.prime(); ensureDom(); mode = opt.mode || (kstNow().getUTCHours() >= 4 && kstNow().getUTCHours() < 6 ? 'dawn' : 'service'); weather = opt.weather || 'auto';
   if (!L) L = layout(); buildPilgrims(); pickMySeat(); buildStaff(); open = true; window.__whOpen = true; el.style.display = 'block'; document.body.classList.add('wh-open'); resize(); bgT = null; enterT = performance.now(); lastPh = -1;
   ripple = null; react = null; fx = []; me.walk = opt.instant ? null : walker(pathIn(L.seats[me.seat]), g.player.av, () => sendPres(true), 340); setView(view); camU = 1; me.st = 'sit'; me.act = null; me.hands = false; startAmbience(); sendPres(true); lastT = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
   $('#wh-name').textContent = mode === 'dawn' ? '새벽기도 · 본당' : '본당 예배'; if (!localStorage.getItem('wh_seen')) { localStorage.setItem('wh_seen', '1'); setTimeout(() => wt('안내위원: 환영해요! 아래 기도 · 찬양 · 아멘으로 함께 예배해요'), 600); }
   try { window.Aud?.stopHymn?.(); } catch { } }
 export function leave() { if (!open) return; if (me.leaving) return close(); const st = L.seats[me.seat]; me.leaving = true; G()?.net?.send('wh', { k: 'out' }); me.walk = walker(st ? pathOut(st) : [DOOR, DOOR], G().player.av, () => { me.leaving = false; close(); }, 520); setTimeout(() => { if (me.leaving) { me.leaving = false; close(); } }, 4500); }
-export function close() { if (!open) return; open = false; window.__whOpen = false; el.style.display = 'none'; document.body.classList.remove('wh-open'); cancelAnimationFrame(raf); stopAmbience(); G()?.net?.send('wh', { k: 'bye' }); sheet(null); }
+export function close() { if (!open) return; open = false; VO.stop(); window.__whOpen = false; el.style.display = 'none'; document.body.classList.remove('wh-open'); cancelAnimationFrame(raf); stopAmbience(); G()?.net?.send('wh', { k: 'bye' }); sheet(null); }
 
 function buildPilgrims() { const r = rnd(hash('pilgrims' + (mode === 'dawn' ? 'd' : ''))); const n = L.seats.length; pil = [];
   const dens = mode === 'dawn' ? .38 : .84; for (let i = 0; i < n; i++) { const on = r() < dens; pil.push(on ? { av: pilgrimAv(r), name: 'NPC 순례자 ' + PN[Math.floor(r() * PN.length)], ph: r() * 6.28, sing: r(), pray: r(), echo: r() } : null); } }
@@ -353,6 +353,19 @@ let subKey = '';
 function onPhase(P) { const g = G(), p = P.p; if (lastPh >= 0) { if (p.k === 'song') { try { window.Aud?.music?.(p.song ? 'joy' : 'old100'); } catch { } } else { try { window.Aud?.stopHymn?.(); window.Aud?.el?.pause?.(); } catch { } } }
   if (p.k !== 'song' && me.st === 'sing') me.st = 'sit'; if (p.k !== 'song') me.hands = false; syncBar();
   if (p.k === 'news' && !localStorage.getItem('wh_newbie')) { localStorage.setItem('wh_newbie', '1'); setTimeout(() => { if (open) { wt(`새가족 ${g.S.name}님, 환영합니다!`); reaction('아멘'); echoAmen(L.seats[me.seat], true); } }, 3500); } }
+// ---------------- pastor/staff voice: pre-generated Korean mp3 per subtitle line (tools/gen_voice.py), Web Speech ko-KR fallback; ducks BGM; respects mute/volume/voice pref
+const VO = { a: null, id: null, man: null, mode: '', tts: 0, err: 0,
+  load() { if (this.man) return; this.man = {}; fetch('assets/audio/voice/manifest.json').then(r => r.json()).then(m => { this.man = m; }).catch(() => { }); },
+  prime() { this.load(); if (!this.a) { const a = this.a = new Audio(); a.preload = 'auto'; a.onended = a.onpause = () => this.duck(false); a.onplay = () => this.duck(true); a.onerror = () => { if (this.id && this.mode === 'mp3') { this.err++; this.speak(this.txt); } }; }
+    try { const a = this.a; a.muted = true; a.src = 'assets/audio/voice/p1_3.mp3'; a.play().then(() => { a.pause(); a.muted = false; }).catch(() => { a.muted = false; }); } catch { } }, // called inside the entering tap so mobile unlocks playback
+  on() { const A = window.Aud; return !!A && !A.muted && A.P().voice !== false; },
+  duck(d) { const A = window.Aud; if (A) A.duck = d ? .25 : 1; },
+  stop() { this.id = null; try { this.a && this.a.pause(); } catch { } try { speechSynthesis.cancel(); } catch { } this.duck(false); },
+  say(id, text, rem) { if (!this.on()) { if (this.id) this.stop(); return; } if (id === this.id || rem < 2) return; this.stop(); this.id = id; this.txt = text; const d = this.man && this.man[id];
+    if (d && this.a && d <= rem + 1) { this.mode = 'mp3'; const a = this.a; a.src = `assets/audio/voice/p${id}.mp3`; a.volume = Math.min(1, (window.Aud?.vol ?? .7) * 1.2); a.play().catch(() => { this.err++; this.speak(text); }); }
+    else this.speak(text); },
+  speak(t) { this.mode = 'tts'; try { const u = new SpeechSynthesisUtterance(t); u.lang = 'ko-KR'; u.rate = .9; u.volume = Math.min(1, window.Aud?.vol ?? .7); u.onstart = () => { this.tts++; this.duck(true); }; u.onend = u.onerror = () => this.duck(false); speechSynthesis.cancel(); speechSynthesis.speak(u); } catch { } } };
+VO.load();
 function hudText(P) { const p = P.p, occ = occurrences(), live = occ.find(o => o.live), nx = occ.find(o => !o.live);
   const key = `${P.i}|${Math.floor(P.t / 2)}|${live?.e.id}|${Math.floor(Date.now() / 30e3)}`; if (key === subKey) return; subKey = key;
   $('#wh-ph').textContent = `${p.n} · ${P.i + 1}/${PH.length}`;
@@ -360,8 +373,9 @@ function hudText(P) { const p = P.p, occ = occurrences(), live = occ.find(o => o
   const who = STAFF.find(x => x.id === p.who); $('#wh-who').textContent = p.k === 'song' ? `${who.role} · ${SONGS[p.song].t}` : `${who.role} ${who.name}`;
   let line; if (p.k === 'song') { const L2 = SONGS[p.song].l, per = p.dur / L2.length, li = Math.min(L2.length - 1, Math.floor(P.t / per)), nxt = L2[li + 1];
     line = `<span class="ly on">${esc(L2[li])}</span>${nxt ? `<span class="ly">${esc(nxt)}</span>` : ''}`; }
-  else if (p.k === 'word' && P.t < 10) line = `<span class="vs">${esc(p.verse)}</span>`;
-  else { const Ls = p.lines, off = p.k === 'word' ? 10 : 0, per = (p.dur - off) / Ls.length; line = esc(Ls[Math.min(Ls.length - 1, Math.max(0, Math.floor((P.t - off) / per)))]); }
+  else if (p.k === 'word' && P.t < 10) { line = `<span class="vs">${esc(p.verse)}</span>`; VO.say(`${P.i}_v`, p.verse.split(' (')[0], 10 - P.t); }
+  else { const Ls = p.lines, off = p.k === 'word' ? 10 : 0, per = (p.dur - off) / Ls.length, li = Math.min(Ls.length - 1, Math.max(0, Math.floor((P.t - off) / per))); line = esc(Ls[li]); VO.say(`${P.i}_${li}`, Ls[li], off + (li + 1) * per - P.t); }
+  if (p.k === 'song') VO.stop();
   $('#wh-line').innerHTML = line; syncBar(); }
 
 // ---------------- attendance streak (free 달란트 only)
@@ -455,7 +469,7 @@ function startAmbience() { const A = window.Aud; if (!A?.ctx || A.muted) return;
 function stopAmbience() { if (!audio) return; try { const c = window.Aud.ctx; audio.g.gain.setTargetAtTime(0, c.currentTime, .3); const a = audio; setTimeout(() => { try { a.src.stop(); a.s2?.stop(); } catch { } }, 900); } catch { } audio = null; }
 
 // ---------------- QA hooks: simulated clients + fps
-export const WH = { fxTest() { ripple = { t0: performance.now(), x: PUL.x, y: 700 }; }, enter, close, leave, setView, cycleView, get view() { return view; }, get fr() { return fr; }, tapSeat: i => { const st = L.seats[i]; if (st) { const T = curT || { s, x: ox, y: oy }; tap(st.x * T.s + T.x, (st.y - st.h * .5) * T.s + T.y); } }, emptySeats: () => L.seats.filter(x => !pil[x.i] && x.i !== me.seat && !seatPeer(x.i)).map(x => x.i), get walking() { return !!me.walk; }, get open() { return open; }, get fps() { return fps; }, seats: () => L?.seats.length || 0, get peers() { return peers; }, phaseAt, occurrences, setWeather: w => { weather = w; bgT = null; }, act, sheet, spot,
+export const WH = { get vo() { const a = VO.a; return { id: VO.id, mode: VO.mode, t: a ? a.currentTime : 0, paused: a ? a.paused : true, src: a ? a.src : '', tts: VO.tts, err: VO.err, duck: window.Aud?.duck ?? 1 }; }, fxTest() { ripple = { t0: performance.now(), x: PUL.x, y: 700 }; }, enter, close, leave, setView, cycleView, get view() { return view; }, get fr() { return fr; }, tapSeat: i => { const st = L.seats[i]; if (st) { const T = curT || { s, x: ox, y: oy }; tap(st.x * T.s + T.x, (st.y - st.h * .5) * T.s + T.y); } }, emptySeats: () => L.seats.filter(x => !pil[x.i] && x.i !== me.seat && !seatPeer(x.i)).map(x => x.i), get walking() { return !!me.walk; }, get open() { return open; }, get fps() { return fps; }, seats: () => L?.seats.length || 0, get peers() { return peers; }, phaseAt, occurrences, setWeather: w => { weather = w; bgT = null; }, act, sheet, spot,
   simulate(n = 20) { for (let i = 0; i < n; i++) { const id = 'sim' + (simN++); onNet({ id, k: 'p', s: (hash(id) % (L?.seats.length || 100)), n: '테스트' + i, av: pilgrimAv(rnd(hash(id))), st: i % 3 ? 'sing' : 'pray', hd: i % 2 }); }
     clearInterval(WH._sim); WH._sim = setInterval(() => { for (const [id] of peers) if (id.startsWith('sim')) { if (Math.random() < .08) onNet({ id, k: 'a', a: 'amen' }); else onNet({ id, k: 'p', s: peers.get(id).seat, n: peers.get(id).name, av: peers.get(id).av, st: peers.get(id).st, hd: 0 }); } }, 1000); },
   onNet, get me() { return me; } };

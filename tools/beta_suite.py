@@ -149,6 +149,22 @@ with sync_playwright() as p:
             pg.click('#chplan .cp-go'); pg.wait_for_timeout(2500)
             rec(t + '.planEntersHall', pg.evaluate("WH.open"), '')
             rec(t + '.noerr', not errs, '; '.join(errs[:3])); c.close()
+    # ---- pastor voice + real touch entrance (Date shifted so the sermon phase is live)
+    if want('voice'):
+        EP = 1767225600000; CYC = 272000; now = time.time() * 1000; off = EP + ((now - EP) // CYC) * CYC + 76500 - now
+        for w, h in ((390, 844), (1366, 768)):
+            mob = w < 800; c = b.new_context(viewport={'width': w, 'height': h}, has_touch=mob, is_mobile=mob)
+            c.add_init_script("(()=>{const o=Date.now.bind(Date),d=%d;Date.now=()=>o()+d})()" % off)
+            pg, errs, c = boot(b, w, h, ctx=c); start(pg); pg.wait_for_timeout(2000); t = f'voice.{w}x{h}'
+            r = pg.evaluate("G.chapelScreen()"); x, y = r['x'] + r['w'] * .45, max(140, r['y'] + r['h'] * .55)
+            (pg.touchscreen.tap if mob else pg.mouse.click)(x, y); pg.wait_for_timeout(800)
+            rec(t + '.planShownNotSkipped', pg.evaluate("document.querySelector('#chplan').style.display === 'flex' && !WH.open"), '')
+            pg.click('#chplan .cp-go'); pg.wait_for_timeout(4000); a = pg.evaluate("WH.vo"); pg.wait_for_timeout(1500); b2 = pg.evaluate("WH.vo")
+            rec(t + '.mp3Plays', b2['mode'] == 'mp3' and not b2['paused'] and (b2['t'] > a['t'] or b2['id'] != a['id']) and b2['t'] > 0 and '/voice/p2_' in b2['src'], str({k: b2[k] for k in ('id', 'mode', 't', 'paused')}))
+            rec(t + '.bgmDucked', b2['duck'] < .5, str(b2['duck']))
+            pg.evaluate("Aud.setMuted(true)"); pg.wait_for_timeout(2500); m = pg.evaluate("WH.vo")
+            rec(t + '.muteStops', m['paused'] and m['duck'] == 1, str({k: m[k] for k in ('paused', 'duck')}))
+            rec(t + '.noerr', not errs, '; '.join(errs[:3])); c.close()
     b.close()
 ok = sum(r['ok'] for r in R); print(json.dumps({'pass': ok, 'total': len(R), 'fail': [r for r in R if not r['ok']]}, ensure_ascii=False))
 json.dump(R, open('/tmp/beta_results.json', 'w'), ensure_ascii=False)

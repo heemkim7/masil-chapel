@@ -104,7 +104,7 @@ export const Aud = {
     if (this.ambBuf && !this.amb) { const s = c.createBufferSource(), g = c.createGain(); s.buffer = this.ambBuf; s.loop = true; s.loopStart = 0; s.loopEnd = Math.min(this.AMB_LEN, this.ambBuf.duration); g.gain.value = 0; s.connect(g); g.connect(this.out); s.start(); this.amb = { s, g, t0: c.currentTime }; }
     // the out gain already carries mute + master volume; bgm pref/volume handled here. AMB_RATIO is relative to the chapel element (out.gain = vol).
     if (this.amb) this.amb.g.gain.setTargetAtTime(this.ambWant() ? p.bgmVol * this.AMB_RATIO / Math.max(.05, this.vol) : 0, c.currentTime, .5);
-    if (this.el) { const tgt = this.track && p.bgm ? 1 : 0; this.elFade += Math.sign(tgt - this.elFade) * Math.min(Math.abs(tgt - this.elFade), .14); this.el.volume = Math.max(0, Math.min(1, p.bgmVol * this.elFade * (this.muted ? 0 : 1)));
+    if (this.el) { const tgt = this.track && p.bgm ? 1 : 0; this.elFade += Math.sign(tgt - this.elFade) * Math.min(Math.abs(tgt - this.elFade), .14); this.el.volume = Math.max(0, Math.min(1, p.bgmVol * this.elFade * (this.muted ? 0 : 1) * (this.duck ?? 1)));
       if (this.elFade <= 0 && !this.el.paused) this.el.pause(); }
   },
   stopHymn() { if (this.hym) { clearTimeout(this.hym.to); this.hym = null; } if (this.mus && this.ctx) { const g = this.mus; g.gain.setTargetAtTime(0, this.ctx.currentTime, .15); const m = this.mus; this.mus = this.ctx.createGain(); this.mus.gain.value = .45; this.mus.connect(this.out); setTimeout(() => m.disconnect(), 1500); } },
