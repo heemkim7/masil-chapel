@@ -1,0 +1,258 @@
+// Phase 2: 달란트 currency, offering ritual, shops, collections/achievements, hotkeys, join toasts, seats, SFX, voices,
+// church tiers + leaderboard, nationwide dong map, per-dong village variation. In-game currency only (no real money).
+import { Aud } from './audio.js';
+import { Reader } from './reader.js';
+const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const G = () => window.G, C = () => G().cfg(), S = () => G().S;
+const TAL = '<img class="tal" src="assets/v7/ic_talent.webp" alt="">';
+const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const hash = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const RAR = { 일반: { c: '#8aa0c8', fx: 1 }, 희귀: { c: '#b06cff', fx: 2 }, 영웅: { c: '#ff6fa8', fx: 2 }, 전설: { c: '#ffb020', fx: 3 } };
+const VERSES = [['여호와는 나의 목자시니 내게 부족함이 없으리로다', '시편 23:1'], ['항상 기뻐하라 쉬지 말고 기도하라 범사에 감사하라', '데살로니가전서 5:16-18'], ['너희 염려를 다 주께 맡기라 이는 그가 너희를 돌보심이라', '베드로전서 5:7'], ['내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라', '빌립보서 4:13'], ['수고하고 무거운 짐 진 자들아 다 내게로 오라 내가 너희를 쉬게 하리라', '마태복음 11:28'], ['사랑은 오래 참고 사랑은 온유하며', '고린도전서 13:4'], ['너는 마음을 다하여 여호와를 신뢰하고', '잠언 3:5'], ['두려워하지 말라 내가 너와 함께 함이라', '이사야 41:10'], ['각각 그 마음에 정한 대로 할 것이요 인색함으로나 억지로 하지 말지니', '고린도후서 9:7'], ['너희는 세상의 빛이라', '마태복음 5:14']];
+const GLASS = [{ id: 'g1', name: '어린양의 창', n: 4 }, { id: 'g2', name: '비둘기의 창', n: 4 }, { id: 'g3', name: '빛의 십자가 창', n: 4 }];
+const BADGES = [[7, '🫒 올리브 잎'], [30, '🕊️ 비둘기'], [100, '🌟 빛의 비둘기']];
+const ART = t => t >= 4 ? 3 : t >= 2 ? 2 : 1; // server tier 1..5 → interior art 1..3
+let P, seats = new Map(), names = new Map(), joinMute = 0, tq = [], tbusy = 0, DL = null, tier = 1, total = 0, shards = [], vary = null, ritual = null, last = {};
+
+function st() { const s = S(); s.p2 ||= { shard: 0, fruit: 0, days: [], glass: {}, food: 0, ach: {}, offered: 0 }; return s.p2; }
+function save() { try { G().persist(); } catch { } }
+function sfx(n) { try { Aud.play(n); } catch { } }
+export function jtoast(text, sound = 'bell') { if (tq.length > 4) tq.shift(); tq.push([text, sound]); if (!tbusy) nextToast(); }
+function nextToast() { const it = tq.shift(); if (!it) { tbusy = 0; return; } tbusy = 1; const box = $('#jtoasts'); const d = document.createElement('div'); d.className = 'jt'; d.innerHTML = it[0]; box.append(d); if (it[1]) sfx(it[1]);
+  setTimeout(() => { d.classList.add('out'); setTimeout(() => d.remove(), 400); nextToast(); }, 2300); }
+function modal(id, title, wide) { let m = document.getElementById(id); if (!m) { m = document.createElement('div'); m.id = id; m.className = 'modal'; m.innerHTML = `<div class="panel ${wide ? 'wide' : ''}"><button class="close">✕</button><h2>${title}</h2><div class="body"></div></div>`; document.body.append(m); m.querySelector('.close').onclick = () => G().closeModal(); } return m; }
+function toggle(id, fn) { if (G().modal === '#' + id) { G().closeModal(); return; } fn(); }
+function addCoins(n) { S().coins += n; G().coinFx(); G().refreshHud(); save(); }
+function celebrate(text) { const f = document.createElement('div'); f.className = 'p2cele'; f.innerHTML = `<div>${text}</div>` + Array.from({ length: 24 }, (_, i) => `<i style="--a:${i * 15}deg;--d:${(i % 4) * .08}s"></i>`).join(''); document.body.append(f); sfx('fanfare'); setTimeout(() => f.remove(), 2600); }
+function ach(id, label) { const p = st(); if (p.ach[id]) return; p.ach[id] = today(); celebrate('🏆 업적 달성!<br><b>' + label + '</b>'); save(); }
+
+// ---------- currency / HUD ----------
+function renameCurrency() { const cb = $('#coinbox'); if (cb && !cb.querySelector('.tal')) { cb.innerHTML = `${TAL} <b id="coins">${S()?.coins ?? 0}</b><small>달란트</small>`; }
+  for (const b of document.querySelectorAll('#svgive button')) if (+b.dataset.g) b.textContent = b.dataset.g + ' 달란트';
+  const btn = $('#btn-gacha'); if (btn) btn.innerHTML = '💝<small>헌금하기</small>';
+  const ch = $('#btn-church'); if (ch) { ch.style.display = ''; ch.innerHTML = '🏆<small>순위</small>'; ch.onclick = () => toggle('church', openLead); }
+  const cd = $('#btn-candle'); if (cd) cd.style.display = 'none'; }
+
+// ---------- join / leave toasts ----------
+function wireNet() { const net = G().net; if (!net || !net.on) return;
+  net.on('join', (p, m) => { const n = (m && (m.name || m.n)) || p.name || '친구'; names.set(p.id, n); if (performance.now() < joinMute) return; const d = G().V?.current?.(); jtoast(`👋 <b>${esc(n)}</b>님이 접속했어요${d ? ' · ' + esc(d.name) : ''}`, 'bell'); });
+  net.on('leave', k => { const n = names.get(k); names.delete(k); for (const [i, o] of seats) if (o.id === k) seats.delete(i); if (n && performance.now() > joinMute) jtoast(`🌙 ${esc(n)}님이 나갔어요`, null); });
+  net.on('seat', p => { if (p.op === 'claim') seats.set(p.i, { id: p.id || p.from, name: p.name }); else for (const [i, o] of seats) if (i === p.i) seats.delete(i); });
+  net.on('offer', p => { jtoast(`💝 <b>${esc(p.name)}</b>님이 헌금 ${+p.amount}달란트를 드렸어요`, 'coin'); if (p.total) setTotal(p.total, p.tier); });
+  net.on('tier', p => { if (p.tier > tier) { setTotal(p.total, p.tier); upgradeFx(); } });
+  net.on('prayer', p => { if (p.op === 'amen' && p.owner && p.owner === net.secret?.().slice(0, 8)) jtoast('🕯 누군가 내 기도제목에 함께 기도했어요', 'amen'); });
+  const orig = net.join?.bind(net); if (orig) net.join = async (...a) => { joinMute = performance.now() + 2500; seats.clear(); return orig(...a); };
+  joinMute = performance.now() + 2500; }
+
+// ---------- seats ----------
+const seatApi = { seatTaken: i => seats.has(i) && seats.get(i).id !== 'me', claim(i) { seats.set(i, { id: 'me' }); G().net?.send?.('seat', { op: 'claim', i, name: S().name }); },
+  release() { for (const [i, o] of seats) if (o.id === 'me') { seats.delete(i); G().net?.send?.('seat', { op: 'free', i }); } } };
+
+// ---------- church tier ----------
+function setTotal(t, tr) { total = Math.max(total, +t || 0); tier = Math.max(tier, tr || 1); const ins = G().inside; if (ins) ins.tier = ART(tier); }
+async function loadTotal() { const d = G().V?.current?.(), sb = G().net?.sb; if (!d) { const L = +localStorage.getItem('p2_local_total') || 0; setTotal(L, L >= 5000 ? 3 : L >= 1000 ? 2 : 1); return; }
+  try { const r = await sb.from('churches').select('total').eq('dong', d.cd).maybeSingle(); const t = r.data?.total || 0; const tr = await sb.rpc('church_tier', { t }); setTotal(t, tr.data || 1); } catch { } }
+function upgradeFx() { celebrate(`⛪ 예배당이 새로워졌어요!<br><b>${['', '작은 예배당', '꽃 장식 예배당', '꽃 장식 예배당', '빛의 대예배당', '빛의 대예배당'][tier]}</b>`); voiceCat('pastor', 'upgrade'); }
+
+// ---------- offering ritual ----------
+function openOffer(atBox) { if (!S()) return; const m = modal('p2offer', '💝 헌금하기'); const b = m.querySelector('.body');
+  b.innerHTML = `<p class="mnote">${atBox ? '⛪ 예배당 헌금함 앞이에요 · 더 큰 축복의 기회!' : '어디서든 감사의 마음을 드릴 수 있어요'}</p>
+  <div class="row amt">${[10, 30, 100, 300].map(a => `<button class="am" data-a="${a}" ${S().coins < a ? 'disabled' : ''}>${TAL}${a}</button>`).join('')}</div>
+  <input id="p2pray" maxlength="40" placeholder="기도제목 한 줄 (선택 · 기도벽에 올라가요)">
+  <p class="mnote">내 달란트: <b>${S().coins}</b> · 게임 속 달란트로만 드려요 (실제 결제 없음)</p><button id="p2give" class="big" disabled>헌금 드리기</button>`;
+  let amt = 0; b.querySelectorAll('.am').forEach(x => x.onclick = () => { amt = +x.dataset.a; b.querySelectorAll('.am').forEach(y => y.classList.toggle('on', y === x)); $('#p2give').disabled = false; sfx('click'); });
+  $('#p2give').onclick = () => give(amt, $('#p2pray').value.trim(), atBox);
+  G().openModal('#p2offer'); }
+function roll(atBox) { const pool = C().gacha.pool.map(p => ({ ...p, w: p.rar === '일반' ? p.w : p.w * (atBox ? 1.8 : 1) })); let r = Math.random() * pool.reduce((a, p) => a + p.w, 0); for (const p of pool) if ((r -= p.w) < 0) return p; return pool[0]; }
+async function give(amt, pray, atBox) { const s = S(); if (!amt || s.coins < amt) return; s.coins -= amt; G().refreshHud(); G().closeModal(); save();
+  const pl = G().player; pl.kneel = 1; sfx('page');
+  const it = (window.AV && Math.random() < .4 && window.AV.rollCos(atBox, s.cos ||= [])) || roll(atBox), v = VERSES[Math.floor(Math.random() * VERSES.length)];
+  const fx = document.createElement('div'); fx.id = 'p2ritual'; fx.className = atBox ? 'grand' : ''; fx.innerHTML = `<canvas></canvas><small>탭하면 건너뛰기</small>`; document.body.append(fx);
+  const cv = fx.querySelector('canvas'); let skip = false; fx.onclick = () => skip = true;
+  const t0 = performance.now(), D = atBox ? 3600 : 3000; setTimeout(() => sfx('bell'), 200); setTimeout(() => sfx('amen'), 1500);
+  await new Promise(res => { const step = () => { const t = (performance.now() - t0) / D; drawRitual(cv, Math.min(1, t), atBox); if (t >= 1 || skip) return res(); requestAnimationFrame(step); }; step(); });
+  fx.remove(); pl.kneel = 0;
+  // reward
+  const p = st(); p.offered += amt; p.fruit += 1; let dup = false, glass = null;
+  if (it.kind === 'cos') { s.cos ||= []; s.cos.push(it.id); } else if (it.kind === 'decor') s.decorInv[it.id] = (s.decorInv[it.id] || 0) + 1; else if (s.inv.includes(it.id)) { dup = true; s.coins += C().gacha.dupRefund; } else s.inv.push(it.id);
+  if (Math.random() < (atBox ? .6 : .35)) glass = addGlass();
+  G().addXp(Math.round(amt / 5) + 5); save(); reveal(it, v, dup, glass, atBox);
+  // server: dong gauge / leaderboard / broadcast
+  const d = G().V?.current?.(), net = G().net;
+  if (d && net?.sb) { try { const r = await net.sb.rpc('offer', { p_dong: d.cd, p_dong_name: d.name, p_name: s.name, p_amount: Math.min(500, amt), p_secret: net.secret() }); if (!r.error && r.data) { const before = tier; const tr = (await net.sb.rpc('church_tier', { t: r.data.total })).data || tier; setTotal(r.data.total, tr); net.send('offer', { name: s.name, amount: amt, total: r.data.total, tier: tr }); if (tr > before) { net.send('tier', { tier: tr, total: r.data.total }); setTimeout(upgradeFx, 2500); } } } catch (e) { console.warn('[offer]', e); } }
+  else { const L = (+localStorage.getItem('p2_local_total') || 0) + amt; localStorage.setItem('p2_local_total', L); const before = tier; setTotal(L, L >= 5000 ? 3 : L >= 1000 ? 2 : 1); if (tier > before) setTimeout(upgradeFx, 2500); }
+  if (pray && d && net?.sb) { try { await net.postPrayer(d.cd, s.name, pray.slice(0, 40), true); } catch { } }
+  if (p.offered >= 1000) ach('off1000', '헌금 1000달란트'); }
+function drawRitual(cv, t, grand) { const w = cv.width = innerWidth, h = cv.height = innerHeight, g = cv.getContext('2d'); const cx = w / 2, cy = h * .62;
+  g.fillStyle = `rgba(40,25,70,${.55 * Math.min(1, t * 3)})`; g.fillRect(0, 0, w, h);
+  const rays = grand ? 14 : 9; for (let i = 0; i < rays; i++) { const a = -Math.PI / 2 + (i - (rays - 1) / 2) * .11, L = h * 1.2 * Math.min(1, t * 2); const gr = g.createLinearGradient(cx, 0, cx, cy); gr.addColorStop(0, 'rgba(255,240,180,.0)'); gr.addColorStop(1, `rgba(255,236,170,${.35 + .2 * Math.sin(t * 20 + i)})`); g.fillStyle = gr; g.beginPath(); g.moveTo(cx + Math.cos(a) * 40 - 0, cy - L); g.lineTo(cx + (i - rays / 2) * 30 + 15, cy - L); g.lineTo(cx, cy); g.fill(); }
+  const ey = cy - t * h * .5, s = Math.min(w, h) * .12; g.save(); g.translate(cx, ey); g.rotate(Math.sin(t * 9) * .08); g.fillStyle = '#fff6e6'; g.strokeStyle = '#e8b04a'; g.lineWidth = 3; g.beginPath(); g.roundRect(-s, -s * .62, s * 2, s * 1.24, 10); g.fill(); g.stroke(); g.beginPath(); g.moveTo(-s, -s * .62); g.lineTo(0, s * .1); g.lineTo(s, -s * .62); g.stroke(); g.fillStyle = '#e8577d'; g.font = `${s * .6}px sans-serif`; g.textAlign = 'center'; g.fillText('♥', 0, s * .45); g.restore();
+  for (let i = 0; i < (grand ? 60 : 32); i++) { const k = (hash(i) % 1000) / 1000, a = k * 7, r = (t * 300 + k * 200) % (h * .5); g.fillStyle = `rgba(255,${220 + (i % 3) * 10},150,${1 - r / (h * .5)})`; g.beginPath(); g.arc(cx + Math.cos(a) * r, ey + Math.sin(a) * r * .6, 2 + (i % 3), 0, 7); g.fill(); }
+  g.fillStyle = '#fff'; g.font = '800 22px Pretendard,sans-serif'; g.textAlign = 'center'; g.fillText(t < .5 ? '🙏 두 손 모아 기도해요…' : '✨ 감사의 마음이 올라가요', cx, h * .86); }
+function reveal(it, v, dup, glass, atBox) { const m = modal('p2bless', '🌟 오늘의 축복'); const r = RAR[it.rar] || RAR['일반'];
+  const img = it.kind === 'cos' ? it.img : it.kind === 'decor' ? C().decor.find(d => d.id === it.id)?.img : C().acc[it.id]?.img;
+  m.querySelector('.body').innerHTML = `<div class="vcard bless"><p>“${esc(v[0])}”</p><small>${esc(v[1])}</small></div>
+   <div class="gift r${r.fx}" style="--rc:${r.c}"><img src="assets/${img}" alt=""><b>${esc(it.name)}</b><span>${it.rar}</span>${dup ? `<small>이미 있어서 ${C().gacha.dupRefund}달란트로 돌려받았어요</small>` : ''}</div>
+   ${glass ? `<p class="mnote">🪟 스테인드글라스 조각 획득 · ${esc(glass)}</p>` : ''}${atBox ? '<p class="mnote">⛪ 헌금함 보너스: 희귀 확률 UP</p>' : ''}<button class="big" id="p2bok">아멘 🙏</button>`;
+  G().openModal('#p2bless'); $('#p2bok').onclick = () => G().closeModal(); sfx(r.fx >= 2 ? 'rare' : 'levelup'); if (r.fx >= 3) celebrate('✨ 전설 축복! ✨'); }
+function addGlass() { const p = st(); const open = GLASS.filter(w => (p.glass[w.id] || 0) < w.n); if (!open.length) return null; const w = open[Math.floor(Math.random() * open.length)]; p.glass[w.id] = (p.glass[w.id] || 0) + 1; if (p.glass[w.id] >= w.n) setTimeout(() => ach('glass_' + w.id, w.name + ' 완성 · 예배당 창에 빛나요'), 2800); return `${w.name} ${p.glass[w.id]}/${w.n}`; }
+
+// ---------- shops ----------
+function itemInfo(x) { if (x.kind === 'acc') { const p = C().gacha.pool.find(q => q.id === x.id); return { name: p?.name || x.id, img: 'assets/' + C().acc[x.id].img }; }
+  if (x.kind === 'decor') { const d = C().decor.find(q => q.id === x.id); return { name: d?.name || x.id, img: 'assets/' + d?.img }; } return { name: x.name, icon: x.icon }; }
+function openShop(sh) { const m = modal('p2shop', '🛍️ 상점', true); m.querySelector('h2').textContent = `${sh.icon} ${sh.name}`; const lines = window.DN?.shopLines(sh) || C().shopLines[sh.id] || ['어서 오세요!'];
+  const draw = () => { const s = S(); m.querySelector('.body').innerHTML = `<div class="keeper"><b>${esc(sh.keeper)}</b><p>${esc(lines[Math.floor(Math.random() * lines.length)])}</p></div><p class="mnote">내 달란트 ${TAL}<b>${s.coins}</b></div>
+    <div class="shopgrid">${(C().shopItems[sh.id] || []).map((x, i) => { const f = itemInfo(x), own = x.kind === 'acc' && s.inv.includes(x.id); return `<button class="sitem" data-i="${i}" ${own || s.coins < x.price ? 'disabled' : ''}>${f.img ? `<img src="${f.img}" alt="">` : `<span class="emo">${f.icon}</span>`}<b>${esc(f.name)}</b><small>${own ? '보유 중' : TAL + x.price}</small></button>`; }).join('')}</div>`;
+    m.querySelectorAll('.sitem').forEach(b => b.onclick = () => buy(sh, C().shopItems[sh.id][+b.dataset.i], draw));
+    if (sh.id === 'clothes' && window.Cust) { const bd = m.querySelector('.body'); bd.insertAdjacentHTML('afterbegin', `<button class="big" id="shopcz" style="width:100%;margin-bottom:8px">👗 캐릭터 꾸미기 (성별·나이·헤어·옷)</button>`); bd.querySelector('#shopcz').onclick = () => { G().closeModal(); window.Cust.open(); }; window.Cust.shelf(bd, draw); } };
+  draw(); G().openModal('#p2shop'); sfx('door'); }
+function buy(sh, x, redraw) { const s = S(); if (s.coins < x.price) return; s.coins -= x.price; const f = itemInfo(x);
+  if (x.kind === 'acc') s.inv.push(x.id); else if (x.kind === 'decor') s.decorInv[x.id] = (s.decorInv[x.id] || 0) + 1; else { st().food++; G().addXp(x.xp || 5); }
+  G().refreshHud(); G().coinFx(); save(); sfx('coin'); G().toast(x.kind === 'food' ? `${f.icon} ${f.name} 냠냠! 경험치 +${x.xp}` : `🛍️ ${f.name}을(를) 샀어요 · 가방(I)에서 확인`); redraw(); }
+
+// ---------- bag / collections ----------
+function openBag() { const s = S(), p = st(), m = modal('p2bag', '🎒 가방', true);
+  const acc = s.inv.map(id => `<button class="sitem" data-acc="${id}"><img src="assets/${C().acc[id]?.img}"><b>${esc(C().gacha.pool.find(q => q.id === id)?.name || id)}</b><small>${Object.values(s.equip).includes(id) ? '착용 중' : '착용하기'}</small></button>`).join('') || '<p class="mnote">아직 없어요 · 헌금 축복이나 옷가게에서 얻어요</p>';
+  const dec = Object.entries(s.decorInv).filter(([, n]) => n).map(([id, n]) => { const d = C().decor.find(q => q.id === id); return `<div class="sitem"><img src="assets/${d?.img}"><b>${esc(d?.name)}</b><small>×${n}</small></div>`; }).join('') || '<p class="mnote">없어요</p>';
+  m.querySelector('.body').innerHTML = `<div class="bagtop"><span>${TAL}<b>${s.coins}</b> 달란트</span><span><img class="tal" src="assets/v7/ic_shard.webp">빛조각 <b>${p.shard}</b></span><span><img class="tal" src="assets/v7/ic_fruit.webp">감사 열매 <b>${p.fruit}</b></span></div><h4>장신구</h4><div class="shopgrid">${acc}</div><h4>꾸미기 소품 (B 배치)</h4><div class="shopgrid">${dec}</div>`;
+  m.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => { G().closeModal(); G().openInv(); });
+  G().openModal('#p2bag'); }
+function openCol() { const p = st(), m = modal('p2col', '🏅 수집 도감 · 업적', true), days = p.days.length;
+  const basket = Math.min(1, (p.fruit % 30) / 30);
+  m.querySelector('.body').innerHTML = `<div class="colrow"><img src="assets/v7/ic_candle.webp"><div><b>빛조각 ${p.shard}/100</b><div class="bar"><i style="width:${Math.min(100, p.shard)}%"></i></div><small>${p.shard >= 100 ? '🏆 빛의 촛대 획득!' : '100개 모으면 빛의 촛대 트로피'}</small></div></div>
+   <div class="colrow"><img src="assets/v7/ic_fruit.webp"><div><b>감사 열매 ${p.fruit}개</b><div class="basket"><i style="height:${Math.round(basket * 100)}%"></i></div><small>예배·임무·헌금으로 바구니가 채워져요 (30개마다 한 바구니)</small></div></div>
+   <div class="colrow"><img src="assets/v7/ic_dove.webp"><div><b>출석 ${days}일</b><div class="badges">${BADGES.map(([n, l]) => `<span class="${days >= n ? 'on' : ''}">${l}<small>${n}일</small></span>`).join('')}</div></div></div>
+   <h4>🪟 스테인드글라스 도감 <small>(완성하면 예배당 창에 나타나요)</small></h4><div class="glassbook">${GLASS.map(w => { const n = p.glass[w.id] || 0; return `<div class="gw ${n >= w.n ? 'done' : ''}"><img src="assets/v7/ic_glass.webp" style="clip-path:inset(${100 - n / w.n * 100}% 0 0 0)"><b>${w.name}</b><small>${n}/${w.n}</small></div>`; }).join('')}</div>
+   <h4>업적</h4><div class="achl">${Object.entries(p.ach).map(([k, d]) => `<span>🏆 ${esc(k)} <small>${d}</small></span>`).join('') || '<small class="mnote">아직 없어요</small>'}</div>`;
+  G().openModal('#p2col'); }
+
+// ---------- leaderboard ----------
+async function openLead() { G().openModal('#church'); const d = G().V?.current?.(); $('#chname').textContent = d ? `${d.name} 예배당` : '우리 동네 예배당';
+  const nx = [0, 1000, 5000, 20000, 80000, 1e9][tier]; $('#chtier').innerHTML = `<b>Tier ${tier}</b> · 누적 헌금 ${TAL}${total.toLocaleString()}달란트`; $('#chbar').style.width = Math.min(100, total / nx * 100) + '%'; $('#chnext').textContent = tier < 5 ? `다음 단계까지 ${(nx - total).toLocaleString()}달란트` : '최고 단계예요!';
+  document.querySelectorAll('.chg').forEach(b => { b.textContent = b.dataset.g + ' 달란트'; b.onclick = () => { G().closeModal(); openOffer(false); }; });
+  let sc = 'dong', pe = 'week'; const run = async () => { const L = $('#lblist'), sb = G().net?.sb; L.innerHTML = '<li class="mnote">불러오는 중…</li>';
+    try { let rows; if (sc === 'church') rows = (await sb.rpc('church_rank', { p_period: pe })).data.map(r => [r.name + ' 예배당', r.total]); else rows = (await sb.rpc('leaderboard', { p_scope: sc, p_dong: d?.cd || '', p_period: pe })).data.map(r => [r.name, r.total]);
+      L.innerHTML = rows.length ? rows.map(([n, t], i) => `<li><b>${['🥇', '🥈', '🥉'][i] || i + 1}</b> ${esc(n)} <span>헌금 ${(+t).toLocaleString()}달란트</span></li>`).join('') : '<li class="mnote">아직 기록이 없어요 · 첫 헌금을 드려 보세요</li>'; }
+    catch { L.innerHTML = '<li class="mnote">오프라인이에요</li>'; } };
+  document.querySelectorAll('.lbt').forEach(b => b.onclick = () => { sc = b.dataset.s; document.querySelectorAll('.lbt').forEach(x => x.classList.toggle('on', x === b)); run(); });
+  document.querySelectorAll('.lbp').forEach(b => b.onclick = () => { pe = b.dataset.p; document.querySelectorAll('.lbp').forEach(x => x.classList.toggle('on', x === b)); run(); });
+  run(); }
+
+// ---------- pickups (field 빛조각, interior 달란트) ----------
+function seedShards() { const w = G().world(), W = w.W, H = w.H; let seed = hash(today()); const rnd = () => ((seed = Math.imul(seed ^ (seed >>> 15), 2246822507) >>> 0) % 100000) / 100000;
+  shards = []; for (let k = 0; k < 4000 && shards.length < 40; k++) { const x = rnd() * W, y = rnd() * H; if (w.walkable(x, y)) shards.push({ x, y, i: shards.length, t: 0 }); } }
+function tickPickups(tm) { const pl = G().player, s = S(); if (!pl || !s) return; const p = st();
+  if (G().scene === 'field') for (const o of shards) { if (o.t > tm) continue; if (Math.hypot(o.x - pl.x, o.y - pl.y) < 55) { o.t = tm + 90; p.shard++; sfx('pick'); if (p.shard % 10 === 0) addCoins(5); G().toast(`✨ 빛조각 ${p.shard}/100`); if (p.shard >= 100) ach('candle', '빛의 촛대'); save(); } }
+  else { const key = 'in_' + today(); p[key] ||= []; (C().interior.pickups || []).forEach(([x, y], i) => { if (p[key].includes(i)) return; if (Math.hypot(x - pl.x, y - pl.y) < 50) { p[key].push(i); addCoins(5); sfx('coin'); G().toast('달란트 +5'); if (i === 0) { const g = addGlass(); if (g) G().toast('🪟 ' + g); } } }); } }
+function objs(tm) { const p = S() && st(), key = 'in_' + today(), got = (p && p[key]) || [], out = [];
+  (C().interior.pickups || []).forEach(([x, y], i) => { if (got.includes(i)) return; out.push({ y, draw: g => { const b = Math.sin(tm * 3 + i) * 5; g.drawImage(IMG('v7/ic_talent.webp'), x - 18, y - 52 + b, 36, 36); } }); });
+  // completed stained-glass windows glow on the interior wall
+  GLASS.forEach((w, i) => { if ((p?.glass?.[w.id] || 0) < w.n) return; out.push({ y: -1, draw: g => { const x = 640 + i * 260, y = 150; g.save(); g.globalAlpha = .55 + .2 * Math.sin(tm * 2 + i); const gr = g.createRadialGradient(x, y, 10, x, y, 120); gr.addColorStop(0, 'rgba(255,240,170,.9)'); gr.addColorStop(1, 'rgba(255,240,170,0)'); g.fillStyle = gr; g.fillRect(x - 120, y - 120, 240, 240); g.globalAlpha = 1; g.drawImage(IMG('v7/ic_glass.webp'), x - 55, y - 70, 110, 140); g.restore(); } }); });
+  return out; }
+const imgs = {}; function IMG(n) { if (!imgs[n]) { imgs[n] = new Image(); imgs[n].src = 'assets/' + n; } return imgs[n]; }
+function fieldObjs(tm) { const out = []; const im = IMG('v7/ic_shard.webp');
+  for (const o of shards) if (o.t < tm) out.push({ y: o.y, draw: g => { const b = Math.sin(tm * 3 + o.i) * 6; g.fillStyle = 'rgba(255,250,200,.35)'; g.beginPath(); g.ellipse(o.x, o.y, 20, 7, 0, 0, 7); g.fill(); g.drawImage(im, o.x - 20, o.y - 50 + b, 40, 40); } });
+  // per-dong signboard + landmark label
+  const c = C().chapel, d = G().V?.current?.(), nm = d ? d.name : '우리 동네', v = vary;
+  out.push({ y: c.door.y + 70, draw: g => { const x = c.door.x + 250, y = c.door.y + 60; g.fillStyle = '#8a5a3a'; g.fillRect(x - 5, y - 70, 10, 70); g.fillStyle = '#fff8ea'; g.strokeStyle = '#b07a4a'; g.lineWidth = 5; g.beginPath(); g.roundRect(x - 120, y - 120, 240, 56, 14); g.fill(); g.stroke(); g.fillStyle = '#4a2b78'; g.font = '800 24px Pretendard,sans-serif'; g.textAlign = 'center'; g.fillText(`${nm} 마실채플`, x, y - 84); } });
+  if (v) { const L = C().spots.find(s => s.id === 'plaza'); out.push({ y: 1e5, draw: g => { g.font = '800 30px Pretendard,sans-serif'; g.textAlign = 'center'; g.lineWidth = 6; g.strokeStyle = '#fff'; g.fillStyle = '#4a2b78'; g.strokeText(v.land, L.x, L.y - 260); g.fillText(v.land, L.x, L.y - 260); } }); }
+  return out; }
+// per-dong deterministic palette / season (light variation; full unique maps per dong = later expansion)
+const SEASONS = [['🌸 봄', 'rgba(255,190,220,.10)', '#ffd1e3'], ['🌿 여름', 'rgba(120,220,150,.08)', '#bff0c8'], ['🍁 가을', 'rgba(255,160,80,.12)', '#ffd2a8'], ['❄️ 겨울', 'rgba(220,235,255,.18)', '#ffffff']];
+function computeVary() { const d = G().V?.current?.(); try { window.DN?.apply(d); } catch (e) { console.warn(e); } const h = hash(d ? d.cd : 'solo'); const se = SEASONS[h % 4]; vary = { h, se, land: `${se[0]} ${d ? d.name : '마실'} ${['느티나무 광장', '분수 광장', '꽃길 광장', '별빛 광장'][(h >> 3) % 4]}` }; }
+function ground(g, tm) { if (!vary) return; const w = G().world(); g.fillStyle = vary.se[1]; g.fillRect(0, 0, w.W, w.H);
+  if (vary.h % 4 === 3 || vary.h % 4 === 0) { g.fillStyle = vary.se[2]; const sp = g.canvas ? 0 : 0; for (let i = 0; i < 60; i++) { const x = (hash(i * 7) % w.W), y = ((hash(i * 13) + tm * 40 * (1 + i % 3)) % w.H); g.globalAlpha = .7; g.beginPath(); g.arc(x, y, 5 + i % 4, 0, 7); g.fill(); } g.globalAlpha = 1; } }
+
+// ---------- voices ----------
+async function dl() { return DL ||= await (await fetch('data/dialogue.json')).json(); }
+let au = null; function playVoice(line) { try { au?.pause(); au = new Audio(`assets/voice/${line.id}.mp3`); au.volume = Aud.muted ? 0 : .9; au.play().catch(() => { }); } catch { } }
+async function voice(who, npc) { const D = await dl(); const L = D.lines.filter(l => l.who === who && (l.cat === 'talk' || l.cat === 'greet')); if (!L.length) return; const l = L[Math.floor(Math.random() * L.length)]; playVoice(l); npc?.say?.(l.text, 4); }
+async function voiceCat(who, cat, i) { const D = await dl(); const L = D.lines.filter(l => l.who === who && l.cat === cat); if (!L.length) return; const l = L[i ?? Math.floor(Math.random() * L.length)] || L[0]; playVoice(l); return l; }
+
+// ---------- service extras: portrait + 오늘의 인도자 + group photo ----------
+function wireService() { const Svc = G().C && G().Svc; if (!Svc) return; const r0 = Svc.render.bind(Svc), f0 = Svc.finish.bind(Svc);
+  Svc.render = function () { r0(); const box = $('#svc'); let pp = $('#svport'); if (!pp) { pp = document.createElement('div'); pp.id = 'svport'; pp.innerHTML = '<canvas width="120" height="120"></canvas><div><small>오늘의 인도자</small><b id="svlead"></b></div>'; box.prepend(pp); }
+    $('#svlead').textContent = (Svc.leadName?.() || '목사님'); const P = G().inside && (Svc.a?.pastor?.()); if (P) { const g = pp.querySelector('canvas').getContext('2d'); g.clearRect(0, 0, 120, 120); g.save(); const ox = P.x, oy = P.y; g.translate(60 - ox * 1, 0); g.beginPath(); g.arc(ox, 60, 56, 0, 7); g.fillStyle = '#ffeef6'; g.fill(); g.clip(); const sc = 1.4; g.translate(ox, 0); g.scale(sc, sc); g.translate(-ox, 0); P.y = 120; try { P.draw(g); } catch { } P.y = oy; g.restore(); }
+    if (Svc.phase !== last.ph) { last.ph = Svc.phase; if (Svc.phase >= 0) voiceCat('pastor', 'svc', Svc.phase); } };
+  Svc.finish = function () { const r = f0(); const p = st(); p.fruit += 2; const g = addGlass(); save(); voiceCat('pastor', 'bless');
+    setTimeout(() => { jtoast('📸 함께 예배한 기념 단체사진!', 'stamp'); $('#btn-shot')?.click(); if (g) G().toast('🪟 ' + g); }, 1800); return r; }; }
+
+// ---------- attendance ----------
+function attend() { const p = st(), d = today(); if (!p.days.includes(d)) { p.days.push(d); if (p.days.length > 400) p.days.shift(); save(); for (const [n, l] of BADGES) if (p.days.length === n) ach('att' + n, `출석 ${n}일 · ${l}`); } }
+
+// ---------- hotkeys ----------
+const KEYS = { KeyI: ['🎒 가방', () => toggle('p2bag', openBag)], KeyC: ['👗 캐릭터 꾸미기', () => toggle('inv', () => G().openInv())], KeyB: ['🪑 배치 모드', () => $('#btn-decor')?.click()],
+  KeyM: ['🗺️ 마을 지도', () => toggle('map', () => G().openMap())], KeyJ: ['🌱 말씀 여정 · 임무', () => toggle('missions', () => G().V.openMissions())], KeyK: ['🏅 수집 도감 · 업적', () => toggle('p2col', openCol)],
+  KeyV: ['📖 성경 읽기', () => toggle('p2bible', () => Reader.open())], KeyL: ['🏆 순위표', () => toggle('church', openLead)], KeyP: ['📸 장면 담기', () => toggle('shotm', () => $('#btn-shot')?.click())], KeyO: ['⚙️ 설정', () => toggle('p2set', openSet)], KeyH: ['⌨️ 단축키 안내', () => toggle('p2help', openHelp)], KeyN: ['🧭 전국 지도', () => toggle('p2nat', openNation)], KeyG: ['💝 헌금하기', () => toggle('p2offer', () => openOffer(false))] };
+function openHelp() { const m = modal('p2help', '⌨️ 단축키'); m.querySelector('.body').innerHTML = `<div class="keys">${[['WASD/방향키', '이동'], ['Space / E', '대화 · 들어가기/나가기 · 앉기/일어나기 · 대사 넘기기(타이핑 중이면 완성)'], ['Shift', '점프'], ['Tab', '지도 열기/닫기'], ['←→ / WASD', '대화 선택지 고르기'], ['Enter', '채팅'], ['Esc', '닫기'], ['1 2 3', '이모트'], ...Object.entries(KEYS).map(([k, [l]]) => [k.slice(3), l])].map(([k, l]) => `<div><kbd>${k}</kbd><span>${l}</span></div>`).join('')}</div><p class="mnote">같은 키를 다시 누르면 닫혀요 · 배치 모드: R 회전 · Esc 취소</p>`; G().openModal('#p2help'); }
+function openSet() { const m = modal('p2set', '⚙️ 설정'); m.querySelector('.body').innerHTML = `<label class="setrow">🔊 효과음 · 음성 <input type="checkbox" id="p2snd" ${Aud.muted ? '' : 'checked'}></label><label class="setrow">음량 <input type="range" id="p2vol" min="0" max="1" step=".05" value="${Aud.vol ?? .7}"></label><label class="setrow">🔔 접속 알림 <input type="checkbox" id="p2jt" ${localStorage.getItem('p2_jt') === '0' ? '' : 'checked'}></label>`;
+  $('#p2snd').onchange = e => { Aud.muted = !e.target.checked; Aud.save?.(); }; $('#p2vol').oninput = e => { Aud.vol = +e.target.value; Aud.master && (Aud.master.gain.value = Aud.vol); Aud.save?.(); }; $('#p2jt').onchange = e => localStorage.setItem('p2_jt', e.target.checked ? '1' : '0'); G().openModal('#p2set'); }
+function wireKeys() { addEventListener('keydown', e => { const ae = document.activeElement, tg = ae && ae.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || ae?.isContentEditable || !S() || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    if (e.code === 'KeyR' && S().mode === 'decor') { $('#dflip')?.click(); return; }
+    if (e.code === 'Escape' && S().mode === 'decor') { $('#ddone')?.click(); return; }
+    const k = KEYS[e.code]; if (!k) return; if (G().modal && !G().modal.match(/p2|inv|map|missions|church|shotm|bible/)) return; e.preventDefault(); e.stopPropagation(); if (G().modal && G().modal !== '#' + ({ KeyI: 'p2bag', KeyC: 'inv', KeyM: 'map', KeyJ: 'missions', KeyK: 'p2col', KeyL: 'church', KeyP: 'shotm', KeyO: 'p2set', KeyH: 'p2help', KeyN: 'p2nat', KeyG: 'p2offer', KeyV: 'p2bible' }[e.code])) G().closeModal(); k[1](); }, { capture: true });
+  // desktop-only key hints on HUD buttons
+  if (matchMedia('(hover:hover) and (pointer:fine)').matches) { const H = { 'btn-gacha': 'G', 'btn-inv': 'C', 'btn-decor': 'B', 'btn-church': 'L', 'btn-shot': 'P', 'minimap': 'Tab', 'mbadge': 'J', 'btn-p2bag': 'I', 'btn-p2col': 'K', 'btn-p2bible': 'V', 'btn-p2nat': 'N', 'btn-p2help': 'H', 'btn-act': 'Space', 'btn-jump': 'Shift' }; for (const [id, k] of Object.entries(H)) { const b = document.getElementById(id); if (b && !b.querySelector('.kh')) b.insertAdjacentHTML('beforeend', `<kbd class="kh">${k}</kbd>`); } } }
+
+// ---------- nationwide map: 시·도 → 시·군·구 → 행정동 (vuski/admdongkor, lazy per level) ----------
+const NM = { lv: 0, sido: null, sgg: null, z: 1, x: 0, y: 0, cache: {} };
+async function geo(f) { return NM.cache[f] ||= await (await fetch('assets/geo/' + f)).json(); }
+async function openNation() { const m = modal('p2nat', '🧭 전국 마실채플 지도', true); m.querySelector('.body').innerHTML = `<div class="natbar"><button id="natup">⬅ 위로</button><span id="natpath">전국</span><input id="natq" placeholder="동 이름 검색 (예: 삼청동)"></div><div class="natwrap"><canvas id="natcv"></canvas><div id="natres"></div></div><p class="mnote" id="natnote">시·도를 눌러 들어가요 · 드래그/휠/핀치로 이동·확대 · 👥 = 지금 접속 인원</p><small class="mnote">경계: vuski/admdongkor (통계청 행정구역 경계 기반, 2025-04) · 단순화</small>`;
+  G().openModal('#p2nat'); NM.lv = 0; NM.sido = NM.sgg = null; fitView(); await drawNat(); wireNat(); }
+function bounds(rs) { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (const r of rs) for (const [x, y] of r) { a = Math.min(a, x); b = Math.max(b, x); c = Math.min(c, y); d = Math.max(d, y); } return [a, b, c, d]; }
+let VB = [124.5, 131, 33, 38.7]; function fitView(b) { VB = b || [124.5, 131, 33, 38.7]; NM.z = 1; NM.x = NM.y = 0; }
+async function layer() { if (NM.lv === 0) { const N = await geo('nation.json'); return Object.entries(N).map(([k, v]) => ({ k, n: v.n, r: v.r })); }
+  if (NM.lv === 1) { const N = await geo(`sgg_${NM.sido}.json`); return Object.entries(N).map(([k, v]) => ({ k, n: v.n, r: v.r })); }
+  const D = await geo(`sido_${NM.sido}.json`), I = await G().V.index(); return I.filter(d => d.cd.startsWith(NM.sgg)).map(d => ({ k: d.cd, n: d.name, r: D[d.cd] || [], d })); }
+async function drawNat() { const cv = $('#natcv'); if (!cv) return; const pr = Math.min(2, devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight; cv.width = w * pr; cv.height = h * pr; const g = cv.getContext('2d'); g.setTransform(pr, 0, 0, pr, 0, 0);
+  g.fillStyle = '#e7f3ff'; g.fillRect(0, 0, w, h); const L = await layer(); NM.items = L; const [x0, x1, y0, y1] = VB, cos = Math.cos((y0 + y1) / 2 * Math.PI / 180);
+  const s0 = Math.min((w - 20) / ((x1 - x0) * cos), (h - 20) / (y1 - y0)), s = s0 * NM.z, ox = w / 2 - ((x0 + x1) / 2 * cos) * s + NM.x, oy = h / 2 + ((y0 + y1) / 2) * s + NM.y;
+  NM.T = (x, y) => [ox + x * cos * s, oy - y * s]; NM.inv = (px, py) => [(px - ox) / (cos * s), (oy - py) / s];
+  const counts = G().net?.counts || {}, cur = G().V?.current?.(), pal = ['#ffd9e6', '#e3f4d9', '#fff2c6', '#dfe9ff', '#f0e2ff', '#d9f3f0', '#ffe5d4'];
+  const cnt = it => { if (NM.lv === 2) return counts[it.k] || 0; let n = 0; for (const [k, v] of Object.entries(counts)) if (k.startsWith(it.k)) n += v; return n; };
+  L.forEach((it, i) => { const me = cur && cur.cd.startsWith(it.k); g.beginPath(); for (const r of it.r) r.forEach(([x, y], j) => { const [px, py] = NM.T(x, y); j ? g.lineTo(px, py) : g.moveTo(px, py); }); g.fillStyle = me ? '#ffb8d2' : it.k === NM.hover ? '#fff' : pal[i % pal.length]; g.fill('evenodd'); g.lineWidth = me ? 2.5 : 1; g.strokeStyle = me ? '#e0659a' : '#9a8cc0'; g.stroke(); });
+  g.textAlign = 'center'; g.textBaseline = 'middle'; for (const it of L) { const b = bounds(it.r); if (!isFinite(b[0])) continue; const [px, py] = NM.T((b[0] + b[1]) / 2, (b[2] + b[3]) / 2); const bw = (b[1] - b[0]) * cos * s; if (bw < 26 && NM.lv) continue; const n = cnt(it);
+    g.font = `800 ${NM.lv ? 11 : 13}px Pretendard,sans-serif`; g.lineWidth = 3; g.strokeStyle = '#fff'; g.fillStyle = '#4a2b78'; const t = it.n.replace(/특별자치|특별|광역|자치/g, '') + (n ? ` 👥${n}` : ''); g.strokeText(t, px, py); g.fillText(t, px, py); }
+  $('#natpath').textContent = ['전국', NM.sidoN, NM.sggN].filter(Boolean).join(' › '); $('#natup').disabled = NM.lv === 0; }
+function hit(px, py) { if (!NM.items) return null; const [x, y] = NM.inv(px, py); for (const it of NM.items) for (const r of it.r) { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } if (c) return it; } return null; }
+async function pick(it) { if (!it) return; sfx('click'); if (NM.lv === 0) { NM.lv = 1; NM.sido = it.k; NM.sidoN = it.n; fitView(bounds(it.r)); }
+  else if (NM.lv === 1) { NM.lv = 2; NM.sgg = it.k; NM.sggN = it.n; fitView(bounds(it.r)); }
+  else { const d = it.d; G().V.dongTap(d); return; } await drawNat(); }
+function wireNat() { const cv = $('#natcv'); let drag = null, moved = 0; const pts = new Map(); let pinch = 0;
+  cv.onpointerdown = e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.offsetX, e.offsetY]); drag = [e.offsetX, e.offsetY]; moved = 0; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } };
+  cv.onpointermove = e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.offsetX, e.offsetY]); if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) { NM.z = Math.max(.6, Math.min(12, NM.z * d / pinch)); } pinch = d; moved = 9; drawNat(); return; }
+    const dx = e.offsetX - drag[0], dy = e.offsetY - drag[1]; if (Math.abs(dx) + Math.abs(dy) > 3) { moved += Math.abs(dx) + Math.abs(dy); NM.x += dx; NM.y += dy; drag = [e.offsetX, e.offsetY]; drawNat(); } };
+  cv.onpointerup = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = 0; if (moved < 6 && !pts.size) pick(hit(e.offsetX, e.offsetY)); };
+  cv.onwheel = e => { e.preventDefault(); NM.z = Math.max(.6, Math.min(12, NM.z * (e.deltaY < 0 ? 1.2 : 1 / 1.2))); drawNat(); };
+  $('#natup').onclick = async () => { if (NM.lv === 2) { NM.lv = 1; NM.sggN = null; const N = await geo('nation.json'); fitView(bounds(N[NM.sido].r)); } else { NM.lv = 0; NM.sidoN = null; fitView(); } drawNat(); };
+  $('#natq').oninput = async e => { const q = e.target.value.replace(/\s/g, ''); const box = $('#natres'); if (!q) { box.innerHTML = ''; return; } const I = await G().V.index(), counts = G().net?.counts || {};
+    const L = I.filter(d => (d.sido + d.sgg + d.name).replace(/\s/g, '').includes(q)).slice(0, 12); box.innerHTML = L.map(d => `<button data-cd="${d.cd}"><b>${esc(d.name)}</b> <small>${esc(d.sido)} ${esc(d.sgg)}${counts[d.cd] ? ' · 👥' + counts[d.cd] : ''}</small></button>`).join('') || '<p class="mnote">결과 없음</p>';
+    box.querySelectorAll('button').forEach(b => b.onclick = async () => { const d = I.find(x => x.cd === b.dataset.cd); NM.lv = 2; NM.sido = d.cd.slice(0, 2); NM.sgg = d.cd.slice(0, 5); NM.sidoN = d.sido; NM.sggN = d.sgg; const S2 = await geo(`sgg_${NM.sido}.json`); fitView(bounds(S2[NM.sgg].r)); box.innerHTML = ''; e.target.value = ''; await drawNat(); G().V.dongTap(d); }); };
+  addEventListener('resize', () => G().modal === '#p2nat' && drawNat()); }
+
+// ---------- extra HUD buttons ----------
+function hudButtons() { const side = $('#side'); if (!side || $('#btn-p2bag')) return;
+  const add = (id, html, fn) => { const b = document.createElement('button'); b.id = id; b.innerHTML = html; b.onclick = fn; side.append(b); };
+  add('btn-p2bag', '🎒<small>가방</small>', () => toggle('p2bag', openBag)); add('btn-p2col', '🏅<small>도감</small>', () => toggle('p2col', openCol)); add('btn-p2bible', '📖<small>성경</small>', () => toggle('p2bible', () => Reader.open())); add('btn-p2nat', '🧭<small>전국</small>', () => toggle('p2nat', openNation)); add('btn-p2help', '⌨️<small>도움말</small>', () => toggle('p2help', openHelp));
+  if (!matchMedia('(hover:hover) and (pointer:fine)').matches) $('#btn-p2help').style.display = 'none'; }
+
+let lastRoom = '';
+export function initPhase2() { if (!$('#jtoasts')) { const d = document.createElement('div'); d.id = 'jtoasts'; document.body.append(d); }
+  const unlock = () => { try { Aud.init?.(); Aud.unlock?.(); } catch { } }; addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydown', unlock, { once: true });
+  P = window.P2 = { ...seatApi, sfx, objs, fieldObjs, ground, openShop, openOffer, openBag, openCol, openLead, openNation, voice, jtoast, st, get tier() { return tier; }, setTier: t => setTotal(total, t), shards: () => shards, addGlass };
+  wireNet(); wireKeys(); wireService();
+  const boot = () => { if (!S() || !G().world?.()) return setTimeout(boot, 300); renameCurrency(); hudButtons(); window.__p2mobile?.(); attend(); seedShards(); computeVary(); loadTotal(); };
+  boot();
+  setInterval(() => { if (!S()) return; tickPickups(performance.now() / 1000); const d = G().V?.current?.(), id = d ? d.cd : 'solo'; if (id !== lastRoom) { lastRoom = id; computeVary(); loadTotal(); }
+    const cb = $('#coinbox'); if (cb && !cb.querySelector('.tal')) renameCurrency(); }, 120);
+  // mission completions → 감사 열매
+  const V = G().V; if (V?.done) { const d0 = V.done.bind(V); V.done = (...a) => { const r = d0(...a); try { st().fruit++; save(); } catch { } return r; }; }
+}
+// ---------- mobile: compact menu + soft-keyboard handling ----------
+function mobileHud() { const side = $('#side'); if (!side || $('#btn-more')) return; const b = document.createElement('button'); b.id = 'btn-more'; b.innerHTML = '☰<small>메뉴</small>'; side.prepend(b);
+  b.onclick = e => { e.stopPropagation(); document.body.classList.toggle('menuopen'); b.innerHTML = document.body.classList.contains('menuopen') ? '✕<small>닫기</small>' : '☰<small>메뉴</small>'; };
+  side.addEventListener('click', e => { if (e.target.closest('button') && e.target.closest('button') !== b) { document.body.classList.remove('menuopen'); b.innerHTML = '☰<small>메뉴</small>'; } });
+  const vv = window.visualViewport, inp = $('#chatin'); const upd = () => { const kb = vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) : 0; document.documentElement.style.setProperty('--kb', kb + 'px'); };
+  if (vv) { vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); }
+  if (inp) { inp.addEventListener('focus', () => { document.body.classList.add('kbd'); upd(); }); inp.addEventListener('blur', () => { setTimeout(() => { document.body.classList.remove('kbd'); document.documentElement.style.setProperty('--kb', '0px'); scrollTo(0, 0); }, 50); }); } }
+window.__p2mobile = mobileHud;

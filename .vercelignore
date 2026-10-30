@@ -1,0 +1,8 @@
+shots/
+*_bak*
+tools/
+test*.py
+glb/
+__pycache__/
+*.mp4
+README*.md

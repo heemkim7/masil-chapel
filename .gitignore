@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+*.key
+*.pem
+secrets/
+*service_role*
+shots/
+backup_*/
+*.zip
+__pycache__/
+.vercel/

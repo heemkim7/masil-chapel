@@ -1,0 +1,1239 @@
+{
+ "frameW": 200,
+ "frameH": 260,
+ "baselineY": 250,
+ "mirror": {
+  "E": "W",
+  "SE": "SW",
+  "NE": "NW"
+ },
+ "chars": {
+  "player": {
+   "basic": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ],
+    "idle_S": [
+     "idle_S_0.png",
+     "idle_S_1.png",
+     "idle_S_2.png",
+     "idle_S_3.png"
+    ],
+    "wave_S": [
+     "wave_S_0.png",
+     "wave_S_1.png",
+     "wave_S_2.png",
+     "wave_S_3.png"
+    ],
+    "jump_S": [
+     "jump_S_0.png",
+     "jump_S_1.png",
+     "jump_S_2.png",
+     "jump_S_3.png"
+    ],
+    "pray_S": [
+     "pray_S_0.png",
+     "pray_S_1.png",
+     "pray_S_2.png",
+     "pray_S_3.png"
+    ]
+   },
+   "choir": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ]
+   },
+   "mint": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ]
+   }
+  },
+  "pastor": {
+   "robe": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ],
+    "idle_S": [
+     "idle_S_0.png",
+     "idle_S_1.png",
+     "idle_S_2.png",
+     "idle_S_3.png"
+    ],
+    "wave_S": [
+     "wave_S_0.png"
+    ],
+    "pray_S": [
+     "pray_S_0.png"
+    ]
+   }
+  },
+  "choirgirl": {
+   "dress": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ],
+    "idle_S": [
+     "idle_S_0.png",
+     "idle_S_1.png",
+     "idle_S_2.png",
+     "idle_S_3.png"
+    ],
+    "happy_S": [
+     "happy_S_0.png"
+    ],
+    "jump_S": [
+     "jump_S_0.png"
+    ]
+   }
+  },
+  "lamb": {
+   "raincoat": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ],
+    "idle_S": [
+     "idle_S_0.png",
+     "idle_S_1.png",
+     "idle_S_2.png",
+     "idle_S_3.png"
+    ],
+    "jump_S": [
+     "jump_S_0.png"
+    ]
+   }
+  }
+ },
+ "meta": {
+  "player/basic/walk_S_0.png": [
+   0.9954,
+   101.2,
+   249
+  ],
+  "player/basic/walk_S_1.png": [
+   0.9954,
+   101.2,
+   249
+  ],
+  "player/basic/walk_S_2.png": [
+   1.0,
+   101.2,
+   249
+  ],
+  "player/basic/walk_S_3.png": [
+   1.0,
+   101.2,
+   249
+  ],
+  "player/basic/walk_S_4.png": [
+   1.0,
+   101.2,
+   249
+  ],
+  "player/basic/walk_S_5.png": [
+   1.0,
+   101.2,
+   249
+  ],
+  "player/basic/walk_SW_0.png": [
+   1.0483,
+   103.5,
+   250
+  ],
+  "player/basic/walk_SW_1.png": [
+   1.0483,
+   103.5,
+   250
+  ],
+  "player/basic/walk_SW_2.png": [
+   1.0483,
+   103.5,
+   250
+  ],
+  "player/basic/walk_SW_3.png": [
+   1.0483,
+   103.5,
+   250
+  ],
+  "player/basic/walk_SW_4.png": [
+   1.0483,
+   103.5,
+   250
+  ],
+  "player/basic/walk_SW_5.png": [
+   1.0483,
+   103.5,
+   250
+  ],
+  "player/basic/walk_W_0.png": [
+   1.0905,
+   102.5,
+   248
+  ],
+  "player/basic/walk_W_1.png": [
+   1.0905,
+   102.5,
+   247
+  ],
+  "player/basic/walk_W_2.png": [
+   1.096,
+   102.5,
+   247
+  ],
+  "player/basic/walk_W_3.png": [
+   1.0905,
+   102.5,
+   248
+  ],
+  "player/basic/walk_W_4.png": [
+   1.0905,
+   102.5,
+   248
+  ],
+  "player/basic/walk_W_5.png": [
+   1.096,
+   102.5,
+   248
+  ],
+  "player/basic/walk_NW_0.png": [
+   0.9274,
+   101.8,
+   234
+  ],
+  "player/basic/walk_NW_1.png": [
+   0.8785,
+   101.8,
+   247
+  ],
+  "player/basic/walk_NW_2.png": [
+   0.8821,
+   101.8,
+   246
+  ],
+  "player/basic/walk_NW_3.png": [
+   0.9559,
+   101.8,
+   227
+  ],
+  "player/basic/walk_NW_4.png": [
+   0.8785,
+   101.8,
+   247
+  ],
+  "player/basic/walk_NW_5.png": [
+   0.9156,
+   101.8,
+   237
+  ],
+  "player/basic/walk_N_0.png": [
+   0.8785,
+   100.5,
+   247
+  ],
+  "player/basic/walk_N_1.png": [
+   0.8785,
+   100.5,
+   247
+  ],
+  "player/basic/walk_N_2.png": [
+   0.8785,
+   100.5,
+   247
+  ],
+  "player/basic/walk_N_3.png": [
+   0.9518,
+   100.5,
+   228
+  ],
+  "player/basic/walk_N_4.png": [
+   0.875,
+   100.5,
+   248
+  ],
+  "player/basic/walk_N_5.png": [
+   0.9195,
+   100.5,
+   236
+  ],
+  "player/basic/idle_S_0.png": [
+   1.0284,
+   100.0,
+   249
+  ],
+  "player/basic/idle_S_1.png": [
+   1.0284,
+   100.0,
+   249
+  ],
+  "player/basic/idle_S_2.png": [
+   1.0284,
+   100.0,
+   249
+  ],
+  "player/basic/idle_S_3.png": [
+   1.0284,
+   100.0,
+   249
+  ],
+  "player/basic/wave_S_0.png": [
+   1,
+   92.5,
+   239
+  ],
+  "player/basic/wave_S_1.png": [
+   1,
+   92.5,
+   239
+  ],
+  "player/basic/wave_S_2.png": [
+   1,
+   92.5,
+   239
+  ],
+  "player/basic/wave_S_3.png": [
+   1,
+   92.5,
+   239
+  ],
+  "player/basic/jump_S_0.png": [
+   1,
+   99.5,
+   249
+  ],
+  "player/basic/jump_S_1.png": [
+   1,
+   99.5,
+   249
+  ],
+  "player/basic/jump_S_2.png": [
+   1,
+   99.5,
+   249
+  ],
+  "player/basic/jump_S_3.png": [
+   1,
+   99.5,
+   249
+  ],
+  "player/basic/pray_S_0.png": [
+   1,
+   100.2,
+   216
+  ],
+  "player/basic/pray_S_1.png": [
+   1,
+   100.2,
+   216
+  ],
+  "player/basic/pray_S_2.png": [
+   1,
+   100.2,
+   216
+  ],
+  "player/basic/pray_S_3.png": [
+   1,
+   100.2,
+   216
+  ],
+  "player/choir/walk_S_0.png": [
+   1.0,
+   101.0,
+   250
+  ],
+  "player/choir/walk_S_1.png": [
+   1.0,
+   101.0,
+   250
+  ],
+  "player/choir/walk_S_2.png": [
+   1.0,
+   101.0,
+   250
+  ],
+  "player/choir/walk_S_3.png": [
+   1.0,
+   101.0,
+   250
+  ],
+  "player/choir/walk_S_4.png": [
+   1.0,
+   101.0,
+   250
+  ],
+  "player/choir/walk_S_5.png": [
+   1.0,
+   101.0,
+   250
+  ],
+  "player/choir/walk_W_0.png": [
+   1.1066,
+   102.8,
+   248
+  ],
+  "player/choir/walk_W_1.png": [
+   1.1066,
+   102.8,
+   248
+  ],
+  "player/choir/walk_W_2.png": [
+   1.1066,
+   102.8,
+   248
+  ],
+  "player/choir/walk_W_3.png": [
+   1.1066,
+   102.8,
+   248
+  ],
+  "player/choir/walk_W_4.png": [
+   1.1066,
+   102.8,
+   247
+  ],
+  "player/choir/walk_W_5.png": [
+   1.1066,
+   102.8,
+   247
+  ],
+  "player/choir/walk_N_0.png": [
+   1.1237,
+   100.5,
+   232
+  ],
+  "player/choir/walk_N_1.png": [
+   1.1237,
+   100.5,
+   247
+  ],
+  "player/choir/walk_N_2.png": [
+   1.1237,
+   100.5,
+   217
+  ],
+  "player/choir/walk_N_3.png": [
+   1.1179,
+   100.5,
+   248
+  ],
+  "player/choir/walk_N_4.png": [
+   1.1179,
+   100.5,
+   248
+  ],
+  "player/choir/walk_N_5.png": [
+   1.1179,
+   100.5,
+   222
+  ],
+  "player/mint/walk_S_0.png": [
+   1.0,
+   101.5,
+   250
+  ],
+  "player/mint/walk_S_1.png": [
+   0.9954,
+   101.5,
+   250
+  ],
+  "player/mint/walk_S_2.png": [
+   1.0,
+   101.5,
+   250
+  ],
+  "player/mint/walk_S_3.png": [
+   1.0,
+   101.5,
+   250
+  ],
+  "player/mint/walk_S_4.png": [
+   1.0,
+   101.5,
+   250
+  ],
+  "player/mint/walk_S_5.png": [
+   1.0,
+   101.5,
+   250
+  ],
+  "player/mint/walk_SW_0.png": [
+   1.0483,
+   103.5,
+   249
+  ],
+  "player/mint/walk_SW_1.png": [
+   1.0483,
+   103.5,
+   249
+  ],
+  "player/mint/walk_SW_2.png": [
+   1.0534,
+   103.5,
+   249
+  ],
+  "player/mint/walk_SW_3.png": [
+   1.0534,
+   103.5,
+   249
+  ],
+  "player/mint/walk_SW_4.png": [
+   1.0534,
+   103.5,
+   249
+  ],
+  "player/mint/walk_SW_5.png": [
+   1.0585,
+   103.5,
+   249
+  ],
+  "player/mint/walk_W_0.png": [
+   1.1186,
+   100.5,
+   247
+  ],
+  "player/mint/walk_W_1.png": [
+   1.1128,
+   100.5,
+   248
+  ],
+  "player/mint/walk_W_2.png": [
+   1.1186,
+   100.5,
+   248
+  ],
+  "player/mint/walk_W_3.png": [
+   1.1186,
+   100.5,
+   248
+  ],
+  "player/mint/walk_W_4.png": [
+   1.1128,
+   100.5,
+   247
+  ],
+  "player/mint/walk_W_5.png": [
+   1.1186,
+   100.5,
+   246
+  ],
+  "player/mint/walk_NW_0.png": [
+   1.1071,
+   100.5,
+   215
+  ],
+  "player/mint/walk_NW_1.png": [
+   1.1186,
+   100.5,
+   217
+  ],
+  "player/mint/walk_NW_2.png": [
+   1.1543,
+   100.5,
+   247
+  ],
+  "player/mint/walk_NW_3.png": [
+   1.0905,
+   100.5,
+   218
+  ],
+  "player/mint/walk_NW_4.png": [
+   1.0905,
+   100.5,
+   246
+  ],
+  "player/mint/walk_NW_5.png": [
+   1.085,
+   100.5,
+   219
+  ],
+  "player/mint/walk_N_0.png": [
+   1.1071,
+   100.5,
+   215
+  ],
+  "player/mint/walk_N_1.png": [
+   1.1186,
+   100.5,
+   217
+  ],
+  "player/mint/walk_N_2.png": [
+   1.1543,
+   100.5,
+   247
+  ],
+  "player/mint/walk_N_3.png": [
+   1.0905,
+   100.5,
+   218
+  ],
+  "player/mint/walk_N_4.png": [
+   1.0905,
+   100.5,
+   246
+  ],
+  "player/mint/walk_N_5.png": [
+   1.085,
+   100.5,
+   219
+  ],
+  "pastor/robe/walk_S_0.png": [
+   1.0,
+   99.2,
+   246
+  ],
+  "pastor/robe/walk_S_1.png": [
+   1.0,
+   99.2,
+   246
+  ],
+  "pastor/robe/walk_S_2.png": [
+   1.0047,
+   99.2,
+   247
+  ],
+  "pastor/robe/walk_S_3.png": [
+   0.9862,
+   99.2,
+   250
+  ],
+  "pastor/robe/walk_S_4.png": [
+   1.0,
+   99.2,
+   247
+  ],
+  "pastor/robe/walk_S_5.png": [
+   1.0047,
+   99.2,
+   247
+  ],
+  "pastor/robe/walk_SW_0.png": [
+   1.0808,
+   100.2,
+   237
+  ],
+  "pastor/robe/walk_SW_1.png": [
+   1.0863,
+   100.2,
+   244
+  ],
+  "pastor/robe/walk_SW_2.png": [
+   1.0863,
+   100.2,
+   237
+  ],
+  "pastor/robe/walk_SW_3.png": [
+   1.0918,
+   100.2,
+   237
+  ],
+  "pastor/robe/walk_SW_4.png": [
+   1.0918,
+   100.2,
+   247
+  ],
+  "pastor/robe/walk_SW_5.png": [
+   1.0863,
+   100.2,
+   248
+  ],
+  "pastor/robe/walk_W_0.png": [
+   1.0918,
+   101.0,
+   247
+  ],
+  "pastor/robe/walk_W_1.png": [
+   1.0918,
+   101.0,
+   247
+  ],
+  "pastor/robe/walk_W_2.png": [
+   1.0863,
+   101.0,
+   248
+  ],
+  "pastor/robe/walk_W_3.png": [
+   1.0974,
+   101.0,
+   247
+  ],
+  "pastor/robe/walk_W_4.png": [
+   1.0863,
+   101.0,
+   247
+  ],
+  "pastor/robe/walk_W_5.png": [
+   1.0863,
+   101.0,
+   246
+  ],
+  "pastor/robe/walk_NW_0.png": [
+   1.1694,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_NW_1.png": [
+   1.1568,
+   100.8,
+   247
+  ],
+  "pastor/robe/walk_NW_2.png": [
+   1.1505,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_NW_3.png": [
+   1.1505,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_NW_4.png": [
+   1.1444,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_NW_5.png": [
+   1.1444,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_N_0.png": [
+   1.1694,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_N_1.png": [
+   1.1568,
+   100.8,
+   247
+  ],
+  "pastor/robe/walk_N_2.png": [
+   1.1505,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_N_3.png": [
+   1.1505,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_N_4.png": [
+   1.1444,
+   100.8,
+   248
+  ],
+  "pastor/robe/walk_N_5.png": [
+   1.1444,
+   100.8,
+   248
+  ],
+  "pastor/robe/idle_S_0.png": [
+   1.0239,
+   99.0,
+   247
+  ],
+  "pastor/robe/idle_S_1.png": [
+   1.0239,
+   99.0,
+   247
+  ],
+  "pastor/robe/idle_S_2.png": [
+   1.0239,
+   99.0,
+   247
+  ],
+  "pastor/robe/idle_S_3.png": [
+   1.0239,
+   99.0,
+   246
+  ],
+  "pastor/robe/wave_S_0.png": [
+   1,
+   95.5,
+   246
+  ],
+  "pastor/robe/pray_S_0.png": [
+   1,
+   99.0,
+   246
+  ],
+  "choirgirl/dress/walk_S_0.png": [
+   1.0,
+   100.5,
+   250
+  ],
+  "choirgirl/dress/walk_S_1.png": [
+   1.0,
+   100.5,
+   250
+  ],
+  "choirgirl/dress/walk_S_2.png": [
+   1.0,
+   100.5,
+   250
+  ],
+  "choirgirl/dress/walk_S_3.png": [
+   1.0,
+   100.5,
+   250
+  ],
+  "choirgirl/dress/walk_S_4.png": [
+   1.0,
+   100.5,
+   250
+  ],
+  "choirgirl/dress/walk_W_0.png": [
+   1.0332,
+   105.5,
+   243
+  ],
+  "choirgirl/dress/walk_W_1.png": [
+   1.0381,
+   105.5,
+   244
+  ],
+  "choirgirl/dress/walk_W_2.png": [
+   1.0381,
+   105.5,
+   244
+  ],
+  "choirgirl/dress/walk_W_3.png": [
+   1.0332,
+   105.5,
+   247
+  ],
+  "choirgirl/dress/walk_W_4.png": [
+   1.0332,
+   105.5,
+   245
+  ],
+  "choirgirl/dress/walk_W_5.png": [
+   1.0431,
+   105.5,
+   245
+  ],
+  "choirgirl/dress/walk_NW_0.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_NW_1.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_NW_2.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_NW_3.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_NW_4.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_NW_5.png": [
+   1.0634,
+   101.0,
+   209
+  ],
+  "choirgirl/dress/walk_N_0.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_N_1.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_N_2.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_N_3.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_N_4.png": [
+   1.0634,
+   101.0,
+   248
+  ],
+  "choirgirl/dress/walk_N_5.png": [
+   1.0634,
+   101.0,
+   209
+  ],
+  "choirgirl/dress/idle_S_0.png": [
+   1.101,
+   100.0,
+   236
+  ],
+  "choirgirl/dress/idle_S_1.png": [
+   1.101,
+   100.0,
+   236
+  ],
+  "choirgirl/dress/idle_S_2.png": [
+   1.101,
+   100.0,
+   236
+  ],
+  "choirgirl/dress/idle_S_3.png": [
+   1.1066,
+   100.0,
+   236
+  ],
+  "choirgirl/dress/happy_S_0.png": [
+   1,
+   98.0,
+   236
+  ],
+  "choirgirl/dress/jump_S_0.png": [
+   1,
+   100.5,
+   236
+  ],
+  "lamb/raincoat/walk_S_0.png": [
+   1.0,
+   100.0,
+   250
+  ],
+  "lamb/raincoat/walk_S_1.png": [
+   1.0,
+   100.0,
+   250
+  ],
+  "lamb/raincoat/walk_S_2.png": [
+   1.0,
+   100.0,
+   250
+  ],
+  "lamb/raincoat/walk_S_3.png": [
+   1.0,
+   100.0,
+   250
+  ],
+  "lamb/raincoat/walk_S_4.png": [
+   1.0,
+   100.0,
+   250
+  ],
+  "lamb/raincoat/walk_S_5.png": [
+   1.0,
+   100.0,
+   250
+  ],
+  "lamb/raincoat/walk_SW_0.png": [
+   1.0746,
+   100.5,
+   250
+  ],
+  "lamb/raincoat/walk_SW_1.png": [
+   1.0746,
+   100.5,
+   250
+  ],
+  "lamb/raincoat/walk_SW_2.png": [
+   1.08,
+   100.5,
+   250
+  ],
+  "lamb/raincoat/walk_SW_3.png": [
+   1.08,
+   100.5,
+   250
+  ],
+  "lamb/raincoat/walk_SW_4.png": [
+   1.08,
+   100.5,
+   250
+  ],
+  "lamb/raincoat/walk_SW_5.png": [
+   1.0854,
+   100.5,
+   250
+  ],
+  "lamb/raincoat/walk_W_0.png": [
+   1.0909,
+   102.2,
+   248
+  ],
+  "lamb/raincoat/walk_W_1.png": [
+   1.0854,
+   102.2,
+   248
+  ],
+  "lamb/raincoat/walk_W_2.png": [
+   1.1077,
+   102.2,
+   247
+  ],
+  "lamb/raincoat/walk_W_3.png": [
+   1.102,
+   102.2,
+   248
+  ],
+  "lamb/raincoat/walk_W_4.png": [
+   1.102,
+   102.2,
+   247
+  ],
+  "lamb/raincoat/walk_W_5.png": [
+   1.1077,
+   102.2,
+   247
+  ],
+  "lamb/raincoat/walk_N_0.png": [
+   1.1077,
+   102.2,
+   247
+  ],
+  "lamb/raincoat/walk_N_1.png": [
+   1.102,
+   102.2,
+   248
+  ],
+  "lamb/raincoat/walk_N_2.png": [
+   1.102,
+   102.2,
+   247
+  ],
+  "lamb/raincoat/walk_N_3.png": [
+   1.1077,
+   102.2,
+   247
+  ],
+  "lamb/raincoat/walk_N_4.png": [
+   1.0909,
+   102.2,
+   248
+  ],
+  "lamb/raincoat/walk_N_5.png": [
+   1.0854,
+   102.2,
+   248
+  ],
+  "lamb/raincoat/idle_S_0.png": [
+   1.0237,
+   99.5,
+   248
+  ],
+  "lamb/raincoat/idle_S_1.png": [
+   1.0237,
+   99.5,
+   248
+  ],
+  "lamb/raincoat/idle_S_2.png": [
+   1.0237,
+   99.5,
+   248
+  ],
+  "lamb/raincoat/idle_S_3.png": [
+   1.0237,
+   99.5,
+   248
+  ],
+  "lamb/raincoat/jump_S_0.png": [
+   1,
+   100.5,
+   221
+  ]
+ },
+ "normalized": "v5: per-frame alpha bbox; scale=walk_S median body height; anchor=bbox bottom-center"
+}

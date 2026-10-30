@@ -1,0 +1,35 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ㅇㅇ동 마을예배당</title><link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="css/style.css">
+</head><body>
+<canvas id="game"></canvas>
+<div id="loading"><div class="logo">⛪ ㅇㅇ동 마을예배당</div><div class="lb"><i id="loadbar"></i></div></div>
+<div id="title"><div class="tcard">
+  <div class="logo">⛪ ㅇㅇ동 마을예배당</div><p class="sub">우리 동네 작은 예배당에서 함께 걷고, 찬양하고, 꾸며요</p>
+  <label>이름 <input id="pname" maxlength="8" placeholder="새싹" value="새싹"></label>
+  <div id="outfits"></div>
+  <div class="row"><button id="newgame" class="big">새로 시작</button><button id="continue" class="big alt">이어하기</button></div>
+  <small>WASD/방향키·클릭 이동 · Space 대화 · 1/2/3 이모트 · Enter 채팅 · 모바일은 조이스틱</small>
+</div></div>
+<div id="hud" style="display:none">
+  <div id="top"><div id="coinbox">🪙 <b id="coins">0</b></div>
+    <div id="lvbox"><span id="lvl">예배당 Lv.1</span><div class="bar"><i id="lvbar"></i></div></div><span id="scene"></span>
+    <button id="btn-menu" title="저장 후 타이틀">💾</button></div>
+  <div id="quest"><b>📜 임무</b><span id="qtext"></span></div>
+  <div id="side"><button id="btn-gacha">🎁<small>헌금뽑기</small></button><button id="btn-inv">👗<small>꾸미기</small></button><button id="btn-decor">🪑<small>배치</small></button><button id="btn-board">🙏<small>게시판</small></button></div>
+  <div id="chat"><div id="chatlog"></div><form id="chatform"><input id="chatin" maxlength="40" placeholder="메시지 입력 (Enter)"><button>전송</button></form></div>
+  <div id="emotes"><button data-emote="wave">👋</button><button data-emote="jump">🙌</button><button data-emote="pray">🙏</button></div>
+  <div id="joyzone"><div id="joyknob"></div></div>
+  <button id="btn-act">대화</button>
+  <div id="decorbar"><div id="decor-items"></div><div class="dbtns"><button id="dflip">↔</button><button id="dpick">✋ 회수</button><button id="dundo">↶ 되돌리기</button><button id="ddone">완료</button></div></div>
+</div>
+<div id="dialog" class="modal"><div class="panel dlg"><h3 id="dname"></h3><p id="dtext"></p><div id="dopts"></div></div></div>
+<div id="gacha" class="modal"><div class="panel"><button class="close">✕</button><h2>🎁 헌금 뽑기</h2><div id="gres"></div><button id="groll" class="big">헌금하고 뽑기 (<span id="gcost">100</span>🪙)</button><small>일반 · 희귀 · 전설 · 중복 장신구는 코인 일부 환급</small></div></div>
+<div id="inv" class="modal"><div class="panel wide"><button class="close">✕</button><h2>👗 꾸미기</h2><h4>옷</h4><div id="inv-outfits"></div><h4>장신구</h4><div id="inv-items"></div><h4>배치 가방</h4><div id="inv-decor"></div></div></div>
+<div id="board" class="modal"><div class="panel wide"><button class="close">✕</button><h2>🙏 기도 · 소통 게시판</h2><div class="row"><input id="btext" maxlength="60" placeholder="기도제목이나 이웃에게 한마디"><button id="bpost">올리기</button></div><div id="blist"></div></div></div>
+<div id="worship"><canvas id="wcv"></canvas><button id="wtap">♪ 찬양!</button></div>
+<div id="toast"></div>
+<script type="module" src="js/main.js"></script>
+</body></html>

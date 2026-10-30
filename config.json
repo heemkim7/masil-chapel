@@ -1,0 +1,1297 @@
+{
+ "world": {
+  "bg": "assets/village_lo.jpg",
+  "scale": 4,
+  "mask": "assets/village_mask.png",
+  "sky": "#9fd08f",
+  "hd": "assets/village_hd/"
+ },
+ "player": {
+  "speed": 260,
+  "accel": 10,
+  "drawH": 150,
+  "stepLen": 34
+ },
+ "chapel": {
+  "x": 3600,
+  "y": 1500,
+  "img": "v7/chapel.webp",
+  "h": 1000,
+  "r": 290,
+  "cy": 1320,
+  "door": {
+   "x": 3600,
+   "y": 1585
+  },
+  "ax": 0.59,
+  "ay": 0.93,
+  "sortDy": 60
+ },
+ "props": [
+  {
+   "img": "v7/shop_clothes.webp",
+   "x": 4500,
+   "y": 2585,
+   "h": 430,
+   "r": 135,
+   "cy": 2470,
+   "shop": "clothes"
+  },
+  {
+   "img": "v7/shop_flower.webp",
+   "x": 4980,
+   "y": 2585,
+   "h": 430,
+   "r": 135,
+   "cy": 2470,
+   "shop": "flower"
+  },
+  {
+   "img": "v7/shop_bakery.webp",
+   "x": 5460,
+   "y": 2585,
+   "h": 430,
+   "r": 135,
+   "cy": 2470,
+   "shop": "bakery"
+  },
+  {
+   "img": "v7/shop_cafe.webp",
+   "x": 5940,
+   "y": 2585,
+   "h": 430,
+   "r": 135,
+   "cy": 2470,
+   "shop": "cafe"
+  },
+  {
+   "img": "v7/shop_book.webp",
+   "x": 6420,
+   "y": 2585,
+   "h": 430,
+   "r": 135,
+   "cy": 2470,
+   "shop": "book"
+  },
+  {
+   "img": "v7/house_red.webp",
+   "x": 900,
+   "y": 2585,
+   "h": 420,
+   "r": 135,
+   "cy": 2492.6
+  },
+  {
+   "img": "v7/house_blue.webp",
+   "x": 1750,
+   "y": 2585,
+   "h": 420,
+   "r": 135,
+   "cy": 2492.6
+  },
+  {
+   "img": "v7/house_lav.webp",
+   "x": 2400,
+   "y": 2585,
+   "h": 420,
+   "r": 135,
+   "cy": 2492.6
+  },
+  {
+   "img": "v7/house_blue.webp",
+   "x": 800,
+   "y": 1500,
+   "h": 400,
+   "r": 130,
+   "cy": 1412.0
+  },
+  {
+   "img": "v7/house_lav.webp",
+   "x": 2100,
+   "y": 1180,
+   "h": 400,
+   "r": 130,
+   "cy": 1092.0
+  },
+  {
+   "img": "v7/house_red.webp",
+   "x": 6200,
+   "y": 1350,
+   "h": 400,
+   "r": 130,
+   "cy": 1262.0
+  },
+  {
+   "img": "v7/fountain.webp",
+   "x": 3600,
+   "y": 2240,
+   "h": 300,
+   "r": 150,
+   "cy": 2174.0
+  },
+  {
+   "img": "v7/playground.webp",
+   "x": 1300,
+   "y": 3760,
+   "h": 380,
+   "r": 170,
+   "cy": 3676.4
+  },
+  {
+   "img": "v7/busstop.webp",
+   "x": 2950,
+   "y": 2600,
+   "h": 300,
+   "r": 60,
+   "cy": 2580
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 500,
+   "y": 600,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 1100,
+   "y": 700,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 1800,
+   "y": 600,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 2600,
+   "y": 700,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 4600,
+   "y": 700,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 5400,
+   "y": 600,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 6400,
+   "y": 700,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 6800,
+   "y": 1900,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 5000,
+   "y": 2050,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 4300,
+   "y": 1400,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 2800,
+   "y": 1900,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 2300,
+   "y": 1700,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 600,
+   "y": 3200,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 2000,
+   "y": 3300,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 2100,
+   "y": 4300,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 500,
+   "y": 4300,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 5400,
+   "y": 3400,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 6300,
+   "y": 3300,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 5300,
+   "y": 4300,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 6600,
+   "y": 4300,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 3000,
+   "y": 4550,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 4300,
+   "y": 4550,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 2900,
+   "y": 3200,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 4400,
+   "y": 3200,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 1000,
+   "y": 2200,
+   "h": 330,
+   "r": 45
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 6700,
+   "y": 2400,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 3000,
+   "y": 1000,
+   "h": 270,
+   "r": 45
+  },
+  {
+   "img": "v7/tree_pink.webp",
+   "x": 4200,
+   "y": 1000,
+   "h": 330,
+   "r": 45
+  }
+ ],
+ "npcs": [
+  {
+   "id": "haeun",
+   "name": "하은",
+   "char": "choirgirl",
+   "outfit": "dress",
+   "x": 3380,
+   "y": 2300
+  },
+  {
+   "id": "lamb",
+   "name": "양이",
+   "char": "lamb",
+   "outfit": "raincoat",
+   "x": 1500,
+   "y": 3500
+  }
+ ],
+ "wanderers": [
+  {
+   "name": "민준",
+   "outfit": "choir",
+   "hue": 0
+  },
+  {
+   "name": "서연",
+   "outfit": "mint",
+   "hue": 0
+  },
+  {
+   "name": "도윤",
+   "outfit": "choir",
+   "hue": 140
+  },
+  {
+   "name": "지우",
+   "outfit": "mint",
+   "hue": 260
+  }
+ ],
+ "chats": [
+  "안녕하세요~",
+  "오늘 날씨 좋다!",
+  "예배당 예쁘다 ✨",
+  "같이 찬양해요 🎵",
+  "별 찾았어?",
+  "꽃이 활짝 폈네",
+  "주일에 만나요!",
+  "벤치 귀엽다"
+ ],
+ "quest": {
+  "needStars": 5,
+  "rewardCoins": 300,
+  "rewardXp": 60
+ },
+ "gacha": {
+  "cost": 100,
+  "dupRefund": 40,
+  "pool": [
+   {
+    "id": "beanie",
+    "name": "니트 비니",
+    "slot": "hat",
+    "rar": "일반",
+    "w": 40
+   },
+   {
+    "id": "dove",
+    "name": "비둘기 친구",
+    "slot": "pet",
+    "rar": "일반",
+    "w": 35
+   },
+   {
+    "id": "crown",
+    "name": "꽃 화관",
+    "slot": "hat",
+    "rar": "희귀",
+    "w": 15
+   },
+   {
+    "id": "sparkle",
+    "name": "반짝 요정",
+    "slot": "pet",
+    "rar": "희귀",
+    "w": 15
+   },
+   {
+    "id": "halo",
+    "name": "빛나는 후광",
+    "slot": "hat",
+    "rar": "전설",
+    "w": 5
+   },
+   {
+    "id": "wings",
+    "name": "천사 날개",
+    "slot": "back",
+    "rar": "전설",
+    "w": 5
+   },
+   {
+    "id": "bench",
+    "name": "나무 벤치",
+    "kind": "decor",
+    "rar": "일반",
+    "w": 30
+   },
+   {
+    "id": "pot",
+    "name": "꽃 화분",
+    "kind": "decor",
+    "rar": "일반",
+    "w": 35
+   },
+   {
+    "id": "lamp",
+    "name": "가로등",
+    "kind": "decor",
+    "rar": "희귀",
+    "w": 15
+   },
+   {
+    "id": "fence",
+    "name": "하얀 울타리",
+    "kind": "decor",
+    "rar": "일반",
+    "w": 25
+   },
+   {
+    "id": "flowers",
+    "name": "꽃밭",
+    "kind": "decor",
+    "rar": "희귀",
+    "w": 12
+   },
+   {
+    "id": "starlamp",
+    "name": "별 장식",
+    "kind": "decor",
+    "rar": "전설",
+    "w": 4
+   }
+  ],
+  "name": "헌금 뽑기"
+ },
+ "acc": {
+  "halo": {
+   "img": "acc_0_0.png",
+   "w": 0.55,
+   "y": -0.06
+  },
+  "crown": {
+   "img": "acc_0_1.png",
+   "w": 0.6,
+   "y": 0.08
+  },
+  "beanie": {
+   "img": "acc_0_2.png",
+   "w": 0.62,
+   "y": 0.02
+  },
+  "dove": {
+   "img": "acc_1_0.png",
+   "w": 0.38,
+   "y": 0.15,
+   "x": 0.55,
+   "bob": 1
+  },
+  "sparkle": {
+   "img": "acc_1_1.png",
+   "w": 0.5,
+   "y": 0.0,
+   "x": -0.5,
+   "bob": 1
+  },
+  "wings": {
+   "img": "acc_1_2.png",
+   "w": 0.95,
+   "y": 0.48,
+   "back": 1
+  }
+ },
+ "decor": [
+  {
+   "id": "bench",
+   "name": "벤치",
+   "img": "prop_1_1.png",
+   "h": 110,
+   "xp": 15
+  },
+  {
+   "id": "lamp",
+   "name": "가로등",
+   "img": "prop_1_0.png",
+   "h": 170,
+   "xp": 15
+  },
+  {
+   "id": "pot",
+   "name": "화분",
+   "img": "item_0_0.png",
+   "h": 70,
+   "xp": 10
+  },
+  {
+   "id": "fence",
+   "name": "울타리",
+   "img": "item_1_2.png",
+   "h": 70,
+   "xp": 10
+  },
+  {
+   "id": "flowers",
+   "name": "꽃밭",
+   "img": "prop_0_2.png",
+   "h": 70,
+   "xp": 12
+  },
+  {
+   "id": "starlamp",
+   "name": "별 장식",
+   "img": "item_0_1.png",
+   "h": 80,
+   "xp": 25
+  }
+ ],
+ "yard": {
+  "x": 3600,
+  "y": 1820,
+  "rx": 700,
+  "ry": 180,
+  "max": 12
+ },
+ "levels": [
+  0,
+  50,
+  120,
+  220,
+  360,
+  540
+ ],
+ "startDecor": {
+  "bench": 1,
+  "pot": 2,
+  "lamp": 1
+ },
+ "interior": {
+  "view": "side",
+  "W": 1536,
+  "H": 864,
+  "bg": "assets/in_side_t1.jpg",
+  "bgs": [
+   "assets/in_side_t1.jpg",
+   "assets/in_side_t2.jpg",
+   "assets/in_side_t3.jpg"
+  ],
+  "mask": "assets/in_side_mask.png",
+  "maskScale": 8,
+  "door": {
+   "x": 1372,
+   "y": 592
+  },
+  "spawn": {
+   "x": 1290,
+   "y": 615
+  },
+  "pulpit": {
+   "x": 330,
+   "y": 540
+  },
+  "pastorPos": {
+   "x": 228,
+   "y": 548
+  },
+  "altar": {
+   "x": 330,
+   "y": 540
+  },
+  "offering": {
+   "x": 1240,
+   "y": 566
+  },
+  "board": {
+   "x": 470,
+   "y": 560
+  },
+  "pews": [
+   [
+    600,
+    604
+   ],
+   [
+    720,
+    604
+   ],
+   [
+    840,
+    604
+   ],
+   [
+    960,
+    604
+   ],
+   [
+    1080,
+    604
+   ],
+   [
+    1200,
+    604
+   ]
+  ],
+  "pewH": 128,
+  "seatDx": -12,
+  "sitLift": 10,
+  "seatCut": 58,
+  "frontFrac": 0.5,
+  "tiers": [
+   {
+    "t": 1,
+    "need": 0,
+    "name": "작은 예배당"
+   },
+   {
+    "t": 2,
+    "need": 1000,
+    "name": "꽃 장식 예배당"
+   },
+   {
+    "t": 3,
+    "need": 3000,
+    "name": "빛의 대예배당"
+   }
+  ],
+  "pickups": [
+   [
+    420,
+    600
+   ],
+   [
+    690,
+    630
+   ],
+   [
+    905,
+    560
+   ],
+   [
+    1150,
+    632
+   ],
+   [
+    1320,
+    560
+   ],
+   [
+    560,
+    560
+   ]
+  ]
+ },
+ "worship": {
+  "bpm": 96,
+  "notes": 20,
+  "coinPerHit": 12,
+  "xpPerHit": 3,
+  "hymn": [
+   "주 사랑 안에",
+   "기쁨이 넘쳐",
+   "우리 마을 예배당",
+   "함께 노래해"
+  ]
+ },
+ "interiorNpcs": [
+  {
+   "id": "pastor",
+   "name": "목사님",
+   "char": "pastor",
+   "outfit": "robe",
+   "x": 228,
+   "y": 548
+  },
+  {
+   "id": "visit1",
+   "name": "권사님",
+   "char": "player",
+   "outfit": "choir",
+   "pew": 1,
+   "sit": 1
+  },
+  {
+   "id": "visit2",
+   "name": "유나",
+   "char": "player",
+   "outfit": "mint",
+   "pew": 4,
+   "sit": 1
+  }
+ ],
+ "spots": [
+  {
+   "id": "chapel",
+   "name": "마실채플",
+   "icon": "⛪",
+   "x": 3600,
+   "y": 1680
+  },
+  {
+   "id": "plaza",
+   "name": "분수 광장",
+   "icon": "⛲",
+   "x": 3600,
+   "y": 2440
+  },
+  {
+   "id": "street",
+   "name": "상점가",
+   "icon": "🛍",
+   "x": 5460,
+   "y": 2760
+  },
+  {
+   "id": "cafe",
+   "name": "마실 카페",
+   "icon": "☕",
+   "x": 5940,
+   "y": 2680
+  },
+  {
+   "id": "book",
+   "name": "서점·성경가게",
+   "icon": "📚",
+   "x": 6420,
+   "y": 2680
+  },
+  {
+   "id": "park",
+   "name": "공원·놀이터",
+   "icon": "🛝",
+   "x": 1300,
+   "y": 3420
+  },
+  {
+   "id": "lake",
+   "name": "호수",
+   "icon": "🦢",
+   "x": 3600,
+   "y": 3420
+  },
+  {
+   "id": "walk",
+   "name": "호숫가 산책길",
+   "icon": "🌿",
+   "x": 4800,
+   "y": 3950
+  },
+  {
+   "id": "bus",
+   "name": "버스정류장",
+   "icon": "🚏",
+   "x": 2950,
+   "y": 2720
+  },
+  {
+   "id": "houses",
+   "name": "주택가",
+   "icon": "🏡",
+   "x": 1700,
+   "y": 2720
+  }
+ ],
+ "interior_v6": {
+  "W": 1536,
+  "H": 1152,
+  "bg": "assets/interior_bg.jpg",
+  "mask": "assets/interior_walkmask.png",
+  "maskScale": 8,
+  "floor": [
+   260,
+   560,
+   1290,
+   950
+  ],
+  "door": {
+   "x": 768,
+   "y": 1010
+  },
+  "altar": {
+   "x": 768,
+   "y": 560
+  },
+  "offering": {
+   "x": 1150,
+   "y": 900
+  },
+  "board": {
+   "x": 320,
+   "y": 560
+  },
+  "pews": [
+   [
+    536,
+    700
+   ],
+   [
+    1000,
+    700
+   ],
+   [
+    536,
+    800
+   ],
+   [
+    1000,
+    800
+   ],
+   [
+    536,
+    900
+   ],
+   [
+    1000,
+    900
+   ]
+  ],
+  "pewW": 260,
+  "spawn": {
+   "x": 768,
+   "y": 930
+  },
+  "pulpit": {
+   "x": 768,
+   "y": 560
+  },
+  "cross": {
+   "x": 768,
+   "y": 318
+  },
+  "organ": {
+   "x": 1230,
+   "y": 640
+  }
+ },
+ "world_v6": {
+  "world": {
+   "bg": "assets/island_v5.jpg",
+   "scale": 3,
+   "mask": "assets/walkmask_v5.png",
+   "sky": "#bcd9f0"
+  },
+  "chapel": {
+   "x": 1700,
+   "y": 860,
+   "img": "chapel_grounded.png",
+   "h": 640,
+   "r": 170,
+   "door": {
+    "x": 1700,
+    "y": 1000
+   },
+   "ax": 0.45,
+   "ay": 0.89,
+   "sortDy": 90
+  },
+  "props": [
+   {
+    "img": "prop_0_1.png",
+    "x": 1150,
+    "y": 760,
+    "h": 260,
+    "r": 40
+   },
+   {
+    "img": "prop_1_2.png",
+    "x": 2250,
+    "y": 780,
+    "h": 280,
+    "r": 40
+   },
+   {
+    "img": "prop_0_1.png",
+    "x": 2500,
+    "y": 1500,
+    "h": 240,
+    "r": 40
+   },
+   {
+    "img": "prop_1_2.png",
+    "x": 1450,
+    "y": 1780,
+    "h": 260,
+    "r": 40
+   },
+   {
+    "img": "prop_0_2.png",
+    "x": 1400,
+    "y": 1250,
+    "h": 90,
+    "r": 0
+   },
+   {
+    "img": "prop_0_2.png",
+    "x": 2100,
+    "y": 1300,
+    "h": 90,
+    "r": 0
+   },
+   {
+    "img": "prop_0_2.png",
+    "x": 1750,
+    "y": 1800,
+    "h": 90,
+    "r": 0
+   },
+   {
+    "img": "prop_1_0.png",
+    "x": 1500,
+    "y": 1080,
+    "h": 170,
+    "r": 14
+   },
+   {
+    "img": "prop_1_0.png",
+    "x": 1900,
+    "y": 1080,
+    "h": 170,
+    "r": 14
+   },
+   {
+    "img": "prop_0_1.png",
+    "x": 4700,
+    "y": 820,
+    "h": 260,
+    "r": 40
+   },
+   {
+    "img": "prop_1_2.png",
+    "x": 5700,
+    "y": 760,
+    "h": 280,
+    "r": 40
+   },
+   {
+    "img": "prop_0_1.png",
+    "x": 4450,
+    "y": 1650,
+    "h": 240,
+    "r": 40
+   },
+   {
+    "img": "prop_1_2.png",
+    "x": 5450,
+    "y": 1850,
+    "h": 250,
+    "r": 40
+   },
+   {
+    "img": "prop_0_2.png",
+    "x": 5000,
+    "y": 1250,
+    "h": 90,
+    "r": 0
+   },
+   {
+    "img": "prop_0_2.png",
+    "x": 5400,
+    "y": 1150,
+    "h": 90,
+    "r": 0
+   },
+   {
+    "img": "prop_1_0.png",
+    "x": 2930,
+    "y": 1090,
+    "h": 170,
+    "r": 14
+   },
+   {
+    "img": "prop_1_0.png",
+    "x": 3840,
+    "y": 1090,
+    "h": 170,
+    "r": 14
+   },
+   {
+    "img": "prop_1_1.png",
+    "x": 5150,
+    "y": 1020,
+    "h": 110,
+    "r": 30
+   }
+  ],
+  "npcs": [
+   {
+    "id": "haeun",
+    "name": "하은",
+    "char": "choirgirl",
+    "outfit": "dress",
+    "x": 1480,
+    "y": 1520
+   },
+   {
+    "id": "lamb",
+    "name": "양이",
+    "char": "lamb",
+    "outfit": "raincoat",
+    "x": 2250,
+    "y": 1250
+   }
+  ],
+  "spots": [
+   {
+    "id": "chapel",
+    "name": "마을예배당",
+    "icon": "⛪",
+    "x": 1700,
+    "y": 1120
+   },
+   {
+    "id": "pond",
+    "name": "수련 연못",
+    "icon": "🪷",
+    "x": 1000,
+    "y": 1560
+   },
+   {
+    "id": "bridge",
+    "name": "구름다리",
+    "icon": "🌉",
+    "x": 3380,
+    "y": 1215
+   },
+   {
+    "id": "hill",
+    "name": "꽃동산",
+    "icon": "🌸",
+    "x": 5100,
+    "y": 1150
+   },
+   {
+    "id": "pond2",
+    "name": "별빛 연못",
+    "icon": "✨",
+    "x": 5560,
+    "y": 1520
+   }
+  ],
+  "yard": {
+   "x": 1700,
+   "y": 1180,
+   "rx": 520,
+   "ry": 260,
+   "max": 12
+  }
+ },
+ "shops": [
+  {
+   "id": "clothes",
+   "name": "옷가게 · 꾸미기 상점",
+   "icon": "👗",
+   "x": 4500,
+   "y": 2585,
+   "door": {
+    "x": 4530,
+    "y": 2615
+   },
+   "keeper": "미소"
+  },
+  {
+   "id": "flower",
+   "name": "꽃집",
+   "icon": "💐",
+   "x": 4980,
+   "y": 2585,
+   "door": {
+    "x": 5010,
+    "y": 2615
+   },
+   "keeper": "꽃님"
+  },
+  {
+   "id": "bakery",
+   "name": "빵집",
+   "icon": "🥐",
+   "x": 5460,
+   "y": 2585,
+   "door": {
+    "x": 5490,
+    "y": 2615
+   },
+   "keeper": "제빵사 토토"
+  },
+  {
+   "id": "cafe",
+   "name": "마실 카페",
+   "icon": "☕",
+   "x": 5940,
+   "y": 2585,
+   "door": {
+    "x": 5970,
+    "y": 2615
+   },
+   "keeper": "바리스타 라떼"
+  },
+  {
+   "id": "book",
+   "name": "서점 · 성경가게",
+   "icon": "📚",
+   "x": 6420,
+   "y": 2585,
+   "door": {
+    "x": 6450,
+    "y": 2615
+   },
+   "keeper": "서점지기 요한"
+  }
+ ],
+ "shopItems": {
+  "clothes": [
+   {
+    "id": "beanie",
+    "kind": "acc",
+    "price": 60
+   },
+   {
+    "id": "crown",
+    "kind": "acc",
+    "price": 150
+   },
+   {
+    "id": "halo",
+    "kind": "acc",
+    "price": 400
+   },
+   {
+    "id": "wings",
+    "kind": "acc",
+    "price": 600
+   },
+   {
+    "id": "dove",
+    "kind": "acc",
+    "price": 120
+   },
+   {
+    "id": "sparkle",
+    "kind": "acc",
+    "price": 250
+   }
+  ],
+  "flower": [
+   {
+    "id": "flowers",
+    "kind": "decor",
+    "price": 40
+   },
+   {
+    "id": "pot",
+    "kind": "decor",
+    "price": 30
+   },
+   {
+    "id": "fence",
+    "kind": "decor",
+    "price": 35
+   }
+  ],
+  "bakery": [
+   {
+    "id": "bread",
+    "kind": "food",
+    "name": "소보로빵",
+    "icon": "🥐",
+    "price": 15,
+    "xp": 10
+   },
+   {
+    "id": "cake",
+    "kind": "food",
+    "name": "딸기 케이크",
+    "icon": "🍰",
+    "price": 40,
+    "xp": 30
+   }
+  ],
+  "cafe": [
+   {
+    "id": "latte",
+    "kind": "food",
+    "name": "라떼",
+    "icon": "☕",
+    "price": 20,
+    "xp": 15
+   },
+   {
+    "id": "cocoa",
+    "kind": "food",
+    "name": "핫초코",
+    "icon": "🍫",
+    "price": 20,
+    "xp": 15
+   },
+   {
+    "id": "bench",
+    "kind": "decor",
+    "price": 50
+   }
+  ],
+  "book": [
+   {
+    "id": "lamp",
+    "kind": "decor",
+    "price": 45
+   },
+   {
+    "id": "starlamp",
+    "kind": "decor",
+    "price": 80
+   },
+   {
+    "id": "verse",
+    "kind": "food",
+    "name": "말씀 카드",
+    "icon": "📖",
+    "price": 10,
+    "xp": 12
+   }
+  ]
+ },
+ "shopLines": {
+  "clothes": [
+   "어서 오세요! 오늘은 꽃 화관이 인기예요 🌸",
+   "입어 보시고 마음에 들면 데려가세요~"
+  ],
+  "flower": [
+   "향긋한 꽃 한 다발 어떠세요?",
+   "예배당 마당에 꽃을 심으면 정말 예뻐요"
+  ],
+  "bakery": [
+   "갓 구운 소보로빵이 나왔어요!",
+   "빵 냄새 맡고 오셨죠? 헤헤"
+  ],
+  "cafe": [
+   "따뜻한 라떼 한 잔 하고 가세요 ☕",
+   "창가 자리가 비었어요~"
+  ],
+  "book": [
+   "오늘의 말씀 카드 한 장 뽑아 가세요 📖",
+   "조용히 둘러보세요. 좋은 책이 많아요"
+  ]
+ }
+}

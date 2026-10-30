@@ -1,0 +1,320 @@
+{
+ "frameW": 200,
+ "frameH": 284,
+ "baselineY": 274,
+ "mirror": {
+  "E": "W",
+  "SE": "SW",
+  "NE": "NW"
+ },
+ "chars": {
+  "player": {
+   "basic": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ],
+    "idle_S": [
+     "idle_S_0.png",
+     "idle_S_1.png",
+     "idle_S_2.png",
+     "idle_S_3.png"
+    ],
+    "wave_S": [
+     "wave_S_0.png",
+     "wave_S_1.png",
+     "wave_S_2.png",
+     "wave_S_3.png"
+    ],
+    "jump_S": [
+     "jump_S_0.png",
+     "jump_S_1.png",
+     "jump_S_2.png",
+     "jump_S_3.png"
+    ],
+    "pray_S": [
+     "pray_S_0.png",
+     "pray_S_1.png",
+     "pray_S_2.png",
+     "pray_S_3.png"
+    ]
+   },
+   "choir": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ]
+   },
+   "mint": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ]
+   }
+  },
+  "pastor": {
+   "robe": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ],
+    "idle_S": [
+     "idle_S_0.png",
+     "idle_S_1.png",
+     "idle_S_2.png",
+     "idle_S_3.png"
+    ],
+    "wave_S": [
+     "wave_S_0.png"
+    ],
+    "pray_S": [
+     "pray_S_0.png"
+    ]
+   }
+  },
+  "choirgirl": {
+   "dress": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_NW": [
+     "walk_NW_0.png",
+     "walk_NW_1.png",
+     "walk_NW_2.png",
+     "walk_NW_3.png",
+     "walk_NW_4.png",
+     "walk_NW_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ],
+    "idle_S": [
+     "idle_S_0.png",
+     "idle_S_1.png",
+     "idle_S_2.png",
+     "idle_S_3.png"
+    ],
+    "happy_S": [
+     "happy_S_0.png"
+    ],
+    "jump_S": [
+     "jump_S_0.png"
+    ]
+   }
+  },
+  "lamb": {
+   "raincoat": {
+    "walk_S": [
+     "walk_S_0.png",
+     "walk_S_1.png",
+     "walk_S_2.png",
+     "walk_S_3.png",
+     "walk_S_4.png",
+     "walk_S_5.png"
+    ],
+    "walk_SW": [
+     "walk_SW_0.png",
+     "walk_SW_1.png",
+     "walk_SW_2.png",
+     "walk_SW_3.png",
+     "walk_SW_4.png",
+     "walk_SW_5.png"
+    ],
+    "walk_W": [
+     "walk_W_0.png",
+     "walk_W_1.png",
+     "walk_W_2.png",
+     "walk_W_3.png",
+     "walk_W_4.png",
+     "walk_W_5.png"
+    ],
+    "walk_N": [
+     "walk_N_0.png",
+     "walk_N_1.png",
+     "walk_N_2.png",
+     "walk_N_3.png",
+     "walk_N_4.png",
+     "walk_N_5.png"
+    ],
+    "idle_S": [
+     "idle_S_0.png",
+     "idle_S_1.png",
+     "idle_S_2.png",
+     "idle_S_3.png"
+    ],
+    "jump_S": [
+     "jump_S_0.png"
+    ]
+   }
+  }
+ }
+}

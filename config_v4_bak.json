@@ -1,0 +1,438 @@
+{
+ "world": {
+  "bg": "assets/island.jpg",
+  "scale": 3,
+  "mask": "assets/walkmask.png",
+  "sky": "#bcd9f0"
+ },
+ "player": {
+  "speed": 260,
+  "accel": 10,
+  "drawH": 150,
+  "stepLen": 34
+ },
+ "chapel": {
+  "x": 1700,
+  "y": 860,
+  "img": "chapel_grounded.png",
+  "h": 640,
+  "r": 170,
+  "door": {
+   "x": 1700,
+   "y": 1000
+  },
+  "ax": 0.45,
+  "ay": 0.89,
+  "sortDy": 90
+ },
+ "props": [
+  {
+   "img": "prop_0_1.png",
+   "x": 1150,
+   "y": 760,
+   "h": 260,
+   "r": 40
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 2250,
+   "y": 780,
+   "h": 280,
+   "r": 40
+  },
+  {
+   "img": "prop_0_1.png",
+   "x": 2500,
+   "y": 1500,
+   "h": 240,
+   "r": 40
+  },
+  {
+   "img": "prop_1_2.png",
+   "x": 1450,
+   "y": 1780,
+   "h": 260,
+   "r": 40
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 1400,
+   "y": 1250,
+   "h": 90,
+   "r": 0
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 2100,
+   "y": 1300,
+   "h": 90,
+   "r": 0
+  },
+  {
+   "img": "prop_0_2.png",
+   "x": 1750,
+   "y": 1800,
+   "h": 90,
+   "r": 0
+  },
+  {
+   "img": "prop_1_0.png",
+   "x": 1500,
+   "y": 1080,
+   "h": 170,
+   "r": 14
+  },
+  {
+   "img": "prop_1_0.png",
+   "x": 1900,
+   "y": 1080,
+   "h": 170,
+   "r": 14
+  }
+ ],
+ "npcs": [
+  {
+   "id": "haeun",
+   "name": "하은",
+   "char": "choirgirl",
+   "outfit": "dress",
+   "x": 1480,
+   "y": 1520
+  },
+  {
+   "id": "lamb",
+   "name": "양이",
+   "char": "lamb",
+   "outfit": "raincoat",
+   "x": 2250,
+   "y": 1250
+  }
+ ],
+ "wanderers": [
+  {
+   "name": "민준",
+   "outfit": "choir",
+   "hue": 0
+  },
+  {
+   "name": "서연",
+   "outfit": "mint",
+   "hue": 0
+  },
+  {
+   "name": "도윤",
+   "outfit": "choir",
+   "hue": 140
+  },
+  {
+   "name": "지우",
+   "outfit": "mint",
+   "hue": 260
+  }
+ ],
+ "chats": [
+  "안녕하세요~",
+  "오늘 날씨 좋다!",
+  "예배당 예쁘다 ✨",
+  "같이 찬양해요 🎵",
+  "별 찾았어?",
+  "꽃이 활짝 폈네",
+  "주일에 만나요!",
+  "벤치 귀엽다"
+ ],
+ "quest": {
+  "needStars": 5,
+  "rewardCoins": 300,
+  "rewardXp": 60
+ },
+ "gacha": {
+  "cost": 100,
+  "dupRefund": 40,
+  "pool": [
+   {
+    "id": "beanie",
+    "name": "니트 비니",
+    "slot": "hat",
+    "rar": "일반",
+    "w": 40
+   },
+   {
+    "id": "dove",
+    "name": "비둘기 친구",
+    "slot": "pet",
+    "rar": "일반",
+    "w": 35
+   },
+   {
+    "id": "crown",
+    "name": "꽃 화관",
+    "slot": "hat",
+    "rar": "희귀",
+    "w": 15
+   },
+   {
+    "id": "sparkle",
+    "name": "반짝 요정",
+    "slot": "pet",
+    "rar": "희귀",
+    "w": 15
+   },
+   {
+    "id": "halo",
+    "name": "빛나는 후광",
+    "slot": "hat",
+    "rar": "전설",
+    "w": 5
+   },
+   {
+    "id": "wings",
+    "name": "천사 날개",
+    "slot": "back",
+    "rar": "전설",
+    "w": 5
+   },
+   {
+    "id": "bench",
+    "name": "나무 벤치",
+    "kind": "decor",
+    "rar": "일반",
+    "w": 30
+   },
+   {
+    "id": "pot",
+    "name": "꽃 화분",
+    "kind": "decor",
+    "rar": "일반",
+    "w": 35
+   },
+   {
+    "id": "lamp",
+    "name": "가로등",
+    "kind": "decor",
+    "rar": "희귀",
+    "w": 15
+   },
+   {
+    "id": "fence",
+    "name": "하얀 울타리",
+    "kind": "decor",
+    "rar": "일반",
+    "w": 25
+   },
+   {
+    "id": "flowers",
+    "name": "꽃밭",
+    "kind": "decor",
+    "rar": "희귀",
+    "w": 12
+   },
+   {
+    "id": "starlamp",
+    "name": "별 장식",
+    "kind": "decor",
+    "rar": "전설",
+    "w": 4
+   }
+  ],
+  "name": "헌금 뽑기"
+ },
+ "acc": {
+  "halo": {
+   "img": "acc_0_0.png",
+   "w": 0.55,
+   "y": -0.06
+  },
+  "crown": {
+   "img": "acc_0_1.png",
+   "w": 0.6,
+   "y": 0.08
+  },
+  "beanie": {
+   "img": "acc_0_2.png",
+   "w": 0.62,
+   "y": 0.02
+  },
+  "dove": {
+   "img": "acc_1_0.png",
+   "w": 0.38,
+   "y": 0.15,
+   "x": 0.55,
+   "bob": 1
+  },
+  "sparkle": {
+   "img": "acc_1_1.png",
+   "w": 0.5,
+   "y": 0.0,
+   "x": -0.5,
+   "bob": 1
+  },
+  "wings": {
+   "img": "acc_1_2.png",
+   "w": 0.95,
+   "y": 0.48,
+   "back": 1
+  }
+ },
+ "decor": [
+  {
+   "id": "bench",
+   "name": "벤치",
+   "img": "prop_1_1.png",
+   "h": 110,
+   "xp": 15
+  },
+  {
+   "id": "lamp",
+   "name": "가로등",
+   "img": "prop_1_0.png",
+   "h": 170,
+   "xp": 15
+  },
+  {
+   "id": "pot",
+   "name": "화분",
+   "img": "item_0_0.png",
+   "h": 70,
+   "xp": 10
+  },
+  {
+   "id": "fence",
+   "name": "울타리",
+   "img": "item_1_2.png",
+   "h": 70,
+   "xp": 10
+  },
+  {
+   "id": "flowers",
+   "name": "꽃밭",
+   "img": "prop_0_2.png",
+   "h": 70,
+   "xp": 12
+  },
+  {
+   "id": "starlamp",
+   "name": "별 장식",
+   "img": "item_0_1.png",
+   "h": 80,
+   "xp": 25
+  }
+ ],
+ "yard": {
+  "x": 1700,
+  "y": 1180,
+  "rx": 520,
+  "ry": 260,
+  "max": 12
+ },
+ "levels": [
+  0,
+  50,
+  120,
+  220,
+  360,
+  540
+ ],
+ "startDecor": {
+  "bench": 1,
+  "pot": 2,
+  "lamp": 1
+ },
+ "interior": {
+  "W": 1536,
+  "H": 1152,
+  "bg": "assets/interior_bg.jpg",
+  "mask": "assets/interior_walkmask.png",
+  "maskScale": 8,
+  "floor": [
+   260,
+   560,
+   1290,
+   950
+  ],
+  "door": {
+   "x": 768,
+   "y": 1010
+  },
+  "altar": {
+   "x": 768,
+   "y": 560
+  },
+  "offering": {
+   "x": 1150,
+   "y": 620
+  },
+  "board": {
+   "x": 320,
+   "y": 600
+  },
+  "pews": [
+   [
+    490,
+    700
+   ],
+   [
+    1050,
+    700
+   ],
+   [
+    485,
+    800
+   ],
+   [
+    1055,
+    800
+   ],
+   [
+    480,
+    900
+   ],
+   [
+    1060,
+    900
+   ]
+  ],
+  "pewW": 260,
+  "spawn": {
+   "x": 768,
+   "y": 930
+  }
+ },
+ "worship": {
+  "bpm": 96,
+  "notes": 20,
+  "coinPerHit": 12,
+  "xpPerHit": 3,
+  "hymn": [
+   "주 사랑 안에",
+   "기쁨이 넘쳐",
+   "우리 마을 예배당",
+   "함께 노래해"
+  ]
+ },
+ "interiorNpcs": [
+  {
+   "id": "pastor",
+   "name": "목사님",
+   "char": "pastor",
+   "outfit": "robe",
+   "x": 768,
+   "y": 640
+  },
+  {
+   "id": "visit1",
+   "name": "권사님",
+   "char": "player",
+   "outfit": "choir",
+   "pew": 2,
+   "sit": 1
+  },
+  {
+   "id": "visit2",
+   "name": "유나",
+   "char": "player",
+   "outfit": "mint",
+   "pew": 5,
+   "sit": 1
+  }
+ ]
+}
