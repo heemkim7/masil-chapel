@@ -191,7 +191,7 @@ export function frame(ch, key) { if (!ch.av) return null; if (key && key.startsW
 
 // ---------------- v17 LAYERED test set (2D): one still 200x284 PNG per direction per layer (base · outfit+tint mask · hair), foot pivot (100,272).
 // Only the shipped hairs/outfits are offered; any other code maps to the nearest shipped item (old codes keep working).
-const NEW_O = ['hanbok']; // v19: hanbok regenerated (real jeogori+chima / jeogori+baji), 5-dir per-cell + 3x checks passed 2026-10-31; other 5 still pulled
+const NEW_O = ['hanbok', 'formal']; // v19: hanbok+formal regenerated, 5-dir per-cell + 3x checks passed 2026-10-31; winter/summer/spring/autumn still pulled
 export const SHIP = { f: { hairs: [0, 4, 5, 6], outfits: ['basic', 'choir', 'mint', 'sky', 'lav', 'peach', ...NEW_O] }, m: { hairs: [0, 1, 2, 3, 4, 5, 6], outfits: ['basic', 'mint', 'sky', 'lav', 'peach', 'navy', 'choir', ...NEW_O] } };
 const NEAR_H = { f: [0, 6, 4, 4, 4, 5, 6, 4], m: [0, 1, 2, 3, 4, 5, 6] }; // index in HAIRS[g] → shipped index
 export const LAYER_PIVOT = [100, 272];

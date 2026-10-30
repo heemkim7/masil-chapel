@@ -128,3 +128,11 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Re-added in all three places, consistently: config gacha.pool (o_hanbok 희귀 w8 → 13 items/244), NEW_O=['hanbok'], server gacha_pool active (migration 20261031_09; server active = 13/244, matches config).
 - Still pulled: o_formal, o_winter, o_summer, o_spring, o_autumn (not regenerated yet). Boy-shorts piping, choir seam and girl hairs h00/h01/h02/h11 are not done yet.
 - Beta suite 160/160.
+
+## 10-31 batch 5: formal (예배 정장) re-added
+- Regenerated all 10 cells: girl navy blazer, blouse with red bow, pleated skirt and tights; boy charcoal-navy suit with red tie. The boy cells are edits of the base pose, so they match the stride.
+- Girl NW: the generated NW came out front-facing, so it uses the N back view (same approach as the hanbok). Girl SW is frontal, which is acceptable at this size.
+- Pipeline additions: outfit interiors are forced fully opaque, and brown specks over white shoes are dropped at the feet (boy SW).
+- Checks passed: per-cell fit, 3x upper and lower body, 6x feet and blouse close-ups, in-game 5-direction stills for f and m.
+- Re-added in all three places: config pool 14 items / 252, NEW_O=['hanbok','formal'], migration 20261031_10 applied. Server active pool matches.
+- Beta suite 160/160.

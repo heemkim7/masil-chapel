@@ -531,6 +531,15 @@
     "rar": "희귀",
     "w": 8,
     "img": "cos/o_hanbok.png"
+   },
+   {
+    "id": "o_formal",
+    "name": "예배 정장 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "희귀",
+    "w": 8,
+    "img": "cos/o_formal.png"
    }
   ],
   "name": "달란트 뽑기"
