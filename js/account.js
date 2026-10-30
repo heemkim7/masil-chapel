@@ -35,4 +35,8 @@ export async function open() { const P = await providers(), u = await user(), bo
   $('#acout') && ($('#acout').onclick = () => window.MaeulReset.logout()); }
 export async function boot() { if (!sb()) return; if (sessionStorage.getItem('maeul_restored')) { sessionStorage.removeItem('maeul_restored'); setTimeout(() => G().toast?.('🔄 내 계정의 예배당으로 돌아왔어요'), 1500); }
   sb().auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_IN') settle(); }); if (await user()) settle(); addEventListener('pagehide', backup); }
-window.Acct = { open, isLinked, settle, backup, providers, boot };
+window.Acct = { open, isLinked, settle, backup, providers, boot, unlinkSave };
+
+// full reset for linked accounts: point the auth uid at a fresh secret with an empty save so re-login starts clean
+export async function unlinkSave() { const u = await user(); if (!u) return; const a = new Uint8Array(24); crypto.getRandomValues(a); const ns = [...a].map(b => b.toString(16).padStart(2, '0')).join('');
+  await sb().from('account_links').update({ secret: ns, save: {}, updated_at: new Date().toISOString() }).eq('user_id', u.id); }
