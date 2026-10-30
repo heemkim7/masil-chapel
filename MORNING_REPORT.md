@@ -149,3 +149,9 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Checks: all 5 directions passed per-cell and 3x by eye, and the in-game stills are clean. Fixes made: the base's white shorts peeked out on the boy SW/W (filled with denim colour), and dark collar specks were removed on S/SW. Minor issue left: the boy's SW shorts hem is slightly ragged.
 - Server pool is now 17 active / weight 288 (migration 20261031_13). beta_suite 160/160.
 - Still pulled: autumn. Not deleted: the stray Vercel project 'exp' (it needs your approval).
+
+## Batch 8: autumn re-added, spring boy hem fixed (Oct 31 KST)
+- **Autumn (o_autumn '가을 체크 (옷)', w14)** is back in the pool, with a new colour scheme. The girl wears a burgundy tartan dress with green maple leaves. The boy wears a burgundy maple-leaf hoodie with dark green tartan shorts. I tried orange and brown first, but the skin-colour filter treats them as skin, which stripped the sleeves and shredded the hems. Burgundy and green avoid that.
+- Fixes: holes along the tartan lines in the hem were closed with nearest-colour fill. On the boy, leaf holes were filled, the base's white shorts were covered with tartan, and collar specks were removed.
+- **Spring boy SW hem** is now smooth. I removed the grey fringe and the dark blob, then refilled from the base's shorts outline. One tiny notch is left.
+- All 5 directions passed 3x by eye, and the in-game stills are clean. Server pool is now 18 active / weight 302 (migration 20261031_14). beta_suite 160/160.

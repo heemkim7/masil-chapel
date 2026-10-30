@@ -567,6 +567,15 @@
     "rar": "일반",
     "w": 14,
     "img": "cos/o_spring.png"
+   },
+   {
+    "id": "o_autumn",
+    "name": "가을 체크 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "일반",
+    "w": 14,
+    "img": "cos/o_autumn.png"
    }
   ],
   "name": "달란트 뽑기"
