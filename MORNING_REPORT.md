@@ -188,3 +188,9 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Hem detection = narrowest ankle row → scan up until filled width > 1.25x (fixes skirt/dress centre tears for hanbok/formal/dresses).
 - No accessory changes. Suite 160/160.
 - Known limits: residual foot slide at ~7.6 steps/s; arm swing subtle; blue/purple fleck on boy sky/lav side-foot is in source art.
+
+## walk3 — stride sync, skirts, ponytail (2026-10-31)
+- Cadence: stepLen 34→38 (≈6.8 steps/s at speed 260). Side scissor uses a constant-speed (triangle) stance so the planted foot moves with the ground; half-stride = 38/(0.687)/2 ≈ 27.7 still px (capped .62L, skirts 1.1L), swing-leg lift 5px.
+- Long skirts: stronger hem sway (front 3px, side 2.2px) + hem lifts on the stepping side; shoe lift min 8px. Arm swing 3→4.5px.
+- Girl h02 ponytail N/NW: pixel-edited — head kept intact to the nape (y160), tail tapered 28→~8px, ends ~y196 (mid-back), soft chocolate edge. Originals in /workspace/mk/bak/h02/.
+- Suite 160/160. No accessory changes.

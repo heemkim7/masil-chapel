@@ -129,7 +129,7 @@ export class Char {
   _lpose(face) { const MIR = { E: 'W', SE: 'SW', NE: 'NW' }, d0 = MIR[face] || face, flip = !!MIR[face];
     if (!window.AV.still(this, d0)) return null;
     const walking = this.speedNow > 0, U = this.drawH / 150; let sx = 1, sy = 1, lift = 0, rot = 0;
-    if (walking) { const ph = this._ph = this.dist / ((this.cfg?.player?.stepLen || 34) * U * CK.k), s = Math.sin(ph * Math.PI), as = Math.abs(s);
+    if (walking) { const ph = this._ph = this.dist / ((this.cfg?.player?.stepLen || 38) * U * CK.k), s = Math.sin(ph * Math.PI), as = Math.abs(s);
       lift = as * 7 * U; rot = s * .03; const land = Math.pow(1 - as, 6); sy = 1 - land * .06 + as * .015; sx = 1 + land * .05; }
     else { const br = Math.sin(this.t * 2.4); sy = 1 + br * .018; sx = 1 - br * .01; }
     if (this.emote === 'jump' || this.emote === 'happy') { const p = (this.emoteT * 2.2) % 1; lift = Math.sin(p * Math.PI) * 38; sy = p < .12 || p > .88 ? .9 : 1.05; sx = 2 - sy; }
