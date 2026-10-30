@@ -63,7 +63,7 @@ export const Svc = {
     this.render(); this.a.refreshLead(); },
   peerLeft(id) { if (this.leader && this.leader.id === id) { this.leader = null; this.render(); this.a.refreshLead(); } },
   joined() { this.leader = null; this.a.net.send('lead', { op: 'hello' }); },
-  clean(t) { t = String(t).replace(/\s+/g, ' ').trim().slice(0, MAXLEN); return BAD.test(t) ? null : t; },
+  clean(t) { t = String(t).replace(/\s+/g, ' ').trim().slice(0, MAXLEN); return (BAD.test(t) || window.Safe?.bad(t)) ? null : t; },
   send() { const a = this.a, inp = $('#svin'); if (!this.isLeader()) return; const t = this.clean(inp.value); if (!t) return a.toast(inp.value.trim() ? '바른 말을 사용해 주세요 🙏' : '');
     if (Date.now() - this.lastMsg < GAP) return a.toast('메시지는 4초에 한 번 보낼 수 있어요'); this.lastMsg = Date.now(); inp.value = '';
     a.net.send('lmsg', { name: a.S().name, text: t }); this.onMsg({ id: a.net.id, name: a.S().name, text: t }); },

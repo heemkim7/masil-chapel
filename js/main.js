@@ -11,6 +11,7 @@ import * as St from './state.js';
 import { Net } from './net.js';
 import { W } from './wallet.js';
 import './payments.js';
+import { Safe } from './safety.js';
 import { C as Col } from './collect.js';
 import { Svc } from './service.js';
 import { V } from './v6.js';
@@ -56,7 +57,7 @@ let selOutfit = 'basic', titlePrev = [];
 let selAv = AV.DEFAULT;
 function showTitle() {
   $('#title').style.display = 'flex'; $('#continue').disabled = !St.hasSave();
-  titlePrev = []; Cust.mount($('#outfits'), selAv, { title: true, compact: innerHeight < 700, onChange: c => { selAv = c; selOutfit = AV.parse(c).o; } });
+  Safe.mountTitle(); titlePrev = []; Cust.mount($('#outfits'), selAv, { title: true, compact: innerHeight < 700, onChange: c => { selAv = c; selOutfit = AV.parse(c).o; } });
 }
 function drawTitlePreviews(dt) { for (const p of titlePrev) { const g = p.c.getContext('2d'), pr = +p.c.dataset.pr || 1; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, p.c.width, p.c.height); g.setTransform(pr, 0, 0, pr, 0, 0); g.imageSmoothingQuality = 'high'; p.ch.update(dt);
   const sel = p.o === selOutfit; p.ch.speedNow = sel ? 1 : 0; if (sel) { p.ch.dist += dt * 90; p.ch.face = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'][Math.floor(p.ch.t / 1.2) % 8]; } else p.ch.face = 'S'; p.ch.draw(g); } }
@@ -88,7 +89,7 @@ net.on('leave', id => { remotes.delete(id); refreshOnline(); Svc.peerLeft(id); }
 let lastRoomOnline = null;
 net.on('update', p => { const c = remotes.get(p.id); if (!c) return; if (p.name) c.name = p.name; if (p.outfit && SP.has('player', p.outfit, 'walk_S')) c.outfit = p.outfit; c.equip = p.equip || null; if (p.av && p.av !== c.av) { AV.apply(c, String(p.av).slice(0, 80)); AV.preload(c._avp); } });
 net.on('status', s => { refreshOnline(); if (s === 'online' && net.room !== lastRoomOnline) { lastRoomOnline = net.room; Svc.joined(); } });
-net.on('chat', p => { const c = remotes.get(p.id); const t = String(p.text || '').slice(0, 80); if (c) c.say(t); chatLog(String(p.name || '이웃').slice(0, 12), t); });
+net.on('chat', p => { const nm = String(p.name || '이웃').slice(0, 12); if (Safe.isBlocked(p.id, nm)) return; const c = remotes.get(p.id); const t = Safe.clean(String(p.text || '').slice(0, 80)); if (c) c.say(t); chatLog(nm, t, 0, p.id); });
 net.on('emote', p => { const c = remotes.get(p.id); if (c && ['wave', 'jump', 'pray'].includes(p.e)) c.doEmote(p.e); });
 net.on('jump', p => { const c = remotes.get(p.id); c && c.jump(); });
 net.on('praise', p => { const c = remotes.get(p.id); c && V.remotePraise(c, p.line); });
@@ -314,9 +315,9 @@ const _oldPost = async () => { const t = $('#btext').value.trim(); if (!t) retur
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- chat + emotes ----------
-function chatLog(who, txt, me) { const d = document.createElement('div'); d.className = 'cl' + (me ? ' me' : ''); d.innerHTML = `<b>${esc(who)}</b> ${esc(txt)}`; const L = $('#chatlog'); L.append(d); while (L.children.length > 30) L.firstChild.remove(); L.scrollTop = 1e6; }
-function sayLine(t) { if (!player) return; player.say(t); chatLog(S.name, t, 1); net.chat(S.name, t); V.onChat(t); }
-$('#chatform').onsubmit = e => { e.preventDefault(); const t = $('#chatin').value.trim(); if (!t) return; $('#chatin').value = ''; $('#chatin').blur(); sayLine(t);
+function chatLog(who, txt, me, rid) { const d = document.createElement('div'); d.className = 'cl' + (me ? ' me' : ''); d.innerHTML = `<b>${esc(who)}</b> ${esc(txt)}`; if (rid) { d.dataset.id = rid; const f = document.createElement('button'); f.className = 'flag'; f.title = '신고 · 차단'; f.textContent = '🚩'; f.onclick = e => { e.stopPropagation(); Safe.menu(rid, who, txt); }; d.append(f); } const L = $('#chatlog'); L.append(d); while (L.children.length > 30) L.firstChild.remove(); L.scrollTop = 1e6; }
+function sayLine(t) { if (!player) return; if (Safe.bad(t)) toast('바른 말을 사용해 주세요 🙏 (일부 단어는 가려져요)'); t = Safe.clean(t); player.say(t); chatLog(S.name, t, 1); net.chat(S.name, t); V.onChat(t); }
+$('#chatform').onsubmit = e => { e.preventDefault(); const t = $('#chatin').value.trim(); if (!t) return; if (!Safe.accepted()) { $('#chatin').blur(); return Safe.need(() => $('#chatform').requestSubmit()); } $('#chatin').value = ''; $('#chatin').blur(); sayLine(t);
   const pool = scene === 'field' ? wanderers : inNpcs; const near = pool.filter(w => Math.hypot(w.x - player.x, w.y - player.y) < 600); const r = near[Math.random() * near.length | 0];
   if (r) setTimeout(() => { const a = ['반가워요 ' + S.name + '님!', '맞아요 ㅎㅎ', '좋아요 😊', '같이 가요~', '아멘 🙏'][Math.random() * 5 | 0]; r.say(a); chatLog(r.name, a); }, 900); };
 function emote(e) { if (!player || modal) return; if (sitting && e !== 'pray') standUp(); player.doEmote(e); net.send('emote', { e }); const lbl = { wave: '👋', jump: '🙌', pray: '🙏' }[e]; chatLog(S.name, lbl + ' (이모트)', 1); V.onEmote(e); }

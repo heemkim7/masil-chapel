@@ -217,10 +217,13 @@ function openHelp() { const m = modal('p2help', '⌨️ 단축키'); m.querySele
 function openSet() { const m = modal('p2set', '⚙️ 설정'), P = Aud.P(), ck = (id, k, l) => `<label class="setrow">${l} <input type="checkbox" data-pk="${k}" id="${id}" ${P[k] ? 'checked' : ''}></label>`, rg = (k, l) => `<label class="setrow">${l} <input type="range" data-pv="${k}" min="0" max="1" step=".05" value="${P[k]}"></label>`;
   m.querySelector('.body').innerHTML = `<h4 class="seth">🎵 소리</h4>${ck('p2bgm', 'bgm', '🎹 찬송 배경음악')}${rg('bgmVol', '배경음악 음량')}${ck('p2snd', 'sfx', '🔊 효과음')}${rg('sfxVol', '효과음 음량')}${ck('p2voice', 'voice', '🗣️ NPC 목소리')}
   <h4 class="seth">🔔 알림</h4>${ck('p2jt', 'njoin', '접속 알림 (이웃이 들어왔어요)')}${ck('p2don', 'ndon', '💝 헌금 알림')}${ck('p2lvl', 'nlvl', '⛪ 예배당 레벨업 알림')}
+  <h4 class="seth">🛡️ 안전</h4><div class="setrow"><span>🙈 차단한 이웃 <b>${window.Safe?.list().length || 0}</b>명<small>차단하면 채팅·말풍선이 보이지 않아요</small></span><button id="p2unblk" class="warnbtn soft">모두 해제</button></div>
+  <div class="setrow"><span>📜 이용약관 · 운영정책</span><button id="p2terms" class="warnbtn soft">보기</button></div>
   <h4 class="seth">👤 계정</h4><div class="setrow danger"><span>🔓 로그아웃<small>이 기기의 세션·저장만 지워요 (손님 계정은 다시 찾을 수 없어요)</small></span><button id="p2logout" class="warnbtn soft">로그아웃</button></div>
   <div class="setrow danger"><span>🔁 처음부터 다시 시작<small>서버의 내 기록(기도·배치·여정·지갑 등)까지 모두 지워요</small></span><button id="p2reset" class="warnbtn">처음부터</button></div>`;
   m.querySelectorAll('[data-pk]').forEach(x => x.onchange = () => { Aud.setPref(x.dataset.pk, x.checked); if (x.dataset.pk === 'njoin') localStorage.setItem('p2_jt', x.checked ? '1' : '0'); if (x.dataset.pk === 'sfx') Aud.setMuted?.(false); });
   m.querySelectorAll('[data-pv]').forEach(x => x.oninput = () => Aud.setPref(x.dataset.pv, +x.value));
+  $('#p2unblk').onclick = () => { window.Safe?.unblockAll(); G().toast('차단을 모두 해제했어요'); openSet(); }; $('#p2terms').onclick = () => window.Safe?.showTerms();
   $('#p2logout').onclick = () => G().dialog('🔓 로그아웃', '정말 로그아웃할까요?\n손님 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요. (서버 기록은 남아요)', [['로그아웃', () => { window.__RESETTING = true; try { G().net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]]);
   $('#p2reset').onclick = () => G().dialog('🔁 처음부터 다시 시작', '정말 처음부터 시작할까요?\n서버에 저장된 내 기록과 이 기기의 저장이 모두 지워지고 되돌릴 수 없어요.', [['모두 지우고 처음부터', () => { window.__RESETTING = true; try { G().net.leave(); } catch { } window.MaeulReset.full(); }], ['취소', null]]); G().openModal('#p2set'); }
 function wireKeys() { addEventListener('keydown', e => { const ae = document.activeElement, tg = ae && ae.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || ae?.isContentEditable || !S() || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
