@@ -75,3 +75,13 @@
 - [x] QA isolation: ?qa=1 or navigator.webdriver → 'chapelqa:' namespace (no real rooms, lobby, or chat history)
 - [x] NPC pilgrims are tagged 'NPC 순례자 …'; the online count is real humans only
 - [ ] OPEN: tan blotches at hoodie cuffs and hood edges; white halo on silver hair; HUD v13 CSS not visually verified; help modal, audio, menus, maps, Google login not started
+
+## fb5 external feedback (2026-10-30 KST) — UI only (no avatar/sprite/main.js changes)
+- [x] '헌금 뽑기' → '🎁 달란트 뽑기' (index.html modal title/button/sidebar label, config.json gacha.name, README; main.js "헌금 N달란트로…" copy patched at runtime by js/ui_fb5.js). Backups (*_bak*) left untouched. The P2 '💝 헌금하기' offering flow (phase2.js) is a separate donation ritual, not renamed.
+- [x] Rates label = computed at runtime from cfg.gacha.pool weights (same pool used by state.js rollGacha / phase2 roll; server gacha_pool seeds identical weights): 일반 69.92% · 희귀 24.15% · 전설 5.93% (165/57/14 of 236). Shown in #gacha and 👗 꾸미기.
+  - Note: the online 헌금하기 path also has a 40% costume branch and 1.8× non-일반 weight at the offering box (server `offer`); the existing 🎲 odds modal covers that.
+- [x] 꾸미기: '친구' slot relabeled '🕊 동행 펫' (existing items: 비둘기 친구 dove, 반짝 요정 sparkle). '🎸 악기' section lists real instrument cosmetics from AV.COS only (currently just c29 '기타', back slot, 영웅). No 수금/하프/어린양 pet items exist → none invented.
+- [x] Title controls split: PC key-chip rows; touch (pointer:coarse / touch) one line: 조이스틱 이동 · 탭 대화·앉기 · 점프 버튼.
+- [x] Title live badge: separate read-only Supabase client subscribes (never tracks) to `chapel:lobby` presence; QA uses `chapelqa:` so never mixed; NPC bots are not in presence. Hidden at 0/offline. Verified 2-client: 1 → shows, leave → hidden.
+- [ ] 감사 촛불 today badge: NOT added — no real candle data/table exists (btn-candle hidden, no Supabase source).
+- [x] test_v8 local: 0 page errors desktop/mobile. Screenshots: shots/fb5/{before,after}_{desktop,mobile}_{title,gacha,inv}.png, after_desktop_title_live1.png

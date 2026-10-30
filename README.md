@@ -33,7 +33,7 @@ Headless test: `python3 test_headless.py` saves screenshots and `walk.gif` to `s
 4. Collect 5 hidden ⭐ stars or petals.
 5. Bring them to the pastor for coins and XP.
 6. Join worship: sit on a pew and play the hymn rhythm game. You earn coins and XP; you can repeat it, and each new star round is generated from a seed.
-7. 헌금 뽑기 (at the offering box, or the 🎁 button) gives accessories (일반 / 희귀 / 전설; duplicates refund some coins) and furniture.
+7. 달란트 뽑기 (at the offering box, or the 🎁 button) gives accessories (일반 / 희귀 / 전설; duplicates refund some coins) and furniture.
 8. 꾸미기: change outfit and equip hat, back and pet accessories.
 9. 🪑 배치: place furniture in the yard (inside the dotted ellipse) or anywhere on the interior floor. You can set left/right direction, pick items back up, and undo. Placing raises the chapel XP and level bar.
 10. 🙏 게시판: post prayer requests and press 함께 기도.
