@@ -20,7 +20,16 @@ def run(p, mob):
     pg.keyboard.press('Tab'); pg.wait_for_timeout(300); R[t+'tab_close'] = pg.evaluate('G.modal')
     pg.keyboard.press('KeyJ'); pg.wait_for_timeout(400); pg.keyboard.press('Tab'); pg.wait_for_timeout(500); R[t+'map_from_missions'] = pg.evaluate('G.modal'); pg.screenshot(path=O+t+'map_over_missions.png'); pg.keyboard.press('Escape')
     # chapel exterior
-    d = pg.evaluate('G.cfg().chapel.door'); pg.evaluate(f"G.tp({d['x']},{d['y']+120})"); pg.wait_for_timeout(1500); pg.screenshot(path=O+t+'chapel_ext.png')
+    d = pg.evaluate('G.cfg().chapel.door')
+    # collision: walk into chapel from the side + debug footprints
+    pg.evaluate("window.DEBUG_COL=true"); bx = pg.evaluate('G.world().chapelBox'); R[t+'chapel_box'] = {k: round(v) for k, v in bx.items()}
+    pg.evaluate(f"G.tp({bx['x']+bx['w']*0.8},{bx['y']+bx['h']+60})"); pg.wait_for_timeout(300); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(1500); pg.keyboard.up('ArrowUp')
+    py = pg.evaluate('G.player.y'); R[t+'blocked_by_chapel'] = py > bx['y']+bx['h']-2; pg.screenshot(path=O+t+'collision_debug.png')
+    s0 = pg.evaluate('G.cfg().props.find(p=>p.r>=100)'); pg.evaluate(f"G.tp({s0['x']},{s0['y']+50})"); pg.wait_for_timeout(200); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(1200); pg.keyboard.up('ArrowUp')
+    R[t+'blocked_by_building'] = pg.evaluate('G.player.y') > s0['y']-10; pg.screenshot(path=O+t+'collision_building.png'); pg.evaluate("window.DEBUG_COL=false")
+    for tr in (1,2,3,4):
+        pg.evaluate(f"P2.setTier&&P2.setTier({tr})"); pg.evaluate(f"G.tp({d['x']},{d['y']+160})"); pg.wait_for_timeout(700); pg.screenshot(path=O+t+f'chapel_tier{tr}.png')
+    pg.evaluate(f"G.tp({d['x']},{d['y']+120})"); pg.wait_for_timeout(1500); pg.screenshot(path=O+t+'chapel_ext.png')
     pg.evaluate(f"G.tp({d['x']},{d['y']+40})"); pg.wait_for_timeout(400)
     x0 = pg.evaluate('G.player.y'); pg.keyboard.press('ShiftLeft'); pg.wait_for_timeout(100); R[t+'shift_jump'] = pg.evaluate('G.player.jumpT!=null')
     pg.wait_for_timeout(600); pg.keyboard.press('Space'); pg.wait_for_timeout(1200); R[t+'space_enter'] = pg.evaluate('G.scene')
@@ -28,7 +37,7 @@ def run(p, mob):
     o = pg.evaluate('G.cfg().interior.offering'); pg.evaluate(f"G.tp({o['x']},{o['y']+50})"); pg.wait_for_timeout(800); pg.screenshot(path=O+t+'offering.png')
     pg.evaluate('G.enterChapel(true)'); pg.wait_for_timeout(300)
     # pastor dialog via Space
-    pg.evaluate("(()=>{const n=G.npcs?G.npcs().find(n=>n.id==='pastor'):null; if(n) G.tp(n.x+40,n.y+20)})()"); pg.wait_for_timeout(500)
+    pg.evaluate("(()=>{const n=G.inNpcs().find(n=>n.id==='pastor'); if(n) G.tp(n.x+40,n.y+20)})()"); pg.wait_for_timeout(500)
     pg.keyboard.press('Space'); pg.wait_for_timeout(120); R[t+'dlg_open'] = pg.evaluate('G.modal'); pg.screenshot(path=O+t+'dialog_typing.png')
     pg.keyboard.press('Space'); pg.wait_for_timeout(150); R[t+'dlg_after1'] = pg.evaluate('G.modal'); pg.screenshot(path=O+t+'dialog_full.png')
     pg.keyboard.press('KeyE'); pg.wait_for_timeout(300); R[t+'dlg_after2'] = pg.evaluate('G.modal')

@@ -52,7 +52,7 @@ const seatApi = { seatTaken: i => seats.has(i) && seats.get(i).id !== 'me', clai
 function setTotal(t, tr) { total = Math.max(total, +t || 0); tier = Math.max(tier, tr || 1); const ins = G().inside; if (ins) ins.tier = ART(tier); }
 async function loadTotal() { const d = G().V?.current?.(), sb = G().net?.sb; if (!d) { const L = +localStorage.getItem('p2_local_total') || 0; setTotal(L, L >= 5000 ? 3 : L >= 1000 ? 2 : 1); return; }
   try { const r = await sb.from('churches').select('total').eq('dong', d.cd).maybeSingle(); const t = r.data?.total || 0; const tr = await sb.rpc('church_tier', { t }); setTotal(t, tr.data || 1); } catch { } }
-function upgradeFx() { celebrate(`⛪ 예배당이 새로워졌어요!<br><b>${['', '작은 예배당', '꽃 장식 예배당', '꽃 장식 예배당', '빛의 대예배당', '빛의 대예배당'][tier]}</b>`); voiceCat('pastor', 'upgrade'); }
+function upgradeFx() { celebrate(`⛪ 예배당이 새로워졌어요!<br><b>${['', 'Lv1 천막 예배당', 'Lv2 통나무 예배당', 'Lv3 붉은 벽돌 예배당', 'Lv4 스테인드글라스 대성당', 'Lv4 스테인드글라스 대성당'][tier]}</b>`); voiceCat('pastor', 'upgrade'); }
 
 // ---------- offering ritual ----------
 function openOffer(atBox) { if (!S()) return; const m = modal('p2offer', '💝 헌금하기'); const b = m.querySelector('.body');
@@ -128,7 +128,7 @@ function openCol() { const p = st(), m = modal('p2col', '🏅 수집 도감 · �
 
 // ---------- leaderboard ----------
 async function openLead() { G().openModal('#church'); const d = G().V?.current?.(); $('#chname').textContent = d ? `${d.name} 예배당` : '우리 동네 예배당';
-  const nx = [0, 1000, 5000, 20000, 80000, 1e9][tier]; $('#chtier').innerHTML = `<b>Tier ${tier}</b> · 누적 헌금 ${TAL}${total.toLocaleString()}달란트`; $('#chbar').style.width = Math.min(100, total / nx * 100) + '%'; $('#chnext').textContent = tier < 5 ? `다음 단계까지 ${(nx - total).toLocaleString()}달란트` : '최고 단계예요!';
+  const nx = [0, 1000, 5000, 20000, 80000, 1e9][tier]; $('#chtier').innerHTML = `<b>Tier ${tier}</b> · 동네 달란트 ${TAL}${total.toLocaleString()}달란트`; $('#chbar').style.width = Math.min(100, total / nx * 100) + '%'; $('#chnext').textContent = tier < 5 ? `다음 단계까지 ${(nx - total).toLocaleString()}달란트` : '최고 단계예요!';
   document.querySelectorAll('.chg').forEach(b => { b.textContent = b.dataset.g + ' 달란트'; b.onclick = () => { G().closeModal(); openOffer(false); }; });
   let sc = 'dong', pe = 'week'; const run = async () => { const L = $('#lblist'), sb = G().net?.sb; L.innerHTML = '<li class="mnote">불러오는 중…</li>';
     try { let rows; if (sc === 'church') rows = (await sb.rpc('church_rank', { p_period: pe })).data.map(r => [r.name + ' 예배당', r.total]); else rows = (await sb.rpc('leaderboard', { p_scope: sc, p_dong: d?.cd || '', p_period: pe })).data.map(r => [r.name, r.total]);
@@ -183,7 +183,7 @@ function attend() { const p = st(), d = today(); if (!p.days.includes(d)) { p.da
 // ---------- hotkeys ----------
 const KEYS = { KeyI: ['🎒 가방', () => toggle('p2bag', openBag)], KeyC: ['👗 캐릭터 꾸미기', () => toggle('inv', () => G().openInv())], KeyB: ['🪑 배치 모드', () => $('#btn-decor')?.click()],
   KeyM: ['🗺️ 마을 지도', () => toggle('map', () => G().openMap())], KeyJ: ['🌱 말씀 여정 · 임무', () => toggle('missions', () => G().V.openMissions())], KeyK: ['🏅 수집 도감 · 업적', () => toggle('p2col', openCol)],
-  KeyV: ['📖 성경 읽기', () => toggle('p2bible', () => Reader.open())], KeyL: ['🏆 순위표', () => toggle('church', openLead)], KeyP: ['📸 장면 담기', () => toggle('shotm', () => $('#btn-shot')?.click())], KeyO: ['⚙️ 설정', () => toggle('p2set', openSet)], KeyH: ['⌨️ 단축키 안내', () => toggle('p2help', openHelp)], KeyN: ['🧭 전국 지도', () => toggle('p2nat', openNation)], KeyG: ['💝 헌금하기', () => toggle('p2offer', () => openOffer(false))] };
+  KeyV: ['📖 성경 읽기', () => toggle('p2bible', () => Reader.open())], KeyL: ['🏆 동네 예배당 성장 순위', () => toggle('church', openLead)], KeyP: ['📸 장면 담기', () => toggle('shotm', () => $('#btn-shot')?.click())], KeyO: ['⚙️ 설정', () => toggle('p2set', openSet)], KeyH: ['⌨️ 단축키 안내', () => toggle('p2help', openHelp)], KeyN: ['🧭 전국 지도', () => toggle('p2nat', openNation)], KeyG: ['💝 헌금하기', () => toggle('p2offer', () => openOffer(false))] };
 function openHelp() { const m = modal('p2help', '⌨️ 단축키'); m.querySelector('.body').innerHTML = `<div class="keys">${[['WASD/방향키', '이동'], ['Space / E', '대화 · 들어가기/나가기 · 앉기/일어나기 · 대사 넘기기(타이핑 중이면 완성)'], ['Shift', '점프'], ['Tab', '지도 열기/닫기'], ['←→ / WASD', '대화 선택지 고르기'], ['Enter', '채팅'], ['Esc', '닫기'], ['1 2 3', '이모트'], ...Object.entries(KEYS).map(([k, [l]]) => [k.slice(3), l])].map(([k, l]) => `<div><kbd>${k}</kbd><span>${l}</span></div>`).join('')}</div><p class="mnote">같은 키를 다시 누르면 닫혀요 · 배치 모드: R 회전 · Esc 취소</p>`; G().openModal('#p2help'); }
 function openSet() { const m = modal('p2set', '⚙️ 설정'); m.querySelector('.body').innerHTML = `<label class="setrow">🔊 효과음 · 음성 <input type="checkbox" id="p2snd" ${Aud.muted ? '' : 'checked'}></label><label class="setrow">음량 <input type="range" id="p2vol" min="0" max="1" step=".05" value="${Aud.vol ?? .7}"></label><label class="setrow">🔔 접속 알림 <input type="checkbox" id="p2jt" ${localStorage.getItem('p2_jt') === '0' ? '' : 'checked'}></label>`;
   $('#p2snd').onchange = e => { Aud.muted = !e.target.checked; Aud.save?.(); }; $('#p2vol').oninput = e => { Aud.vol = +e.target.value; Aud.master && (Aud.master.gain.value = Aud.vol); Aud.save?.(); }; $('#p2jt').onchange = e => localStorage.setItem('p2_jt', e.target.checked ? '1' : '0'); G().openModal('#p2set'); }

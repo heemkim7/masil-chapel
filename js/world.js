@@ -8,12 +8,20 @@ export class World {
     const m = IMG.mask, c = document.createElement('canvas'); c.width = m.width; c.height = m.height;
     const x = c.getContext('2d'); x.drawImage(m, 0, 0);
     this.mw = m.width; this.mh = m.height; this.md = x.getImageData(0, 0, m.width, m.height).data;
-    this.circles = [{ x: cfg.chapel.x, y: cfg.chapel.cy ?? cfg.chapel.y - 40, r: cfg.chapel.r }, ...cfg.props.filter(p => p.r).map(p => ({ x: p.x, y: p.cy ?? p.y, r: p.r }))];
+    this.cfg = cfg; this.circles = cfg.props.filter(p => p.r && p.r < 100).map(p => ({ x: p.x, y: p.cy ?? p.y, r: p.r }));
+    // ground footprints (boxes) for buildings; door is the only way in (interact near door)
+    this.boxes = cfg.props.filter(p => p.r >= 100).map(p => { const im = IMG[p.img], w = p.h * im.width / im.height; return { x: p.x - w * .42, y: p.y - p.h * .42, w: w * .84, h: p.h * .42 - 8 }; });
+    this.setChapel(1);
   }
+  chapelArt(t) { const C = this.cfg.chapel; let a = C; for (const r of C.arts || []) if (t >= r.min) a = r; return a; }
+  setChapel(t) { const C = this.cfg.chapel, a = this.chapelArt(t), im = IMG[a.img]; if (!im) return; const h = a.h, w = h * im.width / im.height, l = C.door.x - w * a.ax, top = C.door.y - h * a.ay;
+    this.chapelBox = { x: l + w * .06, y: top + h * .55, w: w * .9, h: C.door.y - 14 - (top + h * .55) }; this.chTier = t; }
   walkable(x, y) {
     const mx = Math.floor(x / this.W * this.mw), my = Math.floor(y / this.H * this.mh);
     if (mx < 0 || my < 0 || mx >= this.mw || my >= this.mh) return false;
     if (this.md[(my * this.mw + mx) * 4] < 128) return false;
+    const B = this.chapelBox; if (B && x > B.x && x < B.x + B.w && y > B.y && y < B.y + B.h) return false;
+    for (const b of this.boxes) if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h) return false;
     for (const c of this.circles) { const dx = x - c.x, dy = (y - c.y) * 1.6; if (dx * dx + dy * dy < c.r * c.r) return false; }
     return true;
   }
