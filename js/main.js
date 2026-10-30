@@ -24,6 +24,7 @@ const SESS = 'maeul_sess_v6', TTL = 30 * 60 * 1000;
 const sess = (() => { try { const o = JSON.parse(localStorage.getItem(SESS)); if (o && Date.now() - o.t < TTL) return o; } catch { } return null; })();
 const net = new Net(), remotes = new Map(); let netReady = null;
 import('./account.js').catch(e => console.warn('acct', e));
+import('./worship.js').catch(e => console.warn('worship', e));
 // returning from a magic link / OAuth redirect: start the client now so it can pick the session out of the URL, then restore
 if (/[?&#](code|access_token|error_description)=/.test(location.href)) { netReady = net.init(); netReady.then(() => window.Acct?.boot()); }
 if (sess) net.id = sess.id;
@@ -159,7 +160,7 @@ function goFloor(to) { const I = cfg.interior, from = inside.floor; inside.floor
   else { const f = inside.F(); player.x = f.spawn.x; player.y = f.spawn.y; }
   snapCam(); try { window.P2?.sfx?.('step'); } catch { } toast(`🪜 ${to === '1F' ? '1층 본당' : inside.F().name}(으)로 이동했어요`); }
 const SPOTMSG = { organ: '🎹 찬양팀 키보드와 드럼이 준비돼 있어요 (찬양 모드는 🎵 버튼)', choir: '🎶 성가대석이에요. 함께 찬양해요!', cafe: '☕ 따뜻한 차 한 잔 하며 이웃과 이야기해요', prayer: '🕯 조용히 기도하는 방이에요. 잠시 마음을 모아요' };
-function spotAct(sp) { if (sp.t === 'choir' || sp.t === 'organ') { startWorship(); return; } if (sp.t === 'prayer') emote('pray'); toast(SPOTMSG[sp.t] || sp.label); }
+function spotAct(sp) { if (sp.t === 'choir' && window.WH) { window.WH.enter(); return; } if (sp.t === 'choir' || sp.t === 'organ') { startWorship(); return; } if (sp.t === 'prayer') emote('pray'); toast(SPOTMSG[sp.t] || sp.label); }
 window.__goFloor = goFloor;
 const cur = () => scene === 'field' ? world : inside;
 const npcList = () => scene === 'field' ? fieldNpcs : inNpcs;
@@ -382,7 +383,7 @@ function moveJoy(e) { let dx = e.clientX - jc.x, dy = e.clientY - jc.y; const m 
 let last = performance.now(), scripted = null;
 function loop(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
-  try { if (!S) drawTitlePreviews(dt); else { update(dt); render(); } } catch (e) { console.error(e); }
+  try { if (!S) drawTitlePreviews(dt); else { update(dt); if (!window.__whOpen) render(); } } catch (e) { console.error(e); }
   requestAnimationFrame(loop);
 }
 function update(dt) {

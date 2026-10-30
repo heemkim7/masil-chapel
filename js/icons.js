@@ -113,7 +113,7 @@ const keys = Object.keys(E).sort((a, b) => b.length - a.length).map(k => k.repla
 const RX = new RegExp('(' + keys.join('|') + ')\uFE0F?', 'g');
 // pages/chat text stay plain: only UI chrome is converted (chat log, prayer notes and user names are never touched)
 // per-button icons, applied at conversion time so menu icons read instantly regardless of the generic emoji map
-const BTN = { 'btn-board': 'board', 'btn-inv': 'palette', 'btn-decor': 'sofa', 'btn-gacha': 'offer', 'minimap': 'map', 'btn-set': 'gear', 'btn-p2help': 'help', 'btn-p2bible': 'bible', 'btn-verse': 'book', 'mbadge': 'checklist' };
+const BTN = { 'btn-board': 'board', 'btn-wh': 'church', 'btn-inv': 'palette', 'btn-decor': 'sofa', 'btn-gacha': 'offer', 'minimap': 'map', 'btn-set': 'gear', 'btn-p2help': 'help', 'btn-p2bible': 'bible', 'btn-verse': 'book', 'mbadge': 'checklist' };
 const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'CANVAS', 'svg', 'OPTION']);
 const isUser = el => el.closest && el.closest('#chatlog,.bubble,.note-text,.btext,[data-user]');
 function conv(root) {
