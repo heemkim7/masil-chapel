@@ -1,5 +1,7 @@
 shots/
-*_bak*
+*_bak.*
+*_bak/
+backup_*/
 tools/
 test*.py
 glb/
