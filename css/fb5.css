@@ -15,3 +15,12 @@ html.fine .ctl-pc{display:block}html.fine .ctl-touch{display:none}
 .fb5-cat .item{opacity:.95}
 #title #tlive .lb{display:inline-flex!important;align-items:center;gap:5px;font-size:13px!important;line-height:1.4!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:5px 12px!important;width:auto!important;min-width:0!important;max-width:100%!important;white-space:nowrap}
 #title #tlive .lb .ic{width:15px;height:15px;flex:none}
+
+/* ui4: HUD alignment + shortcut modal wrapping */
+@media (pointer:fine) and (min-width:701px){#top>#btn-menu{top:0;right:0}#emotes{bottom:calc(var(--sb) + var(--gap))}}
+#p2help .panel{width:min(640px,94vw)!important;max-width:94vw!important}
+#p2help .keys{display:grid!important;grid-template-columns:1fr 1fr;gap:6px 18px}
+#p2help .keys>div{display:flex!important;align-items:flex-start;gap:8px;min-width:0}
+#p2help .keys kbd{flex:none;white-space:nowrap;min-width:max-content}
+#p2help .keys span{flex:1;min-width:0;text-align:left;word-break:keep-all;overflow-wrap:break-word;line-height:1.35}
+@media (max-width:520px){#p2help .keys{grid-template-columns:1fr}}

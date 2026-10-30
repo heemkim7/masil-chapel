@@ -194,3 +194,9 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Long skirts: stronger hem sway (front 3px, side 2.2px) + hem lifts on the stepping side; shoe lift min 8px. Arm swing 3→4.5px.
 - Girl h02 ponytail N/NW: pixel-edited — head kept intact to the nape (y160), tail tapered 28→~8px, ends ~y196 (mid-back), soft chocolate edge. Originals in /workspace/mk/bak/h02/.
 - Suite 160/160. No accessory changes.
+
+## ui4 (part 4)
+- HUD: PC exit button now aligned with the top bar and right column (was 8px off on both axes); the emoji/music buttons' bottom edge now lines up with the chat bar.
+- H shortcut modal: the panel is wider (640px) with a 2-column grid; key chips no longer wrap; the labels use keep-all; 1 column under 520px.
+- Audio: verified that after a gesture the AudioContext is running and SFX produce output; BGM (old100.mp3) plays inside the chapel. By design, the plaza has no BGM.
+- Menu sweep: 21 PC / 10 mobile entry points opened; no overflow found, no JS errors.
