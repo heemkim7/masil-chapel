@@ -160,3 +160,13 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Boy `basic` and `mint`: the white piping/edge lines on the shorts are removed, along with the white edges on the mint sleeves. They're recoloured to the nearest outfit colour. Checked at 3x and 6x, and in game in all 5 directions.
 - Boy `choir`: the robe skirt was a flat untextured fill, which made a hard waist seam. It now continues the top's per-column shading, with a soft vertical blend across the seam and a slight darkening toward the hem. On W, the arm used to be chopped flat by the skirt; it now ends in a rounded hand. Checked at 3x and 6x, and in game.
 - Assets only: no pool or config change (still 18 / 302). Beta suite 160/160.
+
+## Batch 10 — girl hairs h00/h01/h02/h11 shipped (02:00 KST)
+- 똥머리 (h00), 양갈래 (h01), 포니테일 (h02) and 낮은 묶음 (h11) are now real layered hairs. Before, they were remapped to other hairs via NEAR_H; now `NEAR_H.f` is the identity and `SHIP.f.hairs = [0..7]`, so old codes show the hair that was actually picked.
+- Repairs: removed a stray braid and stub at the right shoulder on h02 S; filled the hair-to-head gaps on h00 SW and h01 S/SW, using mid-tone hair only, so no dark blobs; filled small enclosed holes in the pigtails and tails across all 20 cells.
+- Checks: hair_check gate OK on all 20 cells; viewed by eye at 1.5x and 2x on a composite; viewed in game in 4 hair colours with basic, choir, mint and autumn outfits. Beta suite 160/160.
+- Remaining nit (honest): the h02 ponytail is long at NW/N and covers most of the back. This is by design of the source art.
+
+### Status after batch 10
+- All items from the 00:26 request are done: autumn (batch 8), the spring SW hem (batch 8), the boy shorts piping (batch 9), the choir seam (batch 9) and the girl hairs (batch 10).
+- Still needs your call: the stray Vercel project "exp". It's not deleted.
