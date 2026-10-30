@@ -5,7 +5,7 @@
   --ink:#4a3f66;--ink2:#7d6f99;--line:#e7dcf5;--surf:#fff;--surf2:#f8f3ff;--pri:#ee8fb7;--pri-d:#d4729c;--sec:#8fbdea;--sec-d:#6b9ad0;--acc:#f2b33d;--gap:var(--s2)}
 /* icons */
 .ic{width:var(--i-md);height:var(--i-md);flex:0 0 auto;vertical-align:-.22em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
-.ic .d{fill:currentColor;fill-opacity:.16;stroke:none}
+.ic .d{fill:currentColor;fill-opacity:.2;stroke:none}.ic .h{stroke:#fff;stroke-opacity:.85;stroke-width:1.4}
 h2 .ic,h3 .ic{width:var(--i-lg);height:var(--i-lg);margin-right:var(--s1);color:var(--pri-d)}
 small .ic,.chip .ic{width:var(--i-sm);height:var(--i-sm)}
 /* buttons */

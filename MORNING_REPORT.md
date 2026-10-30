@@ -8,3 +8,10 @@
 
 ## Remaining
 - Protestant interior, icon set, place switcher, CHURCH_RESEARCH.md + WORSHIP_DESIGN.md + 100-person worship mode, UX_AUDIT.md strict pass.
+
+## Interior (Protestant) — deployed
+- deploy maeul-chapel-25d-rclar0uth, commit 9591f9e. Screenshot shots/prot_in_t1.png (before: assets/catholic_bak/).
+
+## Item 5 Icons — deployed
+- New menu icons: 기도벽=note board w/ heart, 꾸미기=palette, 배치=sofa, 헌금뽑기=capsule machine, 지도=folded map, 설정=gear, 임무=checklist, 도움말, 성경(cross), 기도=praying hands. White highlight strokes (.h), duotone .2.
+- Contact sheet: shots/icons_sheet_v2.png (32/64px), shots/icons_sheet_v3.png (2x crop). Self-QA: all legible at 32px; pray redrawn after first pass read as a tent.
