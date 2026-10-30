@@ -108,3 +108,8 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Held items hidden on N/NW by design; balloon floats at face height.
 - rollCos caveat: the client rolls the cos item, so when the server cos flag is true the server inventory records the pool item instead.
 - Stray Vercel project **"exp"** (exp-inky-three.vercel.app, behind Vercel auth) was created by accident from an unlinked export. Not deleted — needs your approval.
+
+## 23:15 KST: outfits pulled (only ship what passes)
+- All 6 gacha outfits (hanbok, formal, winter, summer, spring, autumn), both genders, were pulled: the boy and girl hanbok aren't real hanbok, and all 12 share one leg template with skin specks at the legs and hem (identical speck counts across recolours).
+- Removed from config.json gacha.pool (now 12 items, weight 236) and from the UI (SHIP NEW_O = []; owned codes fall back to basic). Server: migration 20261030_07 sets active=false. Verified the active server pool is 12 items / 236, matching config. The beta suite is 160/160.
+- Players who already own an o_* item keep it in their inventory, but it shows as basic until a fixed version ships.
