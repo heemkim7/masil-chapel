@@ -136,3 +136,10 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Checks passed: per-cell fit, 3x upper and lower body, 6x feet and blouse close-ups, in-game 5-direction stills for f and m.
 - Re-added in all three places: config pool 14 items / 252, NEW_O=['hanbok','formal'], migration 20261031_10 applied. Server active pool matches.
 - Beta suite 160/160.
+
+## Batch 6 — 성탄 옷 (winter) + 여름 마린룩 (summer) re-added (2026-10-31)
+- Both regenerated across 5 directions (S/SW/W/NW/N; the other 3 are mirrored), both characters. Checked with per-cell 6x close-ups, the 3x zoom by eye, and in-game stills.
+- Winter: the girl N hood was regenerated as a crew neck. Ankle skin specks and muddy snowflakes were fixed in the pipeline. Known minor: the girl W hand is half hidden by the skirt, and the girl SW hands have faint marks. Neither is visible at game scale.
+- Summer (bare arms and legs): a new bare-limb cleanup drops generated skin and socks so the base limbs show, fills undershirt gaps, and clips the boy's outfit to his silhouette. Girl NW uses the N view. Boy NW also uses the N view, because the generated NW stride didn't match the base.
+- Server gacha_pool is now 16 active / weight 274, which matches the config. Beta suite 160/160.
+- Still pulled: spring and autumn.
