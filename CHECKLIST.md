@@ -40,3 +40,13 @@
 - [ ] Pet/instrument gacha + merge · [ ] Offline meditation · [ ] 동행 패스 · [ ] 9pm co-op defense
 - [ ] B2B pins · [ ] Per-dong maps · [ ] Capacitor app · [ ] Real payments · [ ] Social login
 - [ ] LAUNCH_CHECKLIST: 사업자등록, 통신판매업, 15% small-business programs, IARC rating
+
+## v8 hotfix (2026-10-30, dpl_Ee5ZQyfQAEa5VK2X17gc1Li6DTRq)
+- [x] A. Lv1 grand church → Lv5 upgrades (thresholds 0/1000/5000/20000/80000); tent/cabin art removed
+- [x] B. Interior 1F sanctuary / 2F choir loft / B1 fellowship cafe+prayer room, stairs (Space/E), cover-fit desktop+mobile
+- [x] C. Door sign '동천동 마실채플 Lv.N' + progress bar, HUD chip, levels panel (locked dimmed + lock, unlocks, 달란트 needed)
+- [x] D. '처음부터 다시 시작' full wipe + ?reset=1 (delete_account RPC)
+- [x] E. Exit: 잠깐 나가기 / 로그아웃
+- [x] F. CC0/PD hymn recordings (assets/audio/LICENSES.md), synth fallback; ⚙️/Esc settings (BGM/SFX/voice/notification toggles, logout, reset)
+- [x] test_v8 local+live: 0 errors desktop/mobile; test_p3 live regression: 0 errors
+- [ ] Remote players on 2F/B1 (floor not synced yet)
