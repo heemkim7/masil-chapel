@@ -2,7 +2,7 @@
 canvas#game{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 button{font-family:inherit;cursor:pointer;border:0;border-radius:14px;background:#fff;color:#4a3f66;font-weight:700;box-shadow:0 3px 0 #d8c8ee}
 button:disabled{opacity:.45;cursor:default}
-input{font-family:inherit;border:2px solid #e1d3f3;border-radius:12px;padding:9px 12px;font-size:15px;color:#4a3f66;outline:none;user-select:text}
+input{font-family:inherit;border:2px solid #e1d3f3;border-radius:12px;padding:9px 12px;font-size:16px;color:#4a3f66;outline:none;user-select:text}
 #loading,#title{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(#cfe6ff,#ffe7f0);z-index:50}
 #title{display:none;background:linear-gradient(rgba(207,230,255,.85),rgba(255,231,240,.9)),url(../assets/island.jpg) center/cover}
 .logo{font-size:34px;font-weight:800;color:#6a4f9c;text-shadow:0 3px 0 #fff}.lb{width:240px;height:12px;background:#fff;border-radius:8px;margin-top:16px;overflow:hidden}.lb i{display:block;height:100%;width:0;background:#f5a3c4}

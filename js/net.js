@@ -36,20 +36,20 @@ export class Net {
       else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') this.setStatus('offline'); });
   }
   async leave() { if (this.ch) { const c = this.ch; this.ch = null; try { await c.untrack(); await this.sb.removeChannel(c); } catch { } } for (const k of this.peers.keys()) this.emit('leave', k); this.peers.clear(); }
-  state() { const m = this.me; return { id: this.id, name: m.name, outfit: m.outfit, x: Math.round(m.x), y: Math.round(m.y), face: m.face, anim: m.anim, equip: m.equip, av: m.av }; }
+  state() { const m = this.me; return { id: this.id, name: m.name, outfit: m.outfit, x: Math.round(m.x), y: Math.round(m.y), face: m.face, anim: m.anim, fl: m.fl, equip: m.equip, av: m.av }; }
   upsert(k, m, fromPresence) {
     let p = this.peers.get(k); const now = performance.now();
     if (!p) { p = { id: k, buf: [] }; this.peers.set(k, p); this.emit('join', p, m); }
-    Object.assign(p, { name: m.name ?? p.name, outfit: m.outfit ?? p.outfit, equip: m.equip ?? p.equip, av: m.av ?? p.av });
+    Object.assign(p, { name: m.name ?? p.name, outfit: m.outfit ?? p.outfit, equip: m.equip ?? p.equip, av: m.av ?? p.av, fl: m.fl ?? p.fl });
     if (!fromPresence || !p.buf.length) { p.buf.push({ t: now, x: m.x, y: m.y, face: m.face, anim: m.anim }); if (p.buf.length > 20) p.buf.shift(); }
     this.emit('update', p);
   }
   // called each frame; broadcasts at ~10Hz (and immediately on stop), presence refresh at ~0.5Hz
   tick(me) {
     this.me = me; if (!this.ch || this.status !== 'online') return; const now = performance.now();
-    const st = this.state(), moved = !this.lastSt || st.x !== this.lastSt.x || st.y !== this.lastSt.y || st.face !== this.lastSt.face || st.anim !== this.lastSt.anim;
+    const st = this.state(), moved = !this.lastSt || st.x !== this.lastSt.x || st.y !== this.lastSt.y || st.face !== this.lastSt.face || st.anim !== this.lastSt.anim || st.fl !== this.lastSt.fl;
     if (now - this.lastSend > 100 && moved) { this.lastSend = now; this.lastSt = st; this.ch.send({ type: 'broadcast', event: 'pos', payload: st }); }
-    if (now - this.lastPres > 2500 && (JSON.stringify([st.outfit, st.av, st.equip]) !== this.lastPresK || st.name !== this.lastPresSt?.name || (now - this.lastPres > 15000 && (st.x !== this.lastPresSt?.x || st.y !== this.lastPresSt?.y || st.face !== this.lastPresSt?.face)))) { this.lastPres = now; this.lastPresSt = st; this.lastPresK = JSON.stringify([st.outfit, st.av, st.equip]); this.ch.track(st); }
+    if (now - this.lastPres > 2500 && (JSON.stringify([st.outfit, st.av, st.equip, st.fl]) !== this.lastPresK || st.name !== this.lastPresSt?.name || (now - this.lastPres > 15000 && (st.x !== this.lastPresSt?.x || st.y !== this.lastPresSt?.y || st.face !== this.lastPresSt?.face)))) { this.lastPres = now; this.lastPresSt = st; this.lastPresK = JSON.stringify([st.outfit, st.av, st.equip, st.fl]); this.ch.track(st); }
   }
   // interpolated sample ~120ms in the past
   sample(p) { const b = p.buf; if (!b.length) return null; const t = performance.now() - 120;

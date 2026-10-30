@@ -15,6 +15,7 @@ import { Safe } from './safety.js';
 import { C as Col } from './collect.js';
 import { Svc } from './service.js';
 import { V } from './v6.js';
+import { initMobile } from './mobile.js';
 // session: 30-min sliding TTL; same presence key on reload => no ghost duplicate of ourselves
 const SESS = 'maeul_sess_v6', TTL = 30 * 60 * 1000;
 const sess = (() => { try { const o = JSON.parse(localStorage.getItem(SESS)); if (o && Date.now() - o.t < TTL) return o; } catch { } return null; })();
@@ -49,7 +50,7 @@ window.__errors = [];
     if (qr) V.setDong(qr[1], { keepShard: true, visit: !!(S.dong && S.dong.cd !== qr[1]) }).then(ok => { if (ok) { S.shard = +(qr[2] || 1); S.shardLock = true; persist(); V.hud(); } });
     if (!sv) toast(`🐑 ${S.name}님으로 들어왔어요. 이름은 꾸미기에서 바꿀 수 있어요`); }
   else if (sess && sv) { window.__resumed = true; startGame(sv); toast('🔄 이전 세션을 이어서 시작했어요'); } else { if (sv) selOutfit = sv.outfit || 'basic'; endSess(); showTitle(); }
-  requestAnimationFrame(loop); try { initPhase1(); } catch (e) { console.error(e); } try { initPhase2(); } catch (e) { console.error(e); } window.__ready = true;
+  requestAnimationFrame(loop); try { initPhase1(); } catch (e) { console.error(e); } try { initPhase2(); } catch (e) { console.error(e); } try { initMobile(); } catch (e) { console.error(e); } window.__ready = true;
 })().catch(e => { console.error(e); });
 
 // ---------- title / character select ----------
@@ -82,12 +83,12 @@ function startGame(save) { touchSess();
   if (!S.dong && !S.solo && !S.hintDong) { S.hintDong = 1; setTimeout(() => toast('🌈 지금은 모두의 광장이에요. 위쪽 📍 버튼으로 우리 동네를 인증하면 동네 방에 들어가요'), 2500); }
 }
 // ---------- multiplayer glue ----------
-const meState = () => ({ name: S.name, outfit: player.outfit, x: player.x, y: player.y, face: player.face, anim: player.speedNow > 0 ? 'walk' : sitting ? 'sit' : 'idle', equip: player.equip, av: player.av });
+const meState = () => ({ name: S.name, outfit: player.outfit, x: player.x, y: player.y, face: player.face, anim: player.speedNow > 0 ? 'walk' : sitting ? 'sit' : 'idle', fl: scene === 'inside' ? inside.floor : 'F', equip: player.equip, av: player.av });
 net.on('join', (p, m) => { const c = new Char(SP, 'player', m.outfit || 'basic', m.x || 0, m.y || 0, { name: m.name || '이웃', tagColor: '#ffc6e0', cfg, equip: m.equip || null, drawH: 150 }); if (m.av) { AV.apply(c, m.av); AV.preload(c._avp); } c.face = m.face || 'S'; c._lf = c.face; remotes.set(p.id, c); refreshOnline(); Col.shareRecent(); });
 net.on('pick', p => Col.remotePick(p)); net.on('picks', p => Col.remotePicks(p));
 net.on('leave', id => { remotes.delete(id); refreshOnline(); Svc.peerLeft(id); });
 let lastRoomOnline = null;
-net.on('update', p => { const c = remotes.get(p.id); if (!c) return; if (p.name) c.name = p.name; if (p.outfit && SP.has('player', p.outfit, 'walk_S')) c.outfit = p.outfit; c.equip = p.equip || null; if (p.av && p.av !== c.av) { AV.apply(c, String(p.av).slice(0, 80)); AV.preload(c._avp); } });
+net.on('update', p => { const c = remotes.get(p.id); if (!c) return; if (p.name) c.name = p.name; c.fl = p.fl; if (p.outfit && SP.has('player', p.outfit, 'walk_S')) c.outfit = p.outfit; c.equip = p.equip || null; if (p.av && p.av !== c.av) { AV.apply(c, String(p.av).slice(0, 80)); AV.preload(c._avp); } });
 net.on('status', s => { refreshOnline(); if (s === 'online' && net.room !== lastRoomOnline) { lastRoomOnline = net.room; Svc.joined(); } });
 net.on('chat', p => { const nm = String(p.name || '이웃').slice(0, 12); if (Safe.isBlocked(p.id, nm)) return; const c = remotes.get(p.id); const t = Safe.clean(String(p.text || '').slice(0, 80)); if (c) c.say(t); chatLog(nm, t, 0, p.id); });
 net.on('emote', p => { const c = remotes.get(p.id); if (c && ['wave', 'jump', 'pray'].includes(p.e)) c.doEmote(p.e); });
@@ -96,6 +97,7 @@ net.on('praise', p => { const c = remotes.get(p.id); c && V.remotePraise(c, p.li
 net.on('prayer', () => { if (modal === '#board') V.renderPrayers(); });
 net.on('counts', () => { if (modal === '#map' && $('#dongmap').style.display === 'flex') V.drawDongMap(); });
 net.on('history', L => { if (!L.length) return; chatLog('📜', '최근 대화'); for (const m of L) chatLog(m.name, m.body); });
+function sameFl(c) { const me = scene === 'inside' ? inside.floor : 'F'; return !c.fl || c.fl === me; }
 function refreshOnline() { const e = $('#online'); if (!e) return; const on = net.status === 'online'; e.textContent = S && S.solo ? '🌙 혼자' : on ? `🟢 ${remotes.size + 1}명` : net.status === 'connecting' ? '🟡 연결 중…' : '⚪ 오프라인'; e.title = on ? '같은 방에 있는 이웃 수' : '오프라인: 혼자서도 계속 플레이할 수 있어요'; }
 function updateRemotes(dt) {
   if (netReady && net.sb) V.tickRoom(scene);
@@ -425,7 +427,7 @@ function drawHD(dpr) {
 }
 function snapCam() { cam.x = player.x; cam.y = player.y - 60; cam.zPrev = -1; }
 function render() {
-  const dpr = Math.min(2, devicePixelRatio || 1), bw = Math.round(innerWidth * dpr), bh = Math.round(innerHeight * dpr); if ((cv.width !== bw || cv.height !== bh) && !(document.body.classList.contains('kbd') && cv.width === bw)) { cv.width = bw; cv.height = bh; cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px'; }
+  const dpr = Math.min(window.__dprCap || 2, devicePixelRatio || 1), bw = Math.round(innerWidth * dpr), bh = Math.round(innerHeight * dpr); if ((cv.width !== bw || cv.height !== bh) && !(document.body.classList.contains('kbd') && cv.width === bw)) { cv.width = bw; cv.height = bh; cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px'; }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = scene === 'field' ? cfg.world.sky : '#3b2f4a'; ctx.fillRect(0, 0, innerWidth, innerHeight);
   { const q = cam.z * (window.devicePixelRatio || 1); ctx.translate(Math.round(innerWidth / 2), Math.round(innerHeight / 2)); ctx.scale(cam.z, cam.z); ctx.translate(-Math.round(cam.x * q) / q, -Math.round(cam.y * q) / q); } // v7: camera snapped to device pixels (no sub-pixel shimmer)
   const objs = [], tm = performance.now() / 1000;
@@ -444,11 +446,11 @@ function render() {
     for (const p of cfg.props) { const im = IMG[p.img]; objs.push({ y: p.y, draw: g => { const h = p.h, w = h * im.width / im.height; if (p.r) { g.fillStyle = 'rgba(40,60,40,.2)'; g.beginPath(); g.ellipse(p.x, p.y, w * .35, 12, 0, 0, 7); g.fill(); } g.drawImage(im, p.x - w / 2, p.y - h * .95, w, h); } }); }
     Col.objs(objs, tm, scene); window.P2 && objs.push(...P2.fieldObjs(tm));
     for (const p of pickups) objs.push({ y: p.y, draw: g => { const im = IMG[p.img], b = Math.sin(tm * 3 + p.i) * 8, s = 56; g.fillStyle = 'rgba(255,240,150,.35)'; g.beginPath(); g.ellipse(p.x, p.y, 26, 9, 0, 0, 7); g.fill(); g.drawImage(im, p.x - s / 2, p.y - s - 14 + b, s, s); } });
-    for (const c of remotes.values()) objs.push({ y: c.y, draw: g => c.draw(g), c });
+    for (const c of remotes.values()) if (sameFl(c)) objs.push({ y: c.y, draw: g => c.draw(g), c });
     for (const c of [...fieldNpcs, ...wanderers]) objs.push({ y: c.y, draw: g => c.draw(g), c });
   } else {
     inside.drawStatic(ctx); if (inside.on1) { objs.push(...inside.objects()); window.P2 && objs.push(...P2.objs(tm)); }
-    if (inside.on1) for (const c of remotes.values()) { if (c.sitting) c.face = 'W'; objs.push({ y: c.y, draw: g => sitDraw(g, c, !!c.sitting), c }); }
+    for (const c of remotes.values()) { if (!sameFl(c)) continue; if (c.sitting) c.face = 'W'; objs.push({ y: c.y, draw: g => sitDraw(g, c, !!c.sitting), c }); }
     if (inside.on1) for (const c of inNpcs) objs.push({ y: c.y, draw: g => sitDraw(g, c, c.sit), c });
   }
   if (scene === 'field' || inside.on1) objs.push(...decorObjects());
