@@ -17,7 +17,7 @@
   "x": 3600,
   "y": 1500,
   "img": "v7/church_grand.webp",
-  "h": 1400,
+  "h": 1700,
   "r": 290,
   "cy": 1320,
   "door": {
@@ -31,35 +31,35 @@
    {
     "min": 1,
     "img": "v7/church_grand.webp",
-    "h": 1400,
+    "h": 1700,
     "ax": 0.4,
     "ay": 0.9
    },
    {
     "min": 2,
     "img": "v7/church_l2.webp",
-    "h": 1480,
+    "h": 1797,
     "ax": 0.388,
     "ay": 0.835
    },
    {
     "min": 3,
     "img": "v7/church_l3.webp",
-    "h": 1420,
+    "h": 1724,
     "ax": 0.366,
     "ay": 0.8
    },
    {
     "min": 4,
     "img": "v7/church_l4.webp",
-    "h": 1500,
+    "h": 1821,
     "ax": 0.427,
     "ay": 0.825
    },
    {
     "min": 5,
     "img": "v7/church_l5.webp",
-    "h": 1560,
+    "h": 1894,
     "ax": 0.443,
     "ay": 0.795
    }

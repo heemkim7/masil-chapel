@@ -132,6 +132,16 @@ with sync_playwright() as p:
         P[1][0].evaluate("WH.leave()"); P[0][0].wait_for_timeout(6000); rec('multi.leaveSeen', P[0][0].evaluate("WH.peers.size") <= N - 2, str(P[0][0].evaluate("WH.peers.size")))
         rec('multi.noerr', all(not e for _, e, _ in P), str([e[:1] for _, e, _ in P]))
         for _, _, c in P: c.close()
+    # ---- chapel prominence (regression: chapel must stay the dominant landmark at the default spawn camera)
+    if want('chapel'):
+        for w, h, mn in ((390, 844, .5), (1366, 768, .6)):
+            pg, errs, c = boot(b, w, h); start(pg); pg.wait_for_timeout(2500)
+            r = pg.evaluate("G.chapelScreen()"); t = f'chapel.size.{w}x{h}'
+            rec(t + '.height', r['h'] >= mn * h, f"h={r['h']:.0f}px ({r['h']/h:.2f} of screen, min {mn})")
+            rec(t + '.roofVisible', r['top'] >= 0 and r['bottom'] <= h + 1, f"top={r['top']:.0f} bottom={r['bottom']:.0f}")
+            dr = pg.evaluate("(() => { const d = G.chapelScreen().door; return [G.walkable(d.x, d.y + 40), G.walkable(d.x, d.y - 40)] })()")
+            rec(t + '.doorAligned', dr[0] and not dr[1], str(dr))
+            rec(t + '.noerr', not errs, '; '.join(errs[:3])); c.close()
     b.close()
 ok = sum(r['ok'] for r in R); print(json.dumps({'pass': ok, 'total': len(R), 'fail': [r for r in R if not r['ok']]}, ensure_ascii=False))
 json.dump(R, open('/tmp/beta_results.json', 'w'), ensure_ascii=False)

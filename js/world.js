@@ -20,13 +20,13 @@ export class World {
   pathPoint(rnd = Math.random) { const n = this.paths.length / 2; if (n < 20) return this.randomPoint(rnd); for (let i = 0; i < 30; i++) { const k = (rnd() * n | 0) * 2, x = this.paths[k], y = this.paths[k + 1]; if (this.walkable(x, y)) return { x, y }; } return this.randomPoint(rnd); }
   chapelArt(t) { const C = this.cfg.chapel; let a = C; for (const r of C.arts || []) if (t >= r.min) a = r; return a; }
   setChapel(t) { const C = this.cfg.chapel, a = this.chapelArt(t), im = IMG[a.img]; if (!im) return; const h = a.h, w = h * im.width / im.height, l = C.door.x - w * a.ax, top = C.door.y - h * a.ay;
-    this.chapelBox = { x: l + w * .06, y: top + h * .55, w: w * .9, h: C.door.y - 14 - (top + h * .55) }; this.chTier = t; }
+    this.chapelBox = { x: l + w * .06, y: top + h * .55, w: w * .9, h: C.door.y - 14 - (top + h * .55) }; this.chapelBack = { x: l - 40, y: top - 60, w: w + 80, h: h * .55 + 60 }; this.chTier = t; } // A: keep walkers/NPCs off the ground behind the (now larger) chapel art so nothing stands beside the spire
   walkable(x, y) {
     const mx = Math.floor(x / this.W * this.mw), my = Math.floor(y / this.H * this.mh);
     if (mx < 0 || my < 0 || mx >= this.mw || my >= this.mh) return false;
     if (this.md[(my * this.mw + mx) * 4] < 128) return false;
     if (x < 90 || y < 90 || x > this.W - 90 || y > this.H - 90) return false; // v9: perimeter fence
-    const B = this.chapelBox; if (B && x > B.x && x < B.x + B.w && y > B.y && y < B.y + B.h) return false;
+    const B = this.chapelBox; if (B && x > B.x && x < B.x + B.w && y > B.y && y < B.y + B.h) return false; const K = this.chapelBack; if (K && x > K.x && x < K.x + K.w && y > K.y && y < K.y + K.h) return false;
     for (const b of this.boxes) if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h) return false;
     for (const c of this.circles) { const dx = x - c.x, dy = (y - c.y) * 1.6; if (dx * dx + dy * dy < c.r * c.r) return false; }
     for (const c of this.extra || []) { const dx = x - c.x, dy = (y - c.y) * 1.8; if (dx * dx + dy * dy < c.r * c.r) return false; } // v9: placed decor footprints
