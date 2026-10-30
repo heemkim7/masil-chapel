@@ -155,3 +155,8 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Fixes: holes along the tartan lines in the hem were closed with nearest-colour fill. On the boy, leaf holes were filled, the base's white shorts were covered with tartan, and collar specks were removed.
 - **Spring boy SW hem** is now smooth. I removed the grey fringe and the dark blob, then refilled from the base's shorts outline. One tiny notch is left.
 - All 5 directions passed 3x by eye, and the in-game stills are clean. Server pool is now 18 active / weight 302 (migration 20261031_14). beta_suite 160/160.
+
+## Batch 9 — boy shorts piping + choir seam (01:40 KST)
+- Boy `basic` and `mint`: the white piping/edge lines on the shorts are removed, along with the white edges on the mint sleeves. They're recoloured to the nearest outfit colour. Checked at 3x and 6x, and in game in all 5 directions.
+- Boy `choir`: the robe skirt was a flat untextured fill, which made a hard waist seam. It now continues the top's per-column shading, with a soft vertical blend across the seam and a slight darkening toward the hem. On W, the arm used to be chopped flat by the skirt; it now ends in a rounded hand. Checked at 3x and 6x, and in game.
+- Assets only: no pool or config change (still 18 / 302). Beta suite 160/160.
