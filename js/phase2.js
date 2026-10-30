@@ -14,11 +14,11 @@ const BADGES = [[7, '🫒 올리브 잎'], [30, '🕊️ 비둘기'], [100, '�
 const ART = t => t >= 4 ? 3 : t >= 2 ? 2 : 1; // server tier 1..5 → interior art 1..3
 // v8: every level is a real church (no tent / log cabin). Thresholds mirror server church_tier().
 export const LEVELS = [
-  { t: 1, need: 0, name: '스테인드글라스 예배당', img: 'v7/church_grand.webp', unlock: ['종탑과 스테인드글라스 본당', '1층 본당 · 2층 성가대석 · 지하 친교실'] },
-  { t: 2, need: 1000, name: '두 종 예배당', img: 'v7/church_l2.webp', unlock: ['더 높은 종탑 · 종 2개', '꽃 정원과 산울타리', '따뜻한 랜턴', '실내 장식 업그레이드'] },
-  { t: 3, need: 5000, name: '정원 예배당', img: 'v7/church_l3.webp', unlock: ['오른쪽 별관(부속동)', '분수와 꽃길', '파사드 줄조명', '장미창 추가'] },
-  { t: 4, need: 20000, name: '빛의 대성당', img: 'v7/church_l4.webp', unlock: ['쌍둥이 종탑', '빛나는 황금 십자가', '양쪽 날개 건물', '빛의 대예배당 실내'] },
-  { t: 5, need: 80000, name: '영광의 대성당', img: 'v7/church_l5.webp', unlock: ['파스텔 돔과 금빛 장식', '두 개의 아치 별관', '반짝이는 스테인드글라스', '정원 · 분수 · 줄조명 완성'] }];
+  { t: 1, need: 0, name: '동네 작은 교회', img: 'v7/church_grand.webp', unlock: ['흰 첨탑과 단정한 십자가', '빨간 벽돌 예배실 · 강대상 · 장의자'] },
+  { t: 2, need: 1000, name: '함께 자라는 교회', img: 'v7/church_l2.webp', unlock: ['밤에 빛나는 빨간 십자가', '꽃 화단과 벤치', '찬양팀 무대 · 드럼 · 키보드', '프로젝터 스크린'] },
+  { t: 3, need: 5000, name: '교육관이 있는 교회', img: 'v7/church_l3.webp', unlock: ['교육관 별관 (주일학교 · 청년부실)', '안뜰 큰 나무와 벤치', '성가대석'] },
+  { t: 4, need: 20000, name: '카페가 있는 교회', img: 'v7/church_l4.webp', unlock: ['넓어진 본당', '1층 교회 카페 · 친교실', '옥상 기도 정원'] },
+  { t: 5, need: 80000, name: '온 동네의 교회', img: 'v7/church_l5.webp', unlock: ['담쟁이 벽돌 대예배당', '비전센터 · 체육관', '옆 작은 공원 · 줄조명 완성'] }];
 const lvOf = t => LEVELS.reduce((a, L) => t >= L.need ? L.t : a, 1);
 function lvProg() { const L = LEVELS[tier - 1], N = LEVELS[tier]; return N ? Math.max(0, Math.min(1, (total - L.need) / (N.need - L.need))) : 1; }
 function lvHud() { const b = document.getElementById('chlv'); if (!b) return; const t = document.getElementById('chlvt'); if (t) t.textContent = `Lv.${tier}`; const bar = document.getElementById('chlvbar'); if (bar) bar.style.width = (lvProg() * 100).toFixed(1) + '%'; const N = LEVELS[tier]; b.title = N ? `${LEVELS[tier - 1].name} · 다음 레벨까지 ${(N.need - total).toLocaleString()} 달란트` : `${LEVELS[tier - 1].name} · 최고 레벨`; }
