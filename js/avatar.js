@@ -187,7 +187,7 @@ export function headBox(p, W, top, bot) { const fh = bot - top, lim = top + Math
 function sat(p, i) { const mx = Math.max(p[i], p[i + 1], p[i + 2]), mn = Math.min(p[i], p[i + 1], p[i + 2]); return mx ? (mx - mn) / mx : 0; }
 function ready(a) { const hp = HAIRS[a.g][a.hs]?.[1]; if (hp && !img(`assets/cos/${hp}.png`)) return false; return SLOTS.every(s => !a[s] || a[s] === '-' || !COS[a[s]] || img(`assets/cos/${a[s]}.png`)); }
 // public: used by Char._img
-export function frame(ch, key) { if (!ch.av) return null; if (key && key.startsWith('L:')) return still(ch, key.slice(2)); const k = ch.av + '|' + key; let c = cache.get(k); if (c) return c; const A = ch._avp || (ch._avp = parse(ch.av)); if (!ready(A)) return null; c = compose(A, key); if (c) { if (cache.size > 1600) cache.clear(); cache.set(k, c); } return c; }
+export function frame(ch, key) { if (!ch.av) return null; if (key && key.startsWith('L:')) { const [d, f] = key.slice(2).split(':'); return f == null ? still(ch, d) : walkStill(ch, d, +f); } const k = ch.av + '|' + key; let c = cache.get(k); if (c) return c; const A = ch._avp || (ch._avp = parse(ch.av)); if (!ready(A)) return null; c = compose(A, key); if (c) { if (cache.size > 1600) cache.clear(); cache.set(k, c); } return c; }
 
 // ---------------- v17 LAYERED test set (2D): one still 200x284 PNG per direction per layer (base · outfit+tint mask · hair), foot pivot (100,272).
 // Only the shipped hairs/outfits are offered; any other code maps to the nearest shipped item (old codes keep working).
@@ -246,6 +246,28 @@ export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d 
     g.drawImage(im, cx - w / 2, cy, w, h); };
   cos('back', false); g.drawImage(bc, 0, 0); g.drawImage(oc, 0, 0); g.drawImage(hc2, 0, 0); cos('back', true); cos('face'); cos('hat'); cos('held');
   c.lay = 1; c.top = Math.min(htop, top); c.bodyTop = top; if (lcache.size > 600) lcache.clear(); lcache.set(k, c); return c; }
+// walk fix: the v17 layered path had ONE still per direction, so legs never moved. Build 8 stepping frames per direction from the still:
+// front/back views lift the swing leg alternately (left/right halves split at the crotch gap); side views scissor the legs (back leg darker).
+export const WALK_N = 8; const wcache = new Map();
+export function walkStill(ch, d, f) { const st = still(ch, d); if (!st) return null; const k = encode(ch._avp) + '|' + (LDIR[d] || 'S') + '|' + f; let c = wcache.get(k); if (c) return c;
+  const W = st.width, H = st.height, sg = st.getContext('2d'), sp = sg.getImageData(0, 0, W, H).data; let yb = 0, xa = W, xb = 0;
+  for (let y = H - 1; y >= 0 && !yb; y--) for (let x = 0; x < W; x++) if (sp[(y * W + x) * 4 + 3] > 40) { yb = y; break; }
+  for (let y = yb - 30; y <= yb; y++) for (let x = 0; x < W; x++) if (sp[(y * W + x) * 4 + 3] > 40) { if (x < xa) xa = x; if (x > xb) xb = x; }
+  const cx = Math.round((xa + xb) / 2), side = (LDIR[d] || 'S') === 'W'; let y0 = yb - 2; while (y0 > st.bodyTop && sp[(y0 * W + cx) * 4 + 3] <= 40) y0--;
+  if (y0 >= yb - 6 || side) y0 = Math.round(st.bodyTop + (yb - st.bodyTop) * (side ? .8 : .72)); y0 -= side ? 0 : 4;
+  const s = Math.sin(f / WALK_N * 2 * Math.PI), L = yb - y0; c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), od = g.createImageData(W, H), op = od.data;
+  const put = (x, y, sx, sy, dk) => { if (sx < 0 || sx >= W || sy < 0 || sy >= H) return; const i = (sy * W + sx) * 4, o = (y * W + x) * 4, a = sp[i + 3]; if (!a || op[o + 3] > a) return; for (let q = 0; q < 3; q++) op[o + q] = sp[i + q] * dk; op[o + 3] = a; };
+  const cp = (x, y, sx, sy, dk) => { if (sx < 0 || sx >= W || sy < 0 || sy >= H) return; const i = (sy * W + sx) * 4, a = sp[i + 3]; if (!a) return; const o = (y * W + x) * 4, b = op[o + 3] / 255, k = a / 255;
+    const oa = k + b * (1 - k); for (let q = 0; q < 3; q++) op[o + q] = (sp[i + q] * dk * k + op[o + q] * b * (1 - k)) / oa; op[o + 3] = 255 * oa; };
+  const E = y => { const t = y <= y0 ? 0 : Math.min(1, (y - y0) / L); return t * t * (3 - 2 * t); };
+  for (let y = 0; y <= y0; y++) for (let x = 0; x < W; x++) cp(x, y, x, y, 1);
+  const D = LDIR[d] || 'S', fw0 = D === 'SW' ? -4 : D === 'NW' ? 4 : 0;
+  // two legs = source halves split at cx; far/back half first (slightly darker), near half on top
+  const half = (left, dk) => { for (let y = y0 + 1; y < H; y++) { const e = E(y); let dx, dy;
+      if (side) { dx = (left ? 1 : -1) * 10 * s * e; dy = 0; } else { const sw = left ? Math.max(0, s) : Math.max(0, -s); dy = 9 * sw * e; dx = fw0 * sw * e; }
+      for (let x = 0; x < W; x++) { const sx = Math.round(x - dx), sy = Math.round(y + dy); if (sx < 0 || sx >= W || (sx < cx) !== left) continue; if (sy >= H) continue; cp(x, y, sx, sy, dk); } } };
+  if (side) { half(false, 1); half(true, 1); } else { const lu = s > 0; half(!lu, 1); half(lu, 1); }
+  g.putImageData(od, 0, 0); c.lay = 1; c.top = st.top; c.bodyTop = st.bodyTop; if (wcache.size > 900) wcache.clear(); wcache.set(k, c); return c; }
 export function preloadLayers(a) { for (const d of Object.keys(LDIR)) { const L = layerSrcs(a, d); img(L.base); img(L.out); img(L.hair); if (L.tint) img(L.tint); } }
 const SHEET_OK = { player: ['basic', 'mint', 'choir'], boy: ['basic', 'mint'] };
 export function apply(ch, code) { const a = parse(code); ch.av = encode(a); ch._avp = a; ch.char = GENDER[a.g].char; ch.outfit = SHEET_OK[ch.char]?.includes(OUTFITS[a.g].find(x => x[0] === a.o)[2]) ? OUTFITS[a.g].find(x => x[0] === a.o)[2] : 'basic'; ch.drawH = Math.round(150 * AGE[a.a].k); preloadLayers(a); }
@@ -255,5 +277,5 @@ export function preload(a) { preloadLayers(a); SLOTS.forEach(s => a[s] && a[s] !
 export function rollCos(atBox, owned) { const pool = Object.entries(COS).filter(([id]) => !owned.includes(id)); if (!pool.length) return null;
   const w = { 일반: 10, 희귀: atBox ? 6 : 3.5, 영웅: atBox ? 2.2 : 1, 전설: atBox ? .8 : .3 }; let r = Math.random() * pool.reduce((s, [, c]) => s + w[c.rar], 0);
   for (const [id, c] of pool) if ((r -= w[c.rar]) < 0) return { id, kind: 'cos', name: c.name, rar: c.rar, img: `cos/${id}.png` }; return null; }
-export const AV = { _cc: () => cache.clear(), GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor, still, layeredReady, SHIP, LOCKED_OUTFITS, shipHair, shipOutfit, LAYER_PIVOT, layered: true };
+export const AV = { _cc: () => cache.clear(), GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor, still, walkStill, WALK_N, layeredReady, SHIP, LOCKED_OUTFITS, shipHair, shipOutfit, LAYER_PIVOT, layered: true };
 window.AV = AV;

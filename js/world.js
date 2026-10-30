@@ -136,7 +136,7 @@ export class Char {
     else if (this.emote) { sy *= 1 + Math.sin(this.emoteT * 9) * .03; if (this.emote === 'wave') rot = Math.sin(this.emoteT * 12) * .05; }
     if (this.jumpT != null) { const q = this.jumpT / .56; lift += Math.sin(q * Math.PI) * 48;
       if (q < .12) { sy *= .86; sx *= 1.12; } else if (q > .9) { sy *= .88; sx *= 1.1; } else { const st = 1 + Math.sin(q * Math.PI) * .07; sy *= st; sx /= Math.sqrt(st); } }
-    let key = 'L:' + d0, fl = flip;
+    let key = 'L:' + d0, fl = flip; if (walking && !this.emote && window.AV.walkStill) { const N = window.AV.WALK_N || 8, ph2 = this.dist / ((this.cfg?.player?.stepLen || 34) * U * CK.k) / 2; key += ':' + (((Math.floor(ph2 * N) % N) + N) % N); rot *= .4; }
     if (this.blendT < 1 && this.prevFace && face === (this.dface || this.face)) { const e = this.blendT, pf = this.prevFace; // paper flip
       if (e < .5) { key = 'L:' + (MIR[pf] || pf); fl = !!MIR[pf]; if (!window.AV.still(this, MIR[pf] || pf)) { key = 'L:' + d0; fl = flip; } }
       sx *= Math.max(.06, Math.abs(Math.cos(e * Math.PI))); }

@@ -176,3 +176,8 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Fix: per-character EYE table (measured eye centres S/SW/W), lens anchors per item; affine draw maps the lens centres → the eye centres (rotation cancels the art tilt, SW horizontal foreshortening, the bridge on the nose midpoint). W = the near lens + temple only, on the eye. Monocle on one eye; blush = one heart under each eye (one in W); mustache/mask anchored to the eye midpoint + eye-distance offsets.
 - Walk/mirror: the face layer is baked into the still, so the bob/tilt/flip move it with the head (checked in walk captures).
 - Sheets: /workspace/mk/prod/glasses_before.jpg, glasses_after.jpg. Beta suite 160/160.
+
+## Walk animation restore (02:4x KST)
+- Root cause: commit e3e5ecc (avatar v17 layered 2D) replaced sprite-sheet walk frames with ONE still per direction; `_lpose` always returned `L:<dir>`, so legs never moved (only bob/tilt/squash).
+- Fix: `AV.walkStill(ch,d,f)` builds 8 stepping frames per direction from the composed still (front/back: alternate leg lift split at the crotch gap, SW/NW forward offset; W/E: legs split and scissored). world.js `_lpose` picks the frame from walked distance. Accessory WIP (c16/c22) postponed, not shipped (saved in /workspace/mk/bak/acc_wip).
+- beta suite 160/160.
