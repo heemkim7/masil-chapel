@@ -120,3 +120,11 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Wings c24: 2x resample, cool outline and edge shading, w 1.35. They now read clearly on grass (eye-checked /workspace/mk/prod/wm1.jpg, S/SW/W/NW/N x boy and girl).
 - Monocle c19: bigger (w .38), translucent lens, raised, with a per-direction SW offset. It sits on the eye at S and SW for the boy and both girl hairs (wm3c.jpg) and passes on W.
 - Beta suite 160/160.
+
+## 10-31 batch 4 (KST) — real hanbok re-added (o_hanbok only)
+- Regenerated from scratch (not a recolour): girl = yellow jeogori with saekdong sleeves and red otgoreum + red chima; boy = sky-blue jeogori with saekdong sleeves and navy otgoreum + dark-indigo baji with red daenim ankle ties. 5 directions × 2 genders, fitted onto the existing bases.
+- Rejected along the way (not shipped): girl SW came out as a front view (regenerated); boy v1 cream baji was segmented out as background → bare legs; boy SW/W walking pose didn't match the base stride (regenerated to match); base-skin specks at the ankles and a hole in the white sleeve stripe at boy W (fixed and re-checked).
+- Checks: every cell at 3x by eye ×3 (layer composite, legs/hem close-up, in-game AV.still render) — no skin specks at legs/hems, no holes. New icon cos/o_hanbok.png made from the new outfit.
+- Re-added in all three places, consistently: config gacha.pool (o_hanbok 희귀 w8 → 13 items/244), NEW_O=['hanbok'], server gacha_pool active (migration 20261031_09; server active = 13/244, matches config).
+- Still pulled: o_formal, o_winter, o_summer, o_spring, o_autumn (not regenerated yet). Boy-shorts piping, choir seam and girl hairs h00/h01/h02/h11 are not done yet.
+- Beta suite 160/160.

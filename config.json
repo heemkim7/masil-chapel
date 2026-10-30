@@ -522,6 +522,15 @@
     "kind": "decor",
     "rar": "전설",
     "w": 4
+   },
+   {
+    "id": "o_hanbok",
+    "name": "한복 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "희귀",
+    "w": 8,
+    "img": "cos/o_hanbok.png"
    }
   ],
   "name": "달란트 뽑기"
