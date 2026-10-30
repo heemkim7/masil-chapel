@@ -68,6 +68,19 @@ function compose(a, key) { // key: "<char>/<outfit>/<frame>"
       const n = [0, 0, 0]; for (const o of [-4, 4, -W * 4, W * 4]) { const c2 = cls(i + o); if (c2 >= 0) n[c2]++; } const b = n.indexOf(Math.max(...n)); if (n[b]) ch.push([i, b]); }
       for (const [i, b] of ch) { Mx[i] = b === 0 ? 255 : 0; Mx[i + 1] = b === 1 ? 255 : 0; Mx[i + 2] = b === 2 ? 255 : 0; } }
     M = Mx; }
+  if (oft && !window.__noLin) { // v13b: the baked masks paint the cream hood lining / cuffs / hems as SKIN → tan blotches on tinted outfits. Real skin in these
+    // sheets is clearly red-shifted (R−G ≈ 50–85); the cream fabric is R−G ≈ 10–40. Below the face band (or anywhere on back views), low-red
+    // "skin" pixels are moved to the outfit class so they get the outfit tint.
+    let tp = H, bt = 0; for (let i = 3, j = 0; i < p.length; i += 4, j++) if (p[i] > 40) { const y = (j / W) | 0; if (y < tp) tp = y; bt = y; }
+    const fb = back ? tp : tp + (bt - tp) * .43;
+    const nb = new Uint8Array(W * H); for (let j = 0; j < W * H; j++) if (M[j * 4 + 2] > 128) for (let d = -4; d <= 4; d++) { const x = j % W + d; if (x >= 0 && x < W) for (let e = -4; e <= 4; e++) { const k = j + d + e * W; if (k >= 0 && k < W * H) nb[k] = 1; } } // near fabric only (never cheeks/eyes)
+    for (let i = 0, j = 0; i < p.length; i += 4, j++) { if (p[i + 3] < 40 || M[i] > 128 || M[i + 2] > 128) continue; const y = (j / W) | 0;
+      const unc = M[i + 1] <= 8; if (!unc && y < fb) continue; const rg = p[i] - p[i + 1], br = p[i] + p[i + 1] + p[i + 2];
+      if (rg < 42 && br > 330 && y >= fb && nb[j]) { M[i] = 0; M[i + 1] = 0; M[i + 2] = 255; } }
+    if (!back) { const fz = [];  // face guard: mask 'outfit' specks inside the face (eye rims → cyan/purple) keep their base colour
+      for (let j = 0; j < W * H; j++) { const y = (j / W) | 0, x = j % W; if (y >= fb || M[j * 4 + 2] <= 128 || x < 3 || x >= W - 3 || y < 3) continue; let g = 0, n = 0;
+        for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const k = (j + dy * W + dx) * 4; if (p[k + 3] < 40) continue; n++; if (M[k + 1] > 8 && M[k + 2] <= 128 && M[k] <= 128) g++; } if (n && g / n > .3) fz.push(j); }
+      for (const j of fz) M[j * 4 + 2] = 0; } }
   let hl = 0, hn = 0, ol = 0, on = 0; for (let i = 0; i < p.length; i += 4) { if (M[i] > 128) { hl += p[i] + p[i + 1] + p[i + 2]; hn++; } if (M[i + 2] > 128 && sat(p, i) > .1) { ol += p[i] + p[i + 1] + p[i + 2]; on++; } }
   hl = hn ? hl / hn : 1; ol = on ? ol / on : 1;
   let x0 = W, x1 = 0, y0 = H, y1 = 0, top = H, bot = 0;
@@ -77,6 +90,12 @@ function compose(a, key) { // key: "<char>/<outfit>/<frame>"
     else if (M[i + 1] > 8 && a.s) { const w = M[i + 1] / 255; for (let q = 0; q < 3; q++) p[i + q] = Math.min(255, p[i + q] * (1 - w + w * sk[q])); }
     else if (M[i + 2] > 128 && oft && (sat(p, i) > .1 || p[i] + p[i + 1] + p[i + 2] > 300)) { // v13: also tint the bright low-saturation fabric highlights (they stayed white → speckles on tinted hoodies/shoes)
       const l = (p[i] + p[i + 1] + p[i + 2]) / ol; for (let q = 0; q < 3; q++) p[i + q] = Math.min(255, oft[q] * Math.min(1.3, l)); } }
+  if (!window.__noSol) { // v13b: some baked frames (girl dress back views N/NW, choir S_1/3/5) have a semi-transparent body (alpha 30–200 inside the silhouette)
+    // → the ground showed through skirt/legs ("grey-green ghost skirt"). Pixels fully surrounded by silhouette (5×5) become opaque; edges keep their AA.
+    const A0 = new Uint8Array(W * H); for (let j = 0; j < W * H; j++) A0[j] = p[j * 4 + 3] > 25 ? 1 : 0;
+    let t1 = H, b1 = 0; for (let j = 0; j < W * H; j++) if (A0[j]) { const y = (j / W) | 0; if (y < t1) t1 = y; b1 = y; } const yb = t1 + (b1 - t1) * .45; // body only: never the face
+    for (let y = Math.max(2, yb | 0); y < H - 2; y++) for (let x = 2; x < W - 2; x++) { const j = y * W + x; if (!A0[j] || p[j * 4 + 3] >= 250 || M[j * 4] > 128) continue; let n = 0;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) n += A0[j + dy * W + dx]; if (n >= 25) p[j * 4 + 3] = 255; else if (n >= 20) p[j * 4 + 3] = Math.max(p[j * 4 + 3], 200); } }
   g0.putImageData(id, 0, 0);
   if (!back && a.a !== 1) { const t0 = (() => { for (let i = 3, j = 0; i < p.length; i += 4, j++) if (p[i] > 40) return (j / W) | 0; return 0; })(); try { ageFace(g0, p, M, W, H, headBox(p, W, t0, H - 1), a.a, side); } catch { } }
   if (x1 < x0) { x0 = 60; x1 = 140; y0 = top; y1 = top + 90; }
