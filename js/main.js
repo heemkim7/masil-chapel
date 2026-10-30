@@ -232,7 +232,7 @@ function drawWorship() { const c = $('#wcv'), g = c.getContext('2d'), w = worshi
 // ---------- gacha (헌금 뽑기) ----------
 function openGacha() { openModal('#gacha'); $('#gres').innerHTML = `<img src="assets/item_1_1.png" class="capsule"><p>헌금 ${cfg.gacha.cost}달란트로 꾸미기 아이템을 뽑아요</p>`; $('#gcost').textContent = cfg.gacha.cost; }
 function doRoll() { const r = St.rollGacha(cfg, S); if (r.err) { toast(r.err + ' — 별 찾기나 예배로 코인을 모아요'); return; }
-  const it = r.item, img = it.kind === 'decor' ? cfg.decor.find(d => d.id === it.id).img : cfg.acc[it.id].img, cls = { 일반: 'r1', 희귀: 'r2', 전설: 'r3' }[it.rar];
+  const it = r.item, img = it.kind === 'cos' ? it.img : it.kind === 'decor' ? cfg.decor.find(d => d.id === it.id).img : cfg.acc[it.id].img, cls = { 일반: 'r1', 희귀: 'r2', 영웅: 'r2', 전설: 'r3' }[it.rar];
   $('#gres').innerHTML = `<img src="assets/item_1_1.png" class="capsule shake">`;
   setTimeout(() => { $('#gres').innerHTML = `<div class="rar ${cls}">${it.rar}</div><img src="assets/${img}" class="prize pop"><h3>${it.name}</h3><p>${r.dup ? `이미 있어요! ${cfg.gacha.dupRefund}달란트 돌려받았어요` : it.kind === 'decor' ? '배치 가방에 추가됐어요 (🪑 배치)' : '꾸미기에서 착용할 수 있어요'}</p>`; refreshHud(); persist(); }, 700); }
 

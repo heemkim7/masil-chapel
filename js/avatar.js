@@ -10,8 +10,12 @@ export const HAIRC = [['기본', null], ['흑갈색', [58, 40, 32]], ['밤색', 
 const NATIVE = { f: [244, 160, 186], m: [74, 52, 40] };
 // free outfits: [id, name, base sheet outfit, tint rgb|null]
 export const OUTFITS = {
-  f: [['basic', '기본 후드', 'basic', null], ['choir', '성가대', 'choir', null], ['mint', '민트 원피스', 'mint', null], ['sky', '하늘 원피스', 'mint', [140, 190, 250]], ['lav', '라벤더 원피스', 'mint', [190, 160, 235]], ['peach', '피치 원피스', 'mint', [250, 180, 150]]],
-  m: [['basic', '기본 후드', 'basic', null], ['mint', '민트 티셔츠', 'mint', null], ['sky', '하늘 티셔츠', 'mint', [140, 190, 250]], ['lav', '라벤더 티셔츠', 'mint', [190, 160, 235]], ['peach', '피치 티셔츠', 'mint', [250, 180, 150]], ['navy', '네이비 후드', 'basic', [110, 130, 190]]] };
+  f: [['basic', '기본 후드', 'basic', null], ['choir', '성가대', 'choir', null], ['mint', '민트 원피스', 'mint', null], ['sky', '하늘 원피스', 'mint', [140, 190, 250]], ['lav', '라벤더 원피스', 'mint', [190, 160, 235]], ['peach', '피치 원피스', 'mint', [250, 180, 150]],
+    ['hanbok', '색동 한복', 'hanbok', null], ['formal', '예배 정장', 'formal', null], ['winter', '성탄 스웨터', 'winter', null], ['summer', '여름 마린룩', 'summer', null], ['spring', '봄꽃 원피스', 'spring', null], ['autumn', '가을 체크', 'autumn', null]],
+  m: [['basic', '기본 후드', 'basic', null], ['mint', '민트 티셔츠', 'mint', null], ['sky', '하늘 티셔츠', 'mint', [140, 190, 250]], ['lav', '라벤더 티셔츠', 'mint', [190, 160, 235]], ['peach', '피치 티셔츠', 'mint', [250, 180, 150]], ['navy', '네이비 후드', 'basic', [110, 130, 190]], ['choir', '성가대 가운', 'choir', null],
+    ['hanbok', '한복 저고리', 'hanbok', null], ['formal', '예배 정장', 'formal', null], ['winter', '성탄 후드', 'winter', null], ['summer', '여름 마린룩', 'summer', null], ['spring', '봄 새싹 후드', 'spring', null], ['autumn', '가을 체크', 'autumn', null]] };
+// outfits unlocked by gacha (cos id 'o_<id>'); everything else in SHIP is a free starter
+export const LOCKED_OUTFITS = ['hanbok', 'formal', 'winter', 'summer', 'spring', 'autumn'];
 // hair pieces (h00..h11) — layer 'over' (on top of head) or 'back' (behind body when facing front)
 const HP = { h00: { w: .5, y: -.08, at: 'top', l: 'over' }, h01: { w: 1.55, y: -.02, at: 'top', l: 'over', cap: 1 }, h02: { w: 1.3, y: -.04, at: 'top', l: 'over', cap: 1 }, h03: { w: 1.08, y: .3, at: 'top', l: 'back' },
   h04: { w: .22, y: .55, at: 'top', l: 'over', dx: .42 }, h05: { w: 1.35, y: -.08, at: 'top', l: 'over', cap: 1 }, h06: { w: 1.18, y: -.1, at: 'top', l: 'over' }, h07: { w: .2, y: -.14, at: 'top', l: 'over', dx: .05 },
@@ -187,15 +191,16 @@ export function frame(ch, key) { if (!ch.av) return null; if (key && key.startsW
 
 // ---------------- v17 LAYERED test set (2D): one still 200x284 PNG per direction per layer (base · outfit+tint mask · hair), foot pivot (100,272).
 // Only the shipped hairs/outfits are offered; any other code maps to the nearest shipped item (old codes keep working).
-export const SHIP = { f: { hairs: [4, 6], outfits: ['basic', 'mint', 'sky', 'lav', 'peach'] }, m: { hairs: [1, 2, 3], outfits: ['basic', 'mint', 'sky', 'lav', 'peach', 'navy'] } };
-const NEAR_H = { f: [4, 6, 6, 4, 4, 4, 6, 4], m: [1, 1, 2, 3, 2, 1, 1] }; // index in HAIRS[g] → shipped index
+const NEW_O = ['hanbok', 'formal', 'winter', 'summer', 'spring', 'autumn'];
+export const SHIP = { f: { hairs: [0, 4, 5, 6], outfits: ['basic', 'choir', 'mint', 'sky', 'lav', 'peach', ...NEW_O] }, m: { hairs: [0, 1, 2, 3, 4, 5, 6], outfits: ['basic', 'mint', 'sky', 'lav', 'peach', 'navy', 'choir', ...NEW_O] } };
+const NEAR_H = { f: [0, 6, 4, 4, 4, 5, 6, 4], m: [0, 1, 2, 3, 4, 5, 6] }; // index in HAIRS[g] → shipped index
 export const LAYER_PIVOT = [100, 272];
 const LDIR = { S: 'S', SW: 'SW', W: 'W', NW: 'NW', N: 'N' };
 export const shipHair = (g, hs) => NEAR_H[g][hs] ?? SHIP[g].hairs[0];
 export const shipOutfit = (g, o) => SHIP[g].outfits.includes(o) ? o : 'basic';
 const LP = 'assets/characters/layered/';
 function layerSrcs(a, d) { const ch = GENDER[a.g].char, of = OUTFITS[a.g].find(x => x[0] === shipOutfit(a.g, a.o)), hp = HAIRS[a.g][shipHair(a.g, a.hs)][1];
-  return { base: `${LP}${ch}_base_${d}.png`, out: `${LP}${ch}_outfit_${of[2]}_${d}.png`, tint: of[3] ? `${LP}${ch}_outfit_${of[2]}_tint_${d}.png` : null, hair: `${LP}${ch}_hair_${hp}_${d}.png`, oft: of[3] }; }
+  return { base: `${LP}${ch}_base_${d}.png`, out: `${LP}${ch}_outfit_${of[2]}_${d}.png`, tint: of[3] ? `${LP}${ch}_outfit_${of[2]}_tint_${d}.png` : null, hair: `${LP}${ch}_hair_${hp || 'base'}_${d}.png`, oft: of[3] }; }
 export function layeredReady(a, d = 'S') { const L = layerSrcs(a, d); return !!(img(L.base) && img(L.out) && img(L.hair) && (!L.tint || img(L.tint))); }
 const lcache = new Map();
 function lpix(im) { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); return [c, g, g.getImageData(0, 0, c.width, c.height)]; }
@@ -226,12 +231,13 @@ export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d 
   cos('back', false); g.drawImage(bc, 0, 0); g.drawImage(oc, 0, 0); g.drawImage(hc2, 0, 0); cos('back', true); cos('face'); cos('hat'); cos('held');
   c.lay = 1; c.top = Math.min(htop, top); c.bodyTop = top; if (lcache.size > 600) lcache.clear(); lcache.set(k, c); return c; }
 export function preloadLayers(a) { for (const d of Object.keys(LDIR)) { const L = layerSrcs(a, d); img(L.base); img(L.out); img(L.hair); if (L.tint) img(L.tint); } }
-export function apply(ch, code) { const a = parse(code); ch.av = encode(a); ch._avp = a; ch.char = GENDER[a.g].char; ch.outfit = OUTFITS[a.g].find(x => x[0] === a.o)[2]; ch.drawH = Math.round(150 * AGE[a.a].k); preloadLayers(a); }
+const SHEET_OK = { player: ['basic', 'mint', 'choir'], boy: ['basic', 'mint'] };
+export function apply(ch, code) { const a = parse(code); ch.av = encode(a); ch._avp = a; ch.char = GENDER[a.g].char; ch.outfit = SHEET_OK[ch.char]?.includes(OUTFITS[a.g].find(x => x[0] === a.o)[2]) ? OUTFITS[a.g].find(x => x[0] === a.o)[2] : 'basic'; ch.drawH = Math.round(150 * AGE[a.a].k); preloadLayers(a); }
 let RIG = null; export const rig = () => RIG;
 export function init(atlas) { ATLAS = atlas; fetch('assets/characters/rig.json').then(r => r.json()).then(j => { RIG = j; cache.clear(); }).catch(() => { }); for (const [k, s] of Object.entries(atlas.sheets || {})) if (/^(player|boy)\//.test(k)) img('assets/characters/' + s.img.replace('.png', '_mask.png')); Object.keys(HP).forEach(h => { img(`assets/cos/${h}.png`); img(`assets/cos/${h}_b.png`); }); }
 export function preload(a) { preloadLayers(a); SLOTS.forEach(s => a[s] && a[s] !== '-' && img(`assets/cos/${a[s]}.png`)); }
 export function rollCos(atBox, owned) { const pool = Object.entries(COS).filter(([id]) => !owned.includes(id)); if (!pool.length) return null;
   const w = { 일반: 10, 희귀: atBox ? 6 : 3.5, 영웅: atBox ? 2.2 : 1, 전설: atBox ? .8 : .3 }; let r = Math.random() * pool.reduce((s, [, c]) => s + w[c.rar], 0);
   for (const [id, c] of pool) if ((r -= w[c.rar]) < 0) return { id, kind: 'cos', name: c.name, rar: c.rar, img: `cos/${id}.png` }; return null; }
-export const AV = { _cc: () => cache.clear(), GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor, still, layeredReady, SHIP, shipHair, shipOutfit, LAYER_PIVOT, layered: true };
+export const AV = { _cc: () => cache.clear(), GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor, still, layeredReady, SHIP, LOCKED_OUTFITS, shipHair, shipOutfit, LAYER_PIVOT, layered: true };
 window.AV = AV;

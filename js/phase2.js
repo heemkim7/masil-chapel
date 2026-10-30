@@ -103,7 +103,7 @@ async function give(amt, pray, atBox) { const s = S(); if (!amt || s.coins < amt
   else it = (window.AV && Math.random() < .4 && window.AV.rollCos(atBox, s.cos ||= [])) || roll(atBox);
   // reward
   const p = st(); p.offered += amt; p.fruit += 1; let dup = false, glass = null;
-  if (it.kind === 'cos') { s.cos ||= []; s.cos.push(it.id); } else if (it.kind === 'decor') s.decorInv[it.id] = (s.decorInv[it.id] || 0) + 1; else if (s.inv.includes(it.id)) { dup = true; if (!R) s.coins += C().gacha.dupRefund; } else s.inv.push(it.id);
+  if (it.kind === 'cos') { s.cos ||= []; if (s.cos.includes(it.id)) { dup = true; if (!R) s.coins += C().gacha.dupRefund; } else s.cos.push(it.id); } else if (it.kind === 'decor') s.decorInv[it.id] = (s.decorInv[it.id] || 0) + 1; else if (s.inv.includes(it.id)) { dup = true; if (!R) s.coins += C().gacha.dupRefund; } else s.inv.push(it.id);
   if (SI ? SI.glass : Math.random() < (atBox ? .6 : .35)) glass = addGlass();
   if (R?.data && typeof R.data.talent === 'number') s.coins = R.data.talent;
   G().addXp(Math.round(amt / 5) + 5); save(); reveal(it, v, dup, glass, atBox);

@@ -19,8 +19,8 @@ export function rollGacha(cfg, s, rnd = Math.random) {
   let t = g.pool.reduce((a, p) => a + p.w, 0) * rnd(); let it = g.pool[0];
   for (const p of g.pool) { if ((t -= p.w) < 0) { it = p; break; } }
   if (it.kind === 'decor') { s.decorInv[it.id] = (s.decorInv[it.id] || 0) + 1; return { item: it, dup: false }; }
-  const dup = s.inv.includes(it.id);
-  if (dup) s.coins += g.dupRefund; else s.inv.push(it.id);
+  const bag = it.kind === 'cos' ? (s.cos ||= []) : s.inv, dup = bag.includes(it.id);
+  if (dup) s.coins += g.dupRefund; else bag.push(it.id);
   return { item: it, dup };
 }
 export const QUEST_TEXT = [

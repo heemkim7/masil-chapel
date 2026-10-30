@@ -43,7 +43,7 @@ export function mount(el, code, opts = {}) {
     let h = row('성별', 'g', Object.entries(AV.GENDER).map(([k, g]) => [k, g.name])) + row('나이', 'a', AV.AGE.map((x, i) => [i, x.name]))
       + row('피부', 's', AV.SKIN.map((x, i) => [i, x[0], `background:${i ? `rgb(${x[1].map(q => Math.round(q * 236)).join(',')})` : '#f6d2c0'}`]))
       + row('헤어', 'hs', AV.SHIP[a.g].hairs.map(i => [i, AV.HAIRS[a.g][i][0]])) + row('머리색', 'hc', AV.HAIRC.map((x, i) => [i, x[0], `background:${sw(x[1])}`]))
-      + row('옷', 'o', AV.OUTFITS[a.g].filter(x => AV.SHIP[a.g].outfits.includes(x[0])).map(x => [x[0], x[1]]));
+      + row('옷', 'o', AV.OUTFITS[a.g].filter(x => AV.SHIP[a.g].outfits.includes(x[0]) && (!AV.LOCKED_OUTFITS.includes(x[0]) || owned.includes('o_' + x[0]) || a.o === x[0])).map(x => [x[0], x[1]]));
     for (const [slot, lab] of [['hat', '모자'], ['face', '얼굴'], ['back', '등'], ['held', '손']]) { const its = owned.filter(id => AV.COS[id]?.slot === slot); if (its.length || a[slot] !== '-') h += `<div class="cz-row"><span>${lab}</span><div class="cz-ch"><button type="button" class="chip ${a[slot] === '-' ? 'on' : ''}" data-k="${slot}" data-v="-">없음</button>${its.map(id => `<button type="button" class="chip cos ${a[slot] === id ? 'on' : ''}" data-k="${slot}" data-v="${id}" title="${esc(AV.COS[id].name)}"><img src="assets/cos/${id}.png" alt=""></button>`).join('')}</div></div>`; }
     if (!owned.length && !opts.title) h += `<p class="mnote">🎩 모자·날개·손소품은 옷가게나 헌금 축복에서 얻어요</p>`;
     const ctl = el.querySelector('.cz-ctl'); ctl.innerHTML = h;

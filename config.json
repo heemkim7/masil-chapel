@@ -10,7 +10,8 @@
   "speed": 260,
   "accel": 10,
   "drawH": 150,
-  "stepLen": 34, "cycleLen": 120
+  "stepLen": 34,
+  "cycleLen": 120
  },
  "chapel": {
   "x": 3600,
@@ -521,6 +522,60 @@
     "kind": "decor",
     "rar": "전설",
     "w": 4
+   },
+   {
+    "id": "o_hanbok",
+    "name": "한복 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "희귀",
+    "w": 8,
+    "img": "cos/o_hanbok.png"
+   },
+   {
+    "id": "o_formal",
+    "name": "예배 정장 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "희귀",
+    "w": 8,
+    "img": "cos/o_formal.png"
+   },
+   {
+    "id": "o_winter",
+    "name": "성탄 옷 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "희귀",
+    "w": 8,
+    "img": "cos/o_winter.png"
+   },
+   {
+    "id": "o_summer",
+    "name": "여름 마린룩 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "일반",
+    "w": 14,
+    "img": "cos/o_summer.png"
+   },
+   {
+    "id": "o_spring",
+    "name": "봄 옷 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "일반",
+    "w": 14,
+    "img": "cos/o_spring.png"
+   },
+   {
+    "id": "o_autumn",
+    "name": "가을 체크 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "일반",
+    "w": 14,
+    "img": "cos/o_autumn.png"
    }
   ],
   "name": "달란트 뽑기"

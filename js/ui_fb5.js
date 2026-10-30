@@ -11,16 +11,29 @@
 
   // --- drop rates per grade, derived from the SAME cfg.gacha.pool weights the roll logic uses
   // (js/state.js rollGacha + phase2 roll; server gacha_pool seeds identical weights), so label == logic.
+  const K = ['일반', '희귀', '영웅', '전설'], pct = (by, tot) => K.filter(k => by[k]).map(k => [k, Math.round(10000 * by[k] / tot) / 100]);
   function rates() {
     const pool = G.cfg().gacha.pool, tot = pool.reduce((a, p) => a + p.w, 0), by = {};
     for (const p of pool) by[p.rar] = (by[p.rar] || 0) + p.w;
-    return ['일반', '희귀', '전설'].filter(k => by[k]).map(k => [k, Math.round(10000 * by[k] / tot) / 100]);
+    return pct(by, tot);
+  }
+  // 헌금 축복 (phase2 offer): 40% → AV.rollCos over not-yet-owned cosmetics with ITS OWN rarity weights, else the pool roll
+  // (box: non-일반 pool weights ×1.8). Same formulas as js/avatar.js rollCos + phase2 roll + server _gacha.
+  function offerRates(atBox = false, owned = []) {
+    const A = window.AV, cw = { 일반: 10, 희귀: atBox ? 6 : 3.5, 영웅: atBox ? 2.2 : 1, 전설: atBox ? .8 : .3 };
+    const cos = A ? Object.entries(A.COS).filter(([id]) => !owned.includes(id)) : [], ct = cos.reduce((a, [, c]) => a + cw[c.rar], 0), by = {};
+    const pool = G.cfg().gacha.pool.map(p => ({ ...p, w: p.rar === '일반' || !atBox ? p.w : p.w * 1.8 })), pt = pool.reduce((a, p) => a + p.w, 0), pc = ct ? .4 : 0;
+    for (const [, c] of cos) by[c.rar] = (by[c.rar] || 0) + pc * cw[c.rar] / ct;
+    for (const p of pool) by[p.rar] = (by[p.rar] || 0) + (1 - pc) * p.w / pt;
+    return { cos: pct(Object.fromEntries(Object.entries(cw).map(([k, v]) => [k, v * cos.filter(([, c]) => c.rar === k).length])), ct || 1), all: pct(by, 1), pc };
   }
   function paintRates() {
     const g = G.cfg().gacha, txt = '❓ 등급별 확률 (' + rates().map(([k, v]) => `${k} ${v}%`).join(' · ') + ')';
-    for (const el of document.querySelectorAll('[data-rates]')) el.textContent = el.closest('#gacha') ? `${txt} · 중복 장신구는 ${g.dupRefund}달란트 환급` : `🎁 달란트 뽑기 ${txt}`;
+    const o = offerRates(false, (G.S && G.S.cos) || []), ob = offerRates(true, (G.S && G.S.cos) || []);
+    const otx = `🙏 헌금 축복: ${Math.round(o.pc * 100)}% 확률로 꾸미기 소품(${o.cos.map(([k, v]) => `${k} ${v}%`).join(' · ')}), 나머지는 뽑기 풀 · 종합 ${o.all.map(([k, v]) => `${k} ${v}%`).join(' · ')} (헌금함 앞: ${ob.all.map(([k, v]) => `${k} ${v}%`).join(' · ')})`;
+    for (const el of document.querySelectorAll('[data-rates]')) el.textContent = el.closest('#gacha') ? `${txt} · 중복 아이템은 ${g.dupRefund}달란트 환급` : `🎁 달란트 뽑기 ${txt} · ${otx}`;
   }
-  window.FB5 = { rates, live: () => ({ ch: !!ch, state: ch?.state, topic: ch?.topic, ps: ch && ch.presenceState() }) };
+  window.FB5 = { rates, offerRates, live: () => ({ ch: !!ch, state: ch?.state, topic: ch?.topic, ps: ch && ch.presenceState() }) };
 
   // --- copy fix inside main.js-rendered gacha text (main.js is owned by another worker)
   function fixGres() { const r = $('#gres'); if (!r) return; new MutationObserver(() => { const p = r.querySelector('p'); if (p && /^헌금 /.test(p.textContent)) p.textContent = p.textContent.replace(/^헌금 /, ''); }).observe(r, { childList: true, subtree: true }); }
