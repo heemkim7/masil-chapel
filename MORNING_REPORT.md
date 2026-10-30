@@ -181,3 +181,10 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Root cause: commit e3e5ecc (avatar v17 layered 2D) replaced sprite-sheet walk frames with ONE still per direction; `_lpose` always returned `L:<dir>`, so legs never moved (only bob/tilt/squash).
 - Fix: `AV.walkStill(ch,d,f)` builds 8 stepping frames per direction from the composed still (front/back: alternate leg lift split at the crotch gap, SW/NW forward offset; W/E: legs split and scissored). world.js `_lpose` picks the frame from walked distance. Accessory WIP (c16/c22) postponed, not shipped (saved in /workspace/mk/bak/acc_wip).
 - beta suite 160/160.
+
+## walk2 — readable stepping (2026-10-31)
+- Front/back (S/SW/N/NW): alternating leg lift (~24% of leg below hem/crotch, min 6px), lifted leg drawn last, opposite arm swing (small), hem sway; bob synced to step phase.
+- Side (W/E): wider scissor (A=max(12,.34L)), darker back leg, chocolate rim on front leg; long skirts: only feet below hem scissor.
+- Hem detection = narrowest ankle row → scan up until filled width > 1.25x (fixes skirt/dress centre tears for hanbok/formal/dresses).
+- No accessory changes. Suite 160/160.
+- Known limits: residual foot slide at ~7.6 steps/s; arm swing subtle; blue/purple fleck on boy sky/lav side-foot is in source art.

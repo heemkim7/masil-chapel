@@ -249,25 +249,42 @@ export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d 
 // walk fix: the v17 layered path had ONE still per direction, so legs never moved. Build 8 stepping frames per direction from the still:
 // front/back views lift the swing leg alternately (left/right halves split at the crotch gap); side views scissor the legs (back leg darker).
 export const WALK_N = 8; const wcache = new Map();
-export function walkStill(ch, d, f) { const st = still(ch, d); if (!st) return null; const k = encode(ch._avp) + '|' + (LDIR[d] || 'S') + '|' + f; let c = wcache.get(k); if (c) return c;
-  const W = st.width, H = st.height, sg = st.getContext('2d'), sp = sg.getImageData(0, 0, W, H).data; let yb = 0, xa = W, xb = 0;
-  for (let y = H - 1; y >= 0 && !yb; y--) for (let x = 0; x < W; x++) if (sp[(y * W + x) * 4 + 3] > 40) { yb = y; break; }
-  for (let y = yb - 30; y <= yb; y++) for (let x = 0; x < W; x++) if (sp[(y * W + x) * 4 + 3] > 40) { if (x < xa) xa = x; if (x > xb) xb = x; }
-  const cx = Math.round((xa + xb) / 2), side = (LDIR[d] || 'S') === 'W'; let y0 = yb - 2; while (y0 > st.bodyTop && sp[(y0 * W + cx) * 4 + 3] <= 40) y0--;
-  if (y0 >= yb - 6 || side) y0 = Math.round(st.bodyTop + (yb - st.bodyTop) * (side ? .8 : .72)); y0 -= side ? 0 : 4;
-  const s = Math.sin(f / WALK_N * 2 * Math.PI), L = yb - y0; c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), od = g.createImageData(W, H), op = od.data;
-  const put = (x, y, sx, sy, dk) => { if (sx < 0 || sx >= W || sy < 0 || sy >= H) return; const i = (sy * W + sx) * 4, o = (y * W + x) * 4, a = sp[i + 3]; if (!a || op[o + 3] > a) return; for (let q = 0; q < 3; q++) op[o + q] = sp[i + q] * dk; op[o + 3] = a; };
-  const cp = (x, y, sx, sy, dk) => { if (sx < 0 || sx >= W || sy < 0 || sy >= H) return; const i = (sy * W + sx) * 4, a = sp[i + 3]; if (!a) return; const o = (y * W + x) * 4, b = op[o + 3] / 255, k = a / 255;
-    const oa = k + b * (1 - k); for (let q = 0; q < 3; q++) op[o + q] = (sp[i + q] * dk * k + op[o + q] * b * (1 - k)) / oa; op[o + 3] = 255 * oa; };
-  const E = y => { const t = y <= y0 ? 0 : Math.min(1, (y - y0) / L); return t * t * (3 - 2 * t); };
-  for (let y = 0; y <= y0; y++) for (let x = 0; x < W; x++) cp(x, y, x, y, 1);
-  const D = LDIR[d] || 'S', fw0 = D === 'SW' ? -4 : D === 'NW' ? 4 : 0;
-  // two legs = source halves split at cx; far/back half first (slightly darker), near half on top
-  const half = (left, dk) => { for (let y = y0 + 1; y < H; y++) { const e = E(y); let dx, dy;
-      if (side) { dx = (left ? 1 : -1) * 10 * s * e; dy = 0; } else { const sw = left ? Math.max(0, s) : Math.max(0, -s); dy = 9 * sw * e; dx = fw0 * sw * e; }
-      for (let x = 0; x < W; x++) { const sx = Math.round(x - dx), sy = Math.round(y + dy); if (sx < 0 || sx >= W || (sx < cx) !== left) continue; if (sy >= H) continue; cp(x, y, sx, sy, dk); } } };
-  if (side) { half(false, 1); half(true, 1); } else { const lu = s > 0; half(!lu, 1); half(lu, 1); }
-  g.putImageData(od, 0, 0); c.lay = 1; c.top = st.top; c.bodyTop = st.bodyTop; if (wcache.size > 900) wcache.clear(); wcache.set(k, c); return c; }
+export function walkStill(ch, d, f) { const st = still(ch, d); if (!st) return null; const D = LDIR[d] || 'S', k = encode(ch._avp) + '|' + D + '|' + f; let c = wcache.get(k); if (c) return c;
+  const W = st.width, H = st.height, sp = st.getContext('2d').getImageData(0, 0, W, H).data, A_ = (x, y) => x < 0 || x >= W || y < 0 || y >= H ? 0 : sp[(y * W + x) * 4 + 3];
+  let yb = 0; for (let y = H - 1; y >= 0 && !yb; y--) for (let x = 0; x < W; x++) if (A_(x, y) > 40) { yb = y; break; }
+  // feet columns → centre; crotch gap (or hem) found by scanning up the centre column
+  let xa = W, xb = 0; for (let y = yb - 8; y <= yb; y++) for (let x = 0; x < W; x++) if (A_(x, y) > 40) { if (x < xa) xa = x; if (x > xb) xb = x; }
+  const side = D === 'W', bt = st.bodyTop, BH = yb - bt; let cx = Math.round((xa + xb) / 2);
+  // separate legs? find a transparent run between feet blobs at the ankle row
+  const ar = yb - Math.round(BH * .06); let gapL = -1, gapR = -1; { let inb = false, seen = 0; for (let x = xa; x <= xb; x++) { const o = A_(x, ar) > 40; if (o && !inb) { seen++; if (seen === 2) gapR = x; } if (!o && inb && seen === 1) gapL = x; inb = o; } }
+  const split = gapR > 0; if (split) cx = Math.round((gapL + gapR) / 2);
+  let y0 = yb - 2; while (y0 > bt && A_(cx, y0) <= 40) y0--; const hasGap = y0 < yb - BH * .08 && split;
+  { // legs start at the hem (row where the silhouette narrows to the feet) — never inside a skirt/shorts
+    const wd = y => { let n = 0; for (let x = 0; x < W; x++) if (A_(x, y) > 40) n++; return n; }; // filled width (feet gap excluded)
+    let ym = yb - 4, wm = 1e9; for (let yy = yb - 4; yy > bt + BH * .6; yy--) { const n = wd(yy); if (n < wm) { wm = n; ym = yy; } } // narrowest ankle/leg row
+    let y = ym; while (y > bt + BH * .6 && wd(y) <= wm * 1.25 + 3) y--;
+    const yh = Math.min(y, yb - 7); y0 = hasGap ? Math.max(y0, yh) : yh; if (side && y0 < bt + BH * .72) y0 = Math.round(bt + BH * .78); }
+  const L = yb - y0, hem = y0; // hem/crotch row
+  const s = Math.sin(f / WALK_N * 2 * Math.PI);
+  c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), od = g.createImageData(W, H), op = od.data;
+  const cp = (x, y, sx, sy, dk) => { if (x < 0 || x >= W || y < 0 || y >= H || sx < 0 || sx >= W || sy < 0 || sy >= H) return; const i = (sy * W + sx) * 4, a = sp[i + 3]; if (!a) return; const o = (y * W + x) * 4, b = op[o + 3] / 255, kk = a / 255, oa = kk + b * (1 - kk);
+    for (let q = 0; q < 3; q++) op[o + q] = (sp[i + q] * dk * kk + op[o + q] * b * (1 - kk)) / oa; op[o + 3] = 255 * oa; };
+  const sm = t => (t = Math.max(0, Math.min(1, t)), t * t * (3 - 2 * t)), E = y => sm((y - y0) / L);
+  // upper body (with hem sway + arm swing in front/back views)
+  let tl = W, tr = 0; for (let x = 0; x < W; x++) if (A_(x, y0 - 2) > 40) { if (x < tl) tl = x; if (x > tr) tr = x; }
+  const ya = bt + BH * .36, swayRows = Math.max(6, BH * .1);
+  for (let y = 0; y <= y0; y++) { const sway = (side ? 1 : 1.6) * s * sm((y - (hem - swayRows)) / swayRows);
+    for (let x = 0; x < W; x++) { let sy = y; if (!side && y > ya && (x < tl + 1 || x > tr - 1)) { const left = x < cx; sy = Math.round(y - (left ? -s : s) * 3 * sm((y - ya) / (y0 - ya))); } cp(x, y, Math.round(x - sway), sy, 1); } }
+  const OUT = [92, 58, 40];
+  if (side) { const A = (hasGap || !split ? Math.max(12, L * .34) : Math.max(6, L * .5)) * s; // scissor: back leg (darker) then front leg with chocolate rim
+    const leg = (sel, dx, dk, rim) => { for (let y = y0 + 1; y < H; y++) { const e = E(y), ddx = Math.round(dx * e), lift = Math.round(Math.max(0, (dk < 1 ? 1 : -1) * 0) ); for (let x = 0; x < W; x++) { const sx = x - ddx; if (!sel(sx)) continue; cp(x, y, sx, y - lift, dk); } }
+      if (rim) for (let y = y0 + 3; y < H; y++) { const e = E(y), ddx = Math.round(dx * e); for (let x = 1; x < W - 1; x++) { const sx = x - ddx; if (!sel(sx) || A_(sx, y) < 120) continue; for (const nx of [-1, 1]) { const qx = sx + nx; if (sel(qx) && A_(qx, y) >= 60) continue; const o = (y * W + x) * 4; for (let q = 0; q < 3; q++) op[o + q] = op[o + q] * .55 + OUT[q] * .45; } } } };
+    if (split) { leg(x => x >= cx, -A, .9, false); leg(x => x < cx, A, 1, true); } else { leg(() => true, -A, .88, false); leg(() => true, A, 1, true); } }
+  else { const fw0 = D === 'SW' ? -4 : D === 'NW' ? 4 : 0, lift = Math.min(L * .7, Math.max(L * .24, 6)); // alternate lift with leg shortening (top fixed, foot rises)
+    const half = left => { const sw = left ? Math.max(0, s) : Math.max(0, -s); for (let y = y0 + 1; y < H; y++) { const e = E(y), dy = lift * sw * e, dx = fw0 * sw * e;
+      for (let x = 0; x < W; x++) { const sx = Math.round(x - dx), sy = Math.round(y + dy); if ((sx < cx) !== left) continue; cp(x, y, sx, sy, 1 - .05 * sw * e); } } };
+    const lu = s > 0; half(!lu); half(lu); }
+  g.putImageData(od, 0, 0); c.lay = 1; c.top = st.top; c.bodyTop = st.bodyTop; c.meta = { y0, yb, split, hasGap }; if (wcache.size > 900) wcache.clear(); wcache.set(k, c); return c; }
 export function preloadLayers(a) { for (const d of Object.keys(LDIR)) { const L = layerSrcs(a, d); img(L.base); img(L.out); img(L.hair); if (L.tint) img(L.tint); } }
 const SHEET_OK = { player: ['basic', 'mint', 'choir'], boy: ['basic', 'mint'] };
 export function apply(ch, code) { const a = parse(code); ch.av = encode(a); ch._avp = a; ch.char = GENDER[a.g].char; ch.outfit = SHEET_OK[ch.char]?.includes(OUTFITS[a.g].find(x => x[0] === a.o)[2]) ? OUTFITS[a.g].find(x => x[0] === a.o)[2] : 'basic'; ch.drawH = Math.round(150 * AGE[a.a].k); preloadLayers(a); }

@@ -129,14 +129,14 @@ export class Char {
   _lpose(face) { const MIR = { E: 'W', SE: 'SW', NE: 'NW' }, d0 = MIR[face] || face, flip = !!MIR[face];
     if (!window.AV.still(this, d0)) return null;
     const walking = this.speedNow > 0, U = this.drawH / 150; let sx = 1, sy = 1, lift = 0, rot = 0;
-    if (walking) { const ph = this.dist / ((this.cfg?.player?.stepLen || 34) * U * CK.k), s = Math.sin(ph * Math.PI), as = Math.abs(s);
-      lift = as * 5 * U; rot = s * .045; const land = Math.pow(1 - as, 6); sy = 1 - land * .06 + as * .015; sx = 1 + land * .05; }
+    if (walking) { const ph = this._ph = this.dist / ((this.cfg?.player?.stepLen || 34) * U * CK.k), s = Math.sin(ph * Math.PI), as = Math.abs(s);
+      lift = as * 7 * U; rot = s * .03; const land = Math.pow(1 - as, 6); sy = 1 - land * .06 + as * .015; sx = 1 + land * .05; }
     else { const br = Math.sin(this.t * 2.4); sy = 1 + br * .018; sx = 1 - br * .01; }
     if (this.emote === 'jump' || this.emote === 'happy') { const p = (this.emoteT * 2.2) % 1; lift = Math.sin(p * Math.PI) * 38; sy = p < .12 || p > .88 ? .9 : 1.05; sx = 2 - sy; }
     else if (this.emote) { sy *= 1 + Math.sin(this.emoteT * 9) * .03; if (this.emote === 'wave') rot = Math.sin(this.emoteT * 12) * .05; }
     if (this.jumpT != null) { const q = this.jumpT / .56; lift += Math.sin(q * Math.PI) * 48;
       if (q < .12) { sy *= .86; sx *= 1.12; } else if (q > .9) { sy *= .88; sx *= 1.1; } else { const st = 1 + Math.sin(q * Math.PI) * .07; sy *= st; sx /= Math.sqrt(st); } }
-    let key = 'L:' + d0, fl = flip; if (walking && !this.emote && window.AV.walkStill) { const N = window.AV.WALK_N || 8, ph2 = this.dist / ((this.cfg?.player?.stepLen || 34) * U * CK.k) / 2; key += ':' + (((Math.floor(ph2 * N) % N) + N) % N); rot *= .4; }
+    let key = 'L:' + d0, fl = flip; if (walking && !this.emote && window.AV.walkStill) { const N = window.AV.WALK_N || 8, ph2 = (this._ph || 0) / 2; key += ':' + (((Math.floor(ph2 * N) % N) + N) % N); rot *= .4; }
     if (this.blendT < 1 && this.prevFace && face === (this.dface || this.face)) { const e = this.blendT, pf = this.prevFace; // paper flip
       if (e < .5) { key = 'L:' + (MIR[pf] || pf); fl = !!MIR[pf]; if (!window.AV.still(this, MIR[pf] || pf)) { key = 'L:' + d0; fl = flip; } }
       sx *= Math.max(.06, Math.abs(Math.cos(e * Math.PI))); }
