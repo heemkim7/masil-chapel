@@ -35,7 +35,7 @@ export const Aud = {
     // tiny reverb (synthetic impulse) for a chapel feel
     const L = c.sampleRate * 1.8, ir = c.createBuffer(2, L, c.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < L; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / L) ** 2.6; }
     this.rev = c.createConvolver(); this.rev.buffer = ir; const rg = c.createGain(); rg.gain.value = .28; this.rev.connect(rg); rg.connect(this.out);
-    this.setMuted(!this.want); c.resume?.(); this.applyPrefs();
+    this.setMuted(!this.want); c.resume?.(); this.applyPrefs(); setInterval(() => this.ambTick(), 200);
     this.onchange?.();
   },
   save() { localStorage.setItem('maeul_audio', JSON.stringify({ vol: this.vol, on: !this.muted })); },
@@ -85,16 +85,28 @@ export const Aud = {
   P() { if (!this.pref) { let o = {}; try { o = JSON.parse(localStorage.getItem('maeul_prefs') || '{}'); } catch { } this.pref = Object.assign({ bgm: true, bgmVol: .5, sfx: true, sfxVol: .8, voice: true, njoin: true, ndon: true, nlvl: true }, o); } return this.pref; },
   setPref(k, v) { this.P()[k] = v; try { localStorage.setItem('maeul_prefs', JSON.stringify(this.pref)); } catch { } this.applyPrefs(); },
   applyPrefs() { const p = this.P(); if (this.sfx && this.ctx) this.sfx.gain.setTargetAtTime(p.sfx ? .9 * p.sfxVol : 0, this.ctx.currentTime, .03);
-    if (this.el) { this.el.volume = Math.max(0, Math.min(1, p.bgmVol)); if (!p.bgm) this.el.pause(); else if (this.track && !document.hidden) this.el.play().catch(() => { }); }
+    if (this.el) { if (!p.bgm) this.el.pause(); else if (this.track && !document.hidden) this.el.play().catch(() => { }); }
     if (!p.bgm && this.hym) this.stopHymn(); },
   TRACKS: { old100: 'old100', newbrit: 'newbrit', nicaea: 'nicaea', ode: 'joy', joy: 'joy', stanne: 'stanne' },
   music(id) { // play a recorded hymn (loops); returns true if a recording is used, falls back to synth hymn()
     const p = this.P(); this.track = id; if (!p.bgm) return false; const f = this.TRACKS[id] || 'old100';
     if (!this.el) { this.el = new Audio(); this.el.loop = true; this.el.preload = 'auto'; this.el.setAttribute('playsinline', ''); this.el.onerror = () => { this.elBad = true; this.track && this.hymn(this.track); }; }
     if (this.elBad) { this.hymn(id); return false; }
-    const src = `assets/audio/${f}.mp3`; if (!this.el.src.endsWith(src)) this.el.src = src; this.el.volume = p.bgmVol; this.el.currentTime = 0;
-    const pr = this.el.play(); pr && pr.catch(() => { this.pending = true; }); return true; },
-  stopMusic() { this.track = null; this.pending = false; if (this.el) this.el.pause(); this.stopHymn(); },
+    const src = `assets/audio/${f}.mp3`; if (!this.el.src.endsWith(src)) this.el.src = src; this.el.currentTime = 0;
+    if (!this.ambWant() && this.amb && this.amb.g.gain.value > .01) this.elFade = 0; const pr = this.el.play(); pr && pr.catch(() => { this.pending = true; }); return true; },
+  stopMusic() { this.track = null; this.pending = false; this.stopHymn(); }, // el fades out + pauses in ambTick (crossfade back to plaza)
+  // ---- plaza ambient: original CC0 loop (assets/audio/plaza.mp3), sample-exact WebAudio loop, ~35% of chapel BGM ----
+  AMB_RATIO: .35, AMB_LEN: 60, amb: null, ambBuf: null, ambLoading: false, elFade: 1,
+  ambPos() { return this.amb ? (this.ctx.currentTime - this.amb.t0) % (this.amb.s.loopEnd || this.AMB_LEN) : null; }, // playback position (s) for QA
+  ambWant() { const g = window.G, p = this.P(); return !!(g && g.S && g.scene === 'field' && !this.track && !document.body.classList.contains('worship') && p.bgm && !document.hidden); },
+  ambTick() { const c = this.ctx, p = this.P(); if (!c || c.state !== 'running') return;
+    if (!this.ambBuf && !this.ambLoading && this.ambWant()) { this.ambLoading = true; fetch('assets/audio/plaza.mp3').then(r => r.arrayBuffer()).then(b => c.decodeAudioData(b)).then(buf => { this.ambBuf = buf; }).catch(() => { this.ambLoading = false; }); }
+    if (this.ambBuf && !this.amb) { const s = c.createBufferSource(), g = c.createGain(); s.buffer = this.ambBuf; s.loop = true; s.loopStart = 0; s.loopEnd = Math.min(this.AMB_LEN, this.ambBuf.duration); g.gain.value = 0; s.connect(g); g.connect(this.out); s.start(); this.amb = { s, g, t0: c.currentTime }; }
+    // the out gain already carries mute + master volume; bgm pref/volume handled here. AMB_RATIO is relative to the chapel element (out.gain = vol).
+    if (this.amb) this.amb.g.gain.setTargetAtTime(this.ambWant() ? p.bgmVol * this.AMB_RATIO / Math.max(.05, this.vol) : 0, c.currentTime, .5);
+    if (this.el) { const tgt = this.track && p.bgm ? 1 : 0; this.elFade += Math.sign(tgt - this.elFade) * Math.min(Math.abs(tgt - this.elFade), .14); this.el.volume = Math.max(0, Math.min(1, p.bgmVol * this.elFade * (this.muted ? 0 : 1)));
+      if (this.elFade <= 0 && !this.el.paused) this.el.pause(); }
+  },
   stopHymn() { if (this.hym) { clearTimeout(this.hym.to); this.hym = null; } if (this.mus && this.ctx) { const g = this.mus; g.gain.setTargetAtTime(0, this.ctx.currentTime, .15); const m = this.mus; this.mus = this.ctx.createGain(); this.mus.gain.value = .45; this.mus.connect(this.out); setTimeout(() => m.disconnect(), 1500); } },
 };
 window.Aud = Aud;

@@ -154,7 +154,7 @@ function addXp(n) { const before = St.levelInfo(cfg, S.xp).lv; S.xp = Math.max(0
 
 // ---------- scenes ----------
 function enterChapel(silent) { scene = 'inside'; inside.floor = '1F'; try { window.Aud?.music('old100'); } catch { } player.x = cfg.interior.spawn.x; player.y = cfg.interior.spawn.y; player.face = 'N'; sitting = null; snapCam(); if (!silent) toast('⛪ 예배당 안으로 들어왔어요'); persist(); refreshHud(); }
-function exitChapel() { scene = 'field'; player.x = cfg.chapel.door.x; player.y = cfg.chapel.door.y + 80; player.face = 'S'; sitting = null; snapCam(); persist(); refreshHud(); }
+function exitChapel() { scene = 'field'; try { if (!document.body.classList.contains('worship')) window.Aud?.stopMusic(); } catch { } player.x = cfg.chapel.door.x; player.y = cfg.chapel.door.y + 80; player.face = 'S'; sitting = null; snapCam(); persist(); refreshHud(); }
 function goFloor(to) { const I = cfg.interior, from = inside.floor; inside.floor = to; sitting = null;
   if (to === '1F') { const st = (I.stairs1 || []).find(s => s.to === from) || I.spawn; player.x = st.x - 70; player.y = st.y + 20; if (!inside.walkable(player.x, player.y)) { player.x = I.spawn.x; player.y = I.spawn.y; } }
   else { const f = inside.F(); player.x = f.spawn.x; player.y = f.spawn.y; }
