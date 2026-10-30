@@ -34,16 +34,16 @@ function scroller(el) {
 }
 // mount the editor into `el`. opts: {owned: [cosIds], onChange(code), compact}
 export function mount(el, code, opts = {}) {
-  let a = AV.parse(code); el.innerHTML = `<div class="cz"><div class="cz-prev"><canvas></canvas><button class="cz-turn" type="button">🔄 돌려보기</button></div><div class="cz-ctl"></div></div>`;
+  let a = AV.parse(code); a.hs = AV.shipHair(a.g, a.hs); a.o = AV.shipOutfit(a.g, a.o); el.innerHTML = `<div class="cz"><div class="cz-prev"><canvas></canvas><button class="cz-turn" type="button">🔄 돌려보기</button></div><div class="cz-ctl"></div></div>`;
   const v = preview(el.querySelector('canvas'), AV.encode(a), opts.compact ? 120 : 150, opts.compact ? 160 : 200);
   el.querySelector('.cz-turn').onclick = () => { v.walk = !v.walk; v.spin = 0; };
-  const set = (k, val) => { a[k] = val; if (k === 'g') { a.hs = 0; if (!AV.OUTFITS[a.g].find(o => o[0] === a.o)) a.o = 'basic'; } const c = AV.encode(a); AV.apply(v.ch, c); v.ch.drawH = Math.round(v.ch.drawH * (+v.c.style.height.replace('px', '') / 210)); AV.preload(a); draw(); opts.onChange?.(c); };
+  const set = (k, val) => { a[k] = val; if (k === 'g') { a.hs = AV.SHIP[val].hairs[0]; if (!AV.OUTFITS[a.g].find(o => o[0] === a.o)) a.o = 'basic'; } const c = AV.encode(a); AV.apply(v.ch, c); v.ch.drawH = Math.round(v.ch.drawH * (+v.c.style.height.replace('px', '') / 210)); AV.preload(a); draw(); opts.onChange?.(c); };
   const row = (label, k, items) => `<div class="cz-row"><span>${label}</span><div class="cz-ch">${items.map(([val, txt, st]) => `<button type="button" class="chip ${String(a[k]) === String(val) ? 'on' : ''}" data-k="${k}" data-v="${val}" ${st ? `style="${st}"` : ''} title="${esc(txt)}">${st ? '' : esc(txt)}</button>`).join('')}</div></div>`;
   const draw = () => { const owned = opts.owned || [];
     let h = row('성별', 'g', Object.entries(AV.GENDER).map(([k, g]) => [k, g.name])) + row('나이', 'a', AV.AGE.map((x, i) => [i, x.name]))
       + row('피부', 's', AV.SKIN.map((x, i) => [i, x[0], `background:${i ? `rgb(${x[1].map(q => Math.round(q * 236)).join(',')})` : '#f6d2c0'}`]))
-      + row('헤어', 'hs', AV.HAIRS[a.g].map((x, i) => [i, x[0]])) + row('머리색', 'hc', AV.HAIRC.map((x, i) => [i, x[0], `background:${sw(x[1])}`]))
-      + row('옷', 'o', AV.OUTFITS[a.g].map(x => [x[0], x[1]]));
+      + row('헤어', 'hs', AV.SHIP[a.g].hairs.map(i => [i, AV.HAIRS[a.g][i][0]])) + row('머리색', 'hc', AV.HAIRC.map((x, i) => [i, x[0], `background:${sw(x[1])}`]))
+      + row('옷', 'o', AV.OUTFITS[a.g].filter(x => AV.SHIP[a.g].outfits.includes(x[0])).map(x => [x[0], x[1]]));
     for (const [slot, lab] of [['hat', '모자'], ['face', '얼굴'], ['back', '등'], ['held', '손']]) { const its = owned.filter(id => AV.COS[id]?.slot === slot); if (its.length || a[slot] !== '-') h += `<div class="cz-row"><span>${lab}</span><div class="cz-ch"><button type="button" class="chip ${a[slot] === '-' ? 'on' : ''}" data-k="${slot}" data-v="-">없음</button>${its.map(id => `<button type="button" class="chip cos ${a[slot] === id ? 'on' : ''}" data-k="${slot}" data-v="${id}" title="${esc(AV.COS[id].name)}"><img src="assets/cos/${id}.png" alt=""></button>`).join('')}</div></div>`; }
     if (!owned.length && !opts.title) h += `<p class="mnote">🎩 모자·날개·손소품은 옷가게나 헌금 축복에서 얻어요</p>`;
     const ctl = el.querySelector('.cz-ctl'); ctl.innerHTML = h;

@@ -81,7 +81,7 @@ export class Char {
       else if (Math.abs(d) < 1e-3) { this.dface = this.face; this.holdT = 0; }
     }
     if (this.dface !== this._lf) { this.prevFace = this._lf; this._lf = this.dface; this.blendT = 0; }
-    this.blendT = Math.min(1, this.blendT + dt / 0.08);
+    this.blendT = Math.min(1, this.blendT + dt / (this.av && window.AV?.layered ? .16 : 0.08));
     // lean toward lateral motion (screen x), eased
     this.lean = 0; // v7: lean removed (it rotated the head around the feet and read as head shake)
     // dust puffs at footfalls
@@ -95,6 +95,7 @@ export class Char {
   jump() { if (this.jumpT == null) { this.jumpT = 0; return true; } return false; }
   // pick frame + transform. Walk frames step by distance travelled; `mix` = fraction toward the next frame (for in-betweening)
   pose(face = this.dface || this.face) {
+    if (this.av && window.AV?.layered) { const lp = this._lpose(face); if (lp) return lp; }
     const S = this.sprites, c = this.char, o = this.outfit, walking = this.speedNow > 0;
     let sx = 1, sy = 1, lift = 0, sel, fi = 0, mix = 0;
     if (this.emote) {
@@ -123,13 +124,31 @@ export class Char {
       if (q < .12) { sy *= .86; sx *= 1.12; } else if (q > .9) { sy *= .88; sx *= 1.1; } else { const st = 1 + Math.sin(q * Math.PI) * .07; sy *= st; sx /= Math.sqrt(st); } }
     return { key: sel.frames[fi], next: walking && !this.emote ? sel.frames[(fi + 1) % sel.frames.length] : null, mix, flip: sel.flip, sx, sy, lift, dir: sel.dir };
   }
+  // v17 layered 2D: ONE still image per direction; motion is procedural — step bob, side tilt, jelly squash at footfalls,
+  // idle breathing, and a paper-flip (x-scale through 0) when the displayed direction changes.
+  _lpose(face) { const MIR = { E: 'W', SE: 'SW', NE: 'NW' }, d0 = MIR[face] || face, flip = !!MIR[face];
+    if (!window.AV.still(this, d0)) return null;
+    const walking = this.speedNow > 0, U = this.drawH / 150; let sx = 1, sy = 1, lift = 0, rot = 0;
+    if (walking) { const ph = this.dist / ((this.cfg?.player?.stepLen || 34) * U * CK.k), s = Math.sin(ph * Math.PI), as = Math.abs(s);
+      lift = as * 5 * U; rot = s * .045; const land = Math.pow(1 - as, 6); sy = 1 - land * .06 + as * .015; sx = 1 + land * .05; }
+    else { const br = Math.sin(this.t * 2.4); sy = 1 + br * .018; sx = 1 - br * .01; }
+    if (this.emote === 'jump' || this.emote === 'happy') { const p = (this.emoteT * 2.2) % 1; lift = Math.sin(p * Math.PI) * 38; sy = p < .12 || p > .88 ? .9 : 1.05; sx = 2 - sy; }
+    else if (this.emote) { sy *= 1 + Math.sin(this.emoteT * 9) * .03; if (this.emote === 'wave') rot = Math.sin(this.emoteT * 12) * .05; }
+    if (this.jumpT != null) { const q = this.jumpT / .56; lift += Math.sin(q * Math.PI) * 48;
+      if (q < .12) { sy *= .86; sx *= 1.12; } else if (q > .9) { sy *= .88; sx *= 1.1; } else { const st = 1 + Math.sin(q * Math.PI) * .07; sy *= st; sx /= Math.sqrt(st); } }
+    let key = 'L:' + d0, fl = flip;
+    if (this.blendT < 1 && this.prevFace && face === (this.dface || this.face)) { const e = this.blendT, pf = this.prevFace; // paper flip
+      if (e < .5) { key = 'L:' + (MIR[pf] || pf); fl = !!MIR[pf]; if (!window.AV.still(this, MIR[pf] || pf)) { key = 'L:' + d0; fl = flip; } }
+      sx *= Math.max(.06, Math.abs(Math.cos(e * Math.PI))); }
+    return { key, next: null, mix: 0, flip: fl, sx, sy, lift, rot, dir: d0, lay: 1 }; }
   _img(ctx, key, alpha) {
-    const img = (this.av && window.AV?.frame(this, key)) || IMG[key]; if (!img || alpha <= 0.01) return 0; const at = this.sprites.a, k = this.drawH / 220; ctx.globalAlpha = alpha;
+    const img = (this.av && window.AV?.frame(this, key)) || IMG[key]; if (!img || alpha <= 0.01) return 0;
+    if (img.lay) { const s = this.drawH * .93 / (272 - img.bodyTop), P = window.AV.LAYER_PIVOT; ctx.globalAlpha = alpha; ctx.drawImage(img, -P[0] * s, -P[1] * s, img.width * s, img.height * s); return (img.top - P[1]) * s; } const at = this.sprites.a, k = this.drawH / 220; ctx.globalAlpha = alpha;
     const M = at.meta && at.meta[key];
     if (M) { const k2 = k * M[0]; ctx.drawImage(img, -M[1] * k2, -M[2] * k2, at.frameW * k2, at.frameH * k2); return ((img.top ?? 0) - M[2]) * k2; } ctx.drawImage(img, -at.frameW * k / 2, -at.baselineY * k, at.frameW * k, at.frameH * k); return ((img.top ?? 0) - at.baselineY) * k;
   }
   _layer(ctx, p, alpha) {
-    ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y) - p.lift); ctx.scale(p.flip ? -p.sx : p.sx, p.sy);
+    ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y) - p.lift); if (p.rot) ctx.rotate(p.rot); ctx.scale(p.flip ? -p.sx : p.sx, p.sy);
     const back = p.dir === 'N' || p.dir === 'NW' || p.dir === 'NE', side = p.dir === 'E' || p.dir === 'W';
     const acc = (front) => { if (!this.equip) return; for (const slot of ['back', 'hat', 'pet']) { const id = this.equip[slot]; if (!id) continue; const A = this.cfg.acc[id]; const ai = IMG[A.img]; if (!ai) continue;
       const isFront = A.back ? back : true; if (isFront !== front) continue;
@@ -153,7 +172,7 @@ export class Char {
     ctx.save(); ctx.translate(this.x, this.y); ctx.scale(K, K); ctx.translate(-this.x, -this.y); this._draw(ctx); ctx.restore(); ctx.globalAlpha = 1;
     if (this.headY != null) this.headY = this.y - (this.y - this.headY) * K; }
   _draw(ctx) {
-    const p = this.pose(); if (!IMG[p.key]) return; this.headY = null;
+    const p = this.pose(); if (!IMG[p.key] && !p.lay) return; this.headY = null;
     const k = this.drawH / 220;
     // dust puffs (behind) + soft contact shadow
     for (const d of this.puffs) { const q = d.t / .5; ctx.fillStyle = `rgba(235,225,205,${.45 * (1 - q)})`; ctx.beginPath(); ctx.ellipse(d.x, d.y - q * 10 * k, (8 + q * 16) * k * d.s, (5 + q * 8) * k * d.s, 0, 0, 7); ctx.fill(); }
@@ -165,7 +184,7 @@ export class Char {
       ctx.beginPath(); ctx.rect(this.x - 200, this.y - 600 - cut, 400, 600 - cut * .78 - 4); ctx.clip(); this._layer(ctx, p, 1); ctx.restore();
       ctx.fillStyle = 'rgba(120,90,160,.25)'; ctx.beginPath(); ctx.ellipse(this.x, this.y - 6, H * .2, H * .06, 0, 0, 7); ctx.fill();
       ctx.font = `${Math.round(H * .17)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillText('🙏', this.x, this.y - H * .38); ctx.globalAlpha = 1; return; }
-    if (this.blendT < 1 && this.prevFace && !this.emote) { const pp = this.pose(this.prevFace), e = this.blendT * this.blendT * (3 - 2 * this.blendT); this._layer(ctx, pp, 1 - e * .6); this._layer(ctx, p, e); }
+    if (!p.lay && this.blendT < 1 && this.prevFace && !this.emote) { const pp = this.pose(this.prevFace), e = this.blendT * this.blendT * (3 - 2 * this.blendT); this._layer(ctx, pp, 1 - e * .6); this._layer(ctx, p, e); }
     else this._layer(ctx, p, 1);
     ctx.globalAlpha = 1;
   }
