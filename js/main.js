@@ -16,6 +16,7 @@ import { C as Col } from './collect.js';
 import { Svc } from './service.js';
 import { V } from './v6.js';
 import { initMobile } from './mobile.js';
+import { initPhase4 } from './phase4.js';
 // session: 30-min sliding TTL; same presence key on reload => no ghost duplicate of ourselves
 const SESS = 'maeul_sess_v6', TTL = 30 * 60 * 1000;
 const sess = (() => { try { const o = JSON.parse(localStorage.getItem(SESS)); if (o && Date.now() - o.t < TTL) return o; } catch { } return null; })();
@@ -50,7 +51,7 @@ window.__errors = [];
     if (qr) V.setDong(qr[1], { keepShard: true, visit: !!(S.dong && S.dong.cd !== qr[1]) }).then(ok => { if (ok) { S.shard = +(qr[2] || 1); S.shardLock = true; persist(); V.hud(); } });
     if (!sv) toast(`🐑 ${S.name}님으로 들어왔어요. 이름은 꾸미기에서 바꿀 수 있어요`); }
   else if (sess && sv) { window.__resumed = true; startGame(sv); toast('🔄 이전 세션을 이어서 시작했어요'); } else { if (sv) selOutfit = sv.outfit || 'basic'; endSess(); showTitle(); }
-  requestAnimationFrame(loop); try { initPhase1(); } catch (e) { console.error(e); } try { initPhase2(); } catch (e) { console.error(e); } try { initMobile(); } catch (e) { console.error(e); } window.__ready = true;
+  requestAnimationFrame(loop); try { initPhase1(); } catch (e) { console.error(e); } try { initPhase2(); } catch (e) { console.error(e); } try { initMobile(); } catch (e) { console.error(e); } try { initPhase4(); } catch (e) { console.error(e); } window.__ready = true;
 })().catch(e => { console.error(e); });
 
 // ---------- title / character select ----------

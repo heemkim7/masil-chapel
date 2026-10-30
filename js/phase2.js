@@ -75,7 +75,7 @@ function openOffer(atBox) { if (!S()) return; const m = modal('p2offer', '💝 �
   b.innerHTML = `<p class="mnote">${atBox ? '⛪ 예배당 헌금함 앞이에요 · 더 큰 축복의 기회!' : '어디서든 감사의 마음을 드릴 수 있어요'}</p>
   <div class="row amt">${[10, 30, 100, 300].map(a => `<button class="am" data-a="${a}" ${S().coins < a ? 'disabled' : ''}>${TAL}${a}</button>`).join('')}</div>
   <input id="p2pray" maxlength="40" placeholder="기도제목 한 줄 (선택 · 기도벽에 올라가요)">
-  <p class="mnote">내 달란트: <b>${S().coins}</b> · 게임 속 달란트로만 드려요 (실제 결제 없음) · <a href="#" id="p2odds">🎲 확률 보기</a></p><button id="p2give" class="big" disabled>헌금 드리기</button>`;
+  <p class="mnote">내 달란트: <b>${S().coins}</b> · 게임 속 달란트로만 드려요 (실제 결제 없음) · <a href="#" id="p2odds">[? 확률 정보]</a></p><button id="p2give" class="big" disabled>헌금 드리기</button>`;
   $('#p2odds').onclick = e => { e.preventDefault(); openOdds(); };
   let amt = 0; b.querySelectorAll('.am').forEach(x => x.onclick = () => { amt = +x.dataset.a; b.querySelectorAll('.am').forEach(y => y.classList.toggle('on', y === x)); $('#p2give').disabled = false; sfx('click'); });
   $('#p2give').onclick = () => give(amt, $('#p2pray').value.trim(), atBox);
@@ -250,6 +250,7 @@ async function drawNat() { const cv = $('#natcv'); if (!cv) return; const pr = M
   const counts = G().net?.counts || {}, cur = G().V?.current?.(), pal = ['#ffd9e6', '#e3f4d9', '#fff2c6', '#dfe9ff', '#f0e2ff', '#d9f3f0', '#ffe5d4'];
   const cnt = it => { if (NM.lv === 2) return counts[it.k] || 0; let n = 0; for (const [k, v] of Object.entries(counts)) if (k.startsWith(it.k)) n += v; return n; };
   L.forEach((it, i) => { const me = cur && cur.cd.startsWith(it.k); g.beginPath(); for (const r of it.r) r.forEach(([x, y], j) => { const [px, py] = NM.T(x, y); j ? g.lineTo(px, py) : g.moveTo(px, py); }); g.fillStyle = me ? '#ffb8d2' : it.k === NM.hover ? '#fff' : pal[i % pal.length]; g.fill('evenodd'); g.lineWidth = me ? 2.5 : 1; g.strokeStyle = me ? '#e0659a' : '#9a8cc0'; g.stroke(); });
+  try { window.P4 && (await window.P4.churchTops(), window.P4.pillars(g, L, NM.lv, NM.T, bounds)); } catch (e) { console.warn(e); }
   g.textAlign = 'center'; g.textBaseline = 'middle'; for (const it of L) { const b = bounds(it.r); if (!isFinite(b[0])) continue; const [px, py] = NM.T((b[0] + b[1]) / 2, (b[2] + b[3]) / 2); const bw = (b[1] - b[0]) * cos * s; if (bw < 26 && NM.lv) continue; const n = cnt(it);
     g.font = `800 ${NM.lv ? 11 : 13}px Pretendard,sans-serif`; g.lineWidth = 3; g.strokeStyle = '#fff'; g.fillStyle = '#4a2b78'; const t = it.n.replace(/특별자치|특별|광역|자치/g, '') + (n ? ` 👥${n}` : ''); g.strokeText(t, px, py); g.fillText(t, px, py); }
   $('#natpath').textContent = ['전국', NM.sidoN, NM.sggN].filter(Boolean).join(' › '); $('#natup').disabled = NM.lv === 0; }

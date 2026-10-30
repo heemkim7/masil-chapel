@@ -29,7 +29,7 @@ export class Net {
     ch.on('broadcast', { event: 'prayer' }, ({ payload: p }) => this.emit('prayer', p));
     ch.on('broadcast', { event: 'pick' }, ({ payload: p }) => this.emit('pick', p));
     ch.on('broadcast', { event: 'picks' }, ({ payload: p }) => this.emit('picks', p));
-    for (const ev of ['lead', 'lmsg', 'svc', 'offer', 'tier', 'seat', 'photo', 'amen', 'decor']) ch.on('broadcast', { event: ev }, ({ payload: p }) => this.emit(ev, p));
+    for (const ev of ['lead', 'lmsg', 'svc', 'offer', 'tier', 'seat', 'photo', 'amen', 'decor', 'obi']) ch.on('broadcast', { event: ev }, ({ payload: p }) => this.emit(ev, p));
     ch.on('broadcast', { event: 'jump' }, ({ payload: p }) => this.emit('jump', p));
     ch.subscribe(async (s) => { if (ch !== this.ch) return;
       if (s === 'SUBSCRIBED') { this.setStatus('online'); await ch.track(this.state()); this.history(room); }

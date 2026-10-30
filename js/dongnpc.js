@@ -15,11 +15,11 @@ function avatarFor(r, age) { const g = r() < .5 ? 'f' : 'm', a = age ?? Math.flo
 function personName(r, g, a) { const n = GN[g][Math.floor(r() * GN[g].length)]; if (a === 3) return SUR[Math.floor(r() * SUR.length)] + (g === 'f' ? ' 할머니' : ' 할아버지'); if (a === 2) return SUR[Math.floor(r() * SUR.length)] + n + ' 집사님'; return n; }
 export function apply(d) { const G = window.G; if (!G?.wanderers || !G.cfg) return; const cfg = G.cfg(); const key = d ? d.cd : 'solo'; if (cur === key && G.wanderers[0]?._dn === key) return; cur = key; G.wanderers.forEach(w => w._dn = key);
   const dn = !d ? '마실' : /동$/.test(d.name) ? d.name.replace(/제?\d+동$/, '동') : d.name; const r = rng(hash('npc' + key));
-  base ||= { keep: cfg.shops.map(s => s.keeper), n: G.wanderers.length };
+  base ||= { keep: cfg.shops.map(s => s.keeper), n: G.wanderers.filter(w => !w.pilgrim).length };
   // villagers: reuse the configured wanderer slots plus 2–4 extra 산책하는 주민
   const extra = d ? 2 + Math.floor(r() * 3) : 0; G.wanderers.length = base.n;
   for (let i = 0; i < extra; i++) G.addWanderer()._dn = key;
-  G.wanderers.forEach((w, i) => { if (!d && i < base.n) { w.av = null; w._avp = null; w.lines = null; w.name = cfg.wanderers[i]?.name || w.name; w.char = 'player'; w.outfit = cfg.wanderers[i]?.outfit || 'basic'; w.drawH = 145; return; }
+  G.wanderers.forEach((w, i) => { if (w.pilgrim) return; if (!d && i < base.n) { w.av = null; w._avp = null; w.lines = null; w.name = cfg.wanderers[i]?.name || w.name; w.char = 'player'; w.outfit = cfg.wanderers[i]?.outfit || 'basic'; w.drawH = 145; return; }
     const A = avatarFor(r); AV.apply(w, A.code); AV.preload(AV.parse(A.code)); w.drawH = Math.round(w.drawH * .97); w.name = personName(r, A.g, A.a);
     const L = WALK(dn); w.lines = [L[Math.floor(r() * L.length)], L[Math.floor(r() * L.length)], L[Math.floor(r() * L.length)]]; });
   // shopkeepers
