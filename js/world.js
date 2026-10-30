@@ -135,7 +135,12 @@ export class Char {
       const isFront = A.back ? back : true; if (isFront !== front) continue;
       const aw = this.drawH * A.w * 1.0, ah = aw * ai.height / ai.width, bob = A.bob ? Math.sin(this.t * 3) * 5 : 0; ctx.globalAlpha = alpha;
       const ax = A.back && side ? -.24 : (A.x || 0) * (side && !A.back ? .7 : 1); // v11: wings stay behind the body in profile (no torso clipping)
-      ctx.drawImage(ai, -aw / 2 + ax * this.drawH, -this.drawH * (1 - A.y) - ah / 2 + (A.back ? 0 : -this.drawH * .02) + bob, aw, ah); } };
+      ctx.drawImage(ai, -aw / 2 + ax * this.drawH + (slot === 'hat' ? this._hd[0] : 0), this._hd[1] - this.drawH * (1 - A.y) - ah / 2 + (A.back ? 0 : -this.drawH * .02) + bob, aw, ah); } };
+    // v12: equip accessories ride the head anchor of THIS frame (rig.json), so hats/wings never drift from the body
+    const R = window.AV?.rig?.()?.[p.key], R0 = window.AV?.rig?.()?.[this.char + '/' + this.outfit + '/walk_S_0.png'], at = this.sprites.a, kk = this.drawH / 220, Mm = at.meta && at.meta[p.key], M0 = at.meta && at.meta[this.char + '/' + this.outfit + '/walk_S_0.png'];
+    const map = (M, x, y) => M ? [(x - M[1]) * kk * M[0], (y - M[2]) * kk * M[0]] : [(x - at.frameW / 2) * kk, (y - at.baselineY) * kk];
+    let hdx = 0, hdy = 0; if (R && R0) { const a1 = map(Mm, (R[0] + R[1]) / 2, R[2]), a0 = map(M0, (R0[0] + R0[1]) / 2, R0[2]); hdx = a1[0] - a0[0]; hdy = a1[1] - a0[1]; }
+    this._hd = [hdx, hdy];
     acc(false);
     const ht = this._img(ctx, p.key, alpha); if (alpha > .3) this.headY = Math.min(this.headY ?? 1e9, this.y - p.lift + ht * p.sy);
     // in-between: fade the next walk frame in over the last part of each step (12 perceived frames from 6 drawn)

@@ -74,9 +74,10 @@ function compose(a, key) { // key: "<char>/<outfit>/<frame>"
   if (x1 < x0) { x0 = 60; x1 = 140; y0 = top; y1 = top + 90; }
   // v10 anchors: head box measured from the BODY silhouette of this exact frame (top row → neck narrowing),
   // so hair/hat/face layers follow the head in every direction and walk frame (no floating afro on side views)
-  const HB = headBox(p, W, top, bot); ch_anchor = HB;
+  const R = RIG && !window.__noRig && RIG[key]; let HB; // v12 rig: per-frame head anchor (same frame index + offset as the body) shared by hair, face, hat
+  if (R) { HB = { x0: R[0], x1: R[1], y0: R[2], y1: R[3], cx: (R[0] + R[1]) / 2 }; top = R[2]; bot = R[2] + R[5]; y0 = R[4]; } else HB = headBox(p, W, top, bot); ch_anchor = HB;
   const fh = bot - top, hw = Math.min(HB.x1 - HB.x0, fh * .5), cx = (HB.x0 + HB.x1) / 2, ht = Math.min(y0, HB.y0 + 2), hairCol = hcol || NATIVE[a.g];
-  const put = (im, w, cxx, cy, alignTop) => { if (!im) return; const ww = w, hh = ww * im.height / im.width; g.drawImage(im, cxx - ww / 2, alignTop ? cy : cy - hh / 2, ww, hh); return hh; };
+  const LOG = window.__rigLog, put = (im, w, cxx, cy, alignTop) => { if (!im) return; const ww = w, hh = ww * im.height / im.width; if (LOG) LOG.push(['L', cxx - HB.cx, (alignTop ? cy : cy - hh / 2) - HB.y0, ww, hh]); g.drawImage(im, cxx - ww / 2, alignTop ? cy : cy - hh / 2, ww, hh); return hh; };
   const hp = HAIRS[a.g][a.hs][1], H0 = hp && HP[hp];
   const hairPiece = layer => { if (!H0 || H0.l !== layer && !(back && layer === 'over' && H0.l === 'back')) return; if (back && H0.front) return; const t = tinted(hp, hairCol); if (!t) return; let dx = (H0.dx || 0) * hw; if (side) dx = Math.abs(dx) + (H0.l === 'back' ? hw * .18 : 0); if (back) dx = -dx;
     put(t, hw * H0.w * (side && H0.cap ? .85 : 1), cx + dx, ht + H0.y * fh * .5, true); };
@@ -85,12 +86,18 @@ function compose(a, key) { // key: "<char>/<outfit>/<frame>"
   const held = () => { const C = COS[a.held]; if (!C) return; put(cosIm(a.held), fh * (C.w || .24), side ? cx - hw * .2 : back ? cx + hw * .5 : cx - hw * .58, top + fh * (.66 + (C.dy || 0))); };
   const hat = () => { const C = COS[a.hat]; if (!C) return; const im = cosIm(a.hat); if (!im) return; const w = hw * C.w, h = w * im.height / im.width; let dx = (C.dx || 0) * hw; if (back) dx = -dx; const hy = ht - h + h * (C.sink || .25) + (C.sink < 0 ? -fh * .02 : 0);
     if ((C.sink || .25) >= .19 && C.w >= .9) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillRect(cx + dx - w * .6, 0, w * 1.2, hy + h * .45); g.restore(); } // clip hair poking through the crown
-    g.drawImage(im, cx + dx - w / 2, hy, w, h); };
+    if (LOG) LOG.push([a.hat, cx + dx - w / 2 - HB.cx, hy - HB.y0, w, h]); g.drawImage(im, cx + dx - w / 2, hy, w, h); };
   const face = () => { const C = COS[a.face]; if (!C || back) return; const w = hw * C.w * (side ? .6 : 1); put(cosIm(a.face), w, cx + (C.dx || 0) * hw - (side ? hw * .2 : 0), top + fh * (.215 + (C.dy || 0) * .5)); };
   // draw order
   if (!back) { backItem(); hairPiece('back'); } else held();
   g.drawImage(L0, 0, 0);
-  hairPiece('over'); if (back) { hairPiece('back'); backItem(); } else if (COS[a.back]?.front) backItem();
+  hairPiece('over');
+  // v12: the face (eyes/cheeks/mouth, skin label inside the head box below the brow line) always sits above hair pieces
+  if (!back && H0 && H0.l === 'over') { const FC = document.createElement('canvas'); FC.width = W; FC.height = H; const fg = FC.getContext('2d'); const fd = fg.createImageData(W, H), q = fd.data;
+    const by = Math.round(HB.y0 + (HB.y1 - HB.y0) * .4), ey = Math.round(HB.y1), fx0 = Math.round(HB.x0 + (HB.x1 - HB.x0) * (side ? .05 : .14)), fx1 = Math.round(HB.x1 - (HB.x1 - HB.x0) * (side ? .05 : .14));
+    for (let y = by; y <= ey; y++) for (let x = fx0; x <= fx1; x++) { const i = (y * W + x) * 4; if (M[i + 1] > 8 && M[i] <= 128 || (M[i] <= 128 && p[i + 3] > 200 && p[i] + p[i + 1] + p[i + 2] < 300 && y < ey - 2)) { q[i] = p[i]; q[i + 1] = p[i + 1]; q[i + 2] = p[i + 2]; q[i + 3] = p[i + 3]; } }
+    fg.putImageData(fd, 0, 0); g.drawImage(FC, 0, 0); }
+  if (back) { hairPiece('back'); backItem(); } else if (COS[a.back]?.front) backItem();
   face(); hat(); if (!back) held();
   // name-tag anchor = first opaque row (hats can raise it)
   const d2 = g.getImageData(0, 0, W, H).data; let t2 = H; outer: for (let y = 0; y < H; y++) for (let x = 0; x < W; x += 2) if (d2[(y * W + x) * 4 + 3] > 40) { t2 = y; break outer; } c.top = t2; return c; }
@@ -130,10 +137,11 @@ function ready(a) { const hp = HAIRS[a.g][a.hs]?.[1]; if (hp && !img(`assets/cos
 // public: used by Char._img
 export function frame(ch, key) { if (!ch.av) return null; const k = ch.av + '|' + key; let c = cache.get(k); if (c) return c; const A = ch._avp || (ch._avp = parse(ch.av)); if (!ready(A)) return null; c = compose(A, key); if (c) { if (cache.size > 1600) cache.clear(); cache.set(k, c); } return c; }
 export function apply(ch, code) { const a = parse(code); ch.av = encode(a); ch._avp = a; ch.char = GENDER[a.g].char; ch.outfit = OUTFITS[a.g].find(x => x[0] === a.o)[2]; ch.drawH = Math.round(150 * AGE[a.a].k); }
-export function init(atlas) { ATLAS = atlas; for (const [k, s] of Object.entries(atlas.sheets || {})) if (/^(player|boy)\//.test(k)) img('assets/characters/' + s.img.replace('.png', '_mask.png')); Object.keys(HP).forEach(h => img(`assets/cos/${h}.png`)); }
+let RIG = null; export const rig = () => RIG;
+export function init(atlas) { ATLAS = atlas; fetch('assets/characters/rig.json').then(r => r.json()).then(j => { RIG = j; cache.clear(); }).catch(() => { }); for (const [k, s] of Object.entries(atlas.sheets || {})) if (/^(player|boy)\//.test(k)) img('assets/characters/' + s.img.replace('.png', '_mask.png')); Object.keys(HP).forEach(h => img(`assets/cos/${h}.png`)); }
 export function preload(a) { SLOTS.forEach(s => a[s] && a[s] !== '-' && img(`assets/cos/${a[s]}.png`)); }
 export function rollCos(atBox, owned) { const pool = Object.entries(COS).filter(([id]) => !owned.includes(id)); if (!pool.length) return null;
   const w = { 일반: 10, 희귀: atBox ? 6 : 3.5, 영웅: atBox ? 2.2 : 1, 전설: atBox ? .8 : .3 }; let r = Math.random() * pool.reduce((s, [, c]) => s + w[c.rar], 0);
   for (const [id, c] of pool) if ((r -= w[c.rar]) < 0) return { id, kind: 'cos', name: c.name, rar: c.rar, img: `cos/${id}.png` }; return null; }
-export const AV = { GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos };
+export const AV = { GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor };
 window.AV = AV;
