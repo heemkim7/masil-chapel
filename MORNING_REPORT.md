@@ -143,3 +143,9 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - Summer (bare arms and legs): a new bare-limb cleanup drops generated skin and socks so the base limbs show, fills undershirt gaps, and clips the boy's outfit to his silhouette. Girl NW uses the N view. Boy NW also uses the N view, because the generated NW stride didn't match the base.
 - Server gacha_pool is now 16 active / weight 274, which matches the config. Beta suite 160/160.
 - Still pulled: spring and autumn.
+
+## Batch 7: spring re-added (00:5x KST, Oct 31)
+- **Spring (o_spring '봄 옷 (옷)', w14)** is back in the pool, with a new design. The girl wears a rose-pink dress with white flowers. The boy wears a mint floral hoodie with light-blue denim shorts. The old long jeans failed because the walking poses didn't line up.
+- Checks: all 5 directions passed per-cell and 3x by eye, and the in-game stills are clean. Fixes made: the base's white shorts peeked out on the boy SW/W (filled with denim colour), and dark collar specks were removed on S/SW. Minor issue left: the boy's SW shorts hem is slightly ragged.
+- Server pool is now 17 active / weight 288 (migration 20261031_13). beta_suite 160/160.
+- Still pulled: autumn. Not deleted: the stray Vercel project 'exp' (it needs your approval).

@@ -558,6 +558,15 @@
     "rar": "일반",
     "w": 14,
     "img": "cos/o_summer.png"
+   },
+   {
+    "id": "o_spring",
+    "name": "봄 옷 (옷)",
+    "kind": "cos",
+    "slot": "outfit",
+    "rar": "일반",
+    "w": 14,
+    "img": "cos/o_spring.png"
    }
   ],
   "name": "달란트 뽑기"
