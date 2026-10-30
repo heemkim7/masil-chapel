@@ -91,3 +91,20 @@ Suite 160/160, settings/offer/shop polish, seat collision fix, BETA_TEST_PLAN/RE
 ## 2026-10-30 evening — v13 milestone
 Root causes: (1) hair was sized by each direction's rig head width (102–133px, not normalised) and the rig head y0 jumped 6px → full bbox 149–177. Fixed with a constant per-character reference and the measured alpha top, so the spread is now ≤1px. (2) The back view drew the hair piece twice, and the baked base-sheet hair showed through. (3) Presence: a random id per Net instance and overlapping join() calls during solo↔room left stale channels, so your own old session appeared as a peer → '님이 접속/나갔어요' flaps and 3명↔1명. (4) '베타' and '처음이' seen on live were our automated beta_suite clients (Playwright), which were joining real rooms; they are now isolated in the 'chapelqa:' namespace.
 Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on live.
+
+## Overnight batch: outfits / hairs / cosmetics / gacha (2026-10-30 KST)
+- Commit 1ae44ee (deployed): 6 gacha outfits (hanbok, formal, winter, summer, spring, autumn) x 2 genders as layered stills; boy recolours + choir robe; gacha pool +6 outfit items (희귀 8x3, 일반 14x3, pool total 302); rollCos odds shown in labels (offerRates); server migration 20261030_06 applied (pool rows + cos dup refund), matches config.json.
+- Batch 2 (this commit): cosmetic placement in AV.still: back items rescaled/re-anchored to the neck, held items anchored to the hand, mask/scarf height, beanie no longer covers girl's eyes, top hat fit.
+- Counts vs targets: hats 17 (>=10), face 7, back 8, held 15 (all >=6). Outfits: girl 12 (6 free + 6 gacha), boy 13 (7 + 6). Locked outfits show only when owned.
+- Eye-checked contact sheets: /workspace/mk/prod/cos_{hat,face,back,held}.jpg (all pass except c19 monocle faint on girl). In-game check: /workspace/mk/prod/g5.jpg and the composed still st1.jpg (top hat, glasses, wings, lantern all drawn). Outfit S check: /workspace/mk/prod/outS_chk.jpg.
+- Beta suite 160/160.
+
+### Known defects (honest)
+- **Boy "hanbok" is not a hanbok**: the asset is a green tee + navy shorts (looks like a recolour). The girl hanbok is also a yellow/red top + skirt rather than a real hanbok. Needs regeneration.
+- New outfits have small orange skin-fringe pixels around the legs/hem.
+- Girl hairs h00/h01/h02/h11 still fail and are mapped via NEAR_H to shipped hairs.
+- Boy shorts keep white piping; N hem fringe. Choir robe waist seam. Pre-existing outfits not cleaned.
+- Wings (c24) are pale and hard to see on light grass in-game.
+- Held items hidden on N/NW by design; balloon floats at face height.
+- rollCos caveat: the client rolls the cos item, so when the server cos flag is true the server inventory records the pool item instead.
+- Stray Vercel project **"exp"** (exp-inky-three.vercel.app, behind Vercel auth) was created by accident from an unlinked export. Not deleted — needs your approval.
