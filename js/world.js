@@ -40,6 +40,7 @@ export class World {
 
 const DIRS8 = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'], SEC = Math.PI / 4;
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
+export const CK = { k: 1 };
 export class Char {
   constructor(sprites, char, outfit, x, y, opts = {}) {
     Object.assign(this, { sprites, char, outfit, x, y, vx: 0, vy: 0, face: 'S', ang: Math.PI / 2, visAng: Math.PI / 2, dist: 0, t: Math.random() * 9, emote: null, emoteT: 0, name: opts.name || '', tagColor: opts.tagColor || '#fff', drawH: opts.drawH || 150, bubble: null, bubbleT: 0, equip: opts.equip || null, cfg: opts.cfg,
@@ -129,11 +130,12 @@ export class Char {
   }
   _layer(ctx, p, alpha) {
     ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y) - p.lift); ctx.scale(p.flip ? -p.sx : p.sx, p.sy);
-    const back = p.dir === 'N' || p.dir === 'NW';
+    const back = p.dir === 'N' || p.dir === 'NW' || p.dir === 'NE', side = p.dir === 'E' || p.dir === 'W';
     const acc = (front) => { if (!this.equip) return; for (const slot of ['back', 'hat', 'pet']) { const id = this.equip[slot]; if (!id) continue; const A = this.cfg.acc[id]; const ai = IMG[A.img]; if (!ai) continue;
       const isFront = A.back ? back : true; if (isFront !== front) continue;
       const aw = this.drawH * A.w * 1.0, ah = aw * ai.height / ai.width, bob = A.bob ? Math.sin(this.t * 3) * 5 : 0; ctx.globalAlpha = alpha;
-      ctx.drawImage(ai, -aw / 2 + (A.x || 0) * this.drawH, -this.drawH * (1 - A.y) - ah / 2 + (A.back ? 0 : -this.drawH * .02) + bob, aw, ah); } };
+      const ax = A.back && side ? -.24 : (A.x || 0) * (side && !A.back ? .7 : 1); // v11: wings stay behind the body in profile (no torso clipping)
+      ctx.drawImage(ai, -aw / 2 + ax * this.drawH, -this.drawH * (1 - A.y) - ah / 2 + (A.back ? 0 : -this.drawH * .02) + bob, aw, ah); } };
     acc(false);
     const ht = this._img(ctx, p.key, alpha); if (alpha > .3) this.headY = Math.min(this.headY ?? 1e9, this.y - p.lift + ht * p.sy);
     // in-between: fade the next walk frame in over the last part of each step (12 perceived frames from 6 drawn)
@@ -141,7 +143,11 @@ export class Char {
     acc(true);
     ctx.restore();
   }
-  draw(ctx) {
+  // v11: per-room character scale (props on 2F/B1 are painted larger) — scales the whole sprite about the feet
+  draw(ctx) { const K = CK.k; if (K === 1) return this._draw(ctx);
+    ctx.save(); ctx.translate(this.x, this.y); ctx.scale(K, K); ctx.translate(-this.x, -this.y); this._draw(ctx); ctx.restore(); ctx.globalAlpha = 1;
+    if (this.headY != null) this.headY = this.y - (this.y - this.headY) * K; }
+  _draw(ctx) {
     const p = this.pose(); if (!IMG[p.key]) return; this.headY = null;
     const k = this.drawH / 220;
     // dust puffs (behind) + soft contact shadow
@@ -159,7 +165,7 @@ export class Char {
     ctx.globalAlpha = 1;
   }
   drawLabel(ctx) {
-    const top = Math.min(this.y - this.drawH * 1.08 - 6, (this.headY ?? 1e9) - 15); // tag sits above the actual head top of the frame drawn this tick
+    const top = Math.min(this.y - this.drawH * CK.k * 1.08 - 6, (this.headY ?? 1e9) - 15); // tag sits above the actual head top of the frame drawn this tick
     if (this.name) { ctx.font = '600 15px Pretendard, sans-serif'; ctx.textAlign = 'center'; const tw = ctx.measureText(this.name).width + 14;
       ctx.fillStyle = 'rgba(40,40,70,.55)'; rr(ctx, this.x - tw / 2, top - 11, tw, 22, 11); ctx.fill(); ctx.fillStyle = this.tagColor; ctx.fillText(this.name, this.x, top + 5); }
     if (this.bubble) { ctx.font = '500 16px Pretendard, sans-serif'; const MW = 220, LH = 21;

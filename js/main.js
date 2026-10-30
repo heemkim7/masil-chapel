@@ -5,7 +5,7 @@ import { loadAll, Sprites, IMG } from './assets.js';
 import { AV } from './avatar.js';
 import { Cust } from './custom.js';
 import './dongnpc.js';
-import { World, Char, rr } from './world.js';
+import { World, Char, rr, CK } from './world.js';
 import { Interior } from './interior.js';
 import * as St from './state.js';
 import { Net } from './net.js';
@@ -411,7 +411,7 @@ function update(dt) {
   if ((mmT -= dt) <= 0) { mmT = .1; drawMinimap(); if (modal === '#map') drawMap(); }
   const t = nearest(); const b = $('#btn-act'); b.textContent = worship ? '♪' : sitting ? '일어나기' : t ? ACTLBL[t.type] : '대화'; b.classList.toggle('glow', !!t || !!sitting || !!worship);
   // camera
-  const Wd = cur(), Vw = scene === 'field' ? { x: 0, y: 0, w: Wd.W, h: Wd.H } : inside.view(), z = cam.z = scene === 'field' ? Math.max(.55, Math.min(1, Math.min(innerWidth, innerHeight * 1.4) / 1200)) : Math.min(1, innerWidth / Vw.w, innerHeight / Vw.h); // v10 interior: CONTAIN-fit (whole room visible, never zoomed past 1:1 so sprites never upscale)
+  const Wd = cur(), Vw = scene === 'field' ? { x: 0, y: 0, w: Wd.W, h: Wd.H } : inside.view(), zc = Math.min(1, innerWidth / Vw.w, innerHeight / Vw.h), z = cam.z = scene === 'field' ? Math.max(.55, Math.min(1, Math.min(innerWidth, innerHeight * 1.4) / 1200)) : innerHeight > innerWidth * 1.2 ? Math.max(zc, Math.min(1, innerHeight * .55 / Vw.h, innerWidth / (Vw.w * .42))) : zc; CK.k = scene === 'field' ? 1 : inside.cs(); // v11: portrait phones fit room HEIGHT (≈42% of width visible, camera follows) so characters stay readable; else CONTAIN. v10 interior: CONTAIN-fit (whole room visible, never zoomed past 1:1 so sprites never upscale)
   let tx = player.x, ty = player.y - 60; const hw = innerWidth / 2 / z, hh = innerHeight / 2 / z;
   tx = Vw.w > hw * 2 ? Math.max(Vw.x + hw, Math.min(Vw.x + Vw.w - hw, tx)) : Vw.x + Vw.w / 2; ty = Vw.h > hh * 2 ? Math.max(Vw.y + hh, Math.min(Vw.y + Vw.h - hh, ty)) : Vw.y + Vw.h / 2;
   if (scene !== 'field' && Math.abs(cam.zPrev - z) > .001) { cam.x = tx; cam.y = ty; } cam.zPrev = z;
