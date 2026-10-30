@@ -106,7 +106,7 @@ export class Char {
       }
     }
     if (!sel && walking) {
-      sel = S.get(c, o, 'walk', face); const n = sel.frames.length, ph = this.dist / (this.cfg.player.stepLen);
+      sel = S.get(c, o, 'walk', face); const n = sel.frames.length, ph = this.dist / ((this.cfg.player.cycleLen || 120) * this.drawH / 150 * CK.k / n); // v13: one gait cycle (2 steps) per ~120px travelled = measured stride of the side-view frames (~60px/step) → planted feet, no gliding
       fi = Math.floor(ph) % n; mix = ph - Math.floor(ph);
       // continuous bob/squash per footstep (2 steps per cycle of n frames => one bounce every n/2 frames)
       const b = Math.sin(ph / n * Math.PI * 4);

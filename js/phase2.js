@@ -51,8 +51,8 @@ function renameCurrency() { const cb = $('#coinbox'); if (cb && !cb.querySelecto
 
 // ---------- join / leave toasts ----------
 function wireNet() { const net = G().net; if (!net || !net.on) return;
-  net.on('join', (p, m) => { const n = (m && (m.name || m.n)) || p.name || '친구'; names.set(p.id, n); if (performance.now() < joinMute) return; const d = G().V?.current?.(); jtoast(`👋 <b>${esc(n)}</b>님이 접속했어요${d ? ' · ' + esc(d.name) : ''}`, 'bell'); });
-  net.on('leave', k => { const n = names.get(k); names.delete(k); for (const [i, o] of seats) if (o.id === k) seats.delete(i); if (n && performance.now() > joinMute) jtoast(`🌙 ${esc(n)}님이 나갔어요`, null); });
+  net.on('join', (p, m) => { if (p.id === net.id || m?.id === net.id) return; const n = (m && (m.name || m.n)) || p.name || '친구'; names.set(p.id, n); if (performance.now() < joinMute) return; const d = G().V?.current?.(); jtoast(`👋 <b>${esc(n)}</b>님이 접속했어요${d ? ' · ' + esc(d.name) : ''}`, 'bell'); });
+  net.on('leave', (k, local) => { const n = names.get(k); names.delete(k); for (const [i, o] of seats) if (o.id === k) seats.delete(i); if (n && !local && k !== net.id && performance.now() > joinMute) jtoast(`🌙 ${esc(n)}님이 나갔어요`, null); });
   net.on('seat', p => { if (p.op === 'claim') seats.set(p.i, { id: p.id || p.from, name: p.name }); else for (const [i, o] of seats) if (i === p.i) seats.delete(i); });
   net.on('offer', p => { if (Aud.P().ndon) jtoast(`💝 <b>${esc(p.name)}</b>님이 헌금 ${+p.amount}달란트를 드렸어요`, 'coin'); if (p.total) setTotal(p.total, p.tier); });
   net.on('tier', p => { if (p.tier > tier) { setTotal(p.total, p.tier); upgradeFx(); } });

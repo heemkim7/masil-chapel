@@ -2,6 +2,7 @@
 import json, sys, time
 from playwright.sync_api import sync_playwright
 URL = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8765/'
+URL += ('&' if '?' in URL else '?') + 'qa=1'  # isolated QA realtime namespace: test clients never join real rooms
 ONLY = sys.argv[2].split(',') if len(sys.argv) > 2 else None
 SIZES = [(360, 640), (390, 844), (430, 932), (768, 1024), (1366, 768), (1920, 1080)]
 R = []

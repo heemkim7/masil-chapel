@@ -159,7 +159,7 @@ export function leave() { if (!open) return; if (me.leaving) return close(); con
 export function close() { if (!open) return; open = false; window.__whOpen = false; el.style.display = 'none'; document.body.classList.remove('wh-open'); cancelAnimationFrame(raf); stopAmbience(); G()?.net?.send('wh', { k: 'bye' }); sheet(null); }
 
 function buildPilgrims() { const r = rnd(hash('pilgrims' + (mode === 'dawn' ? 'd' : ''))); const n = L.seats.length; pil = [];
-  const dens = mode === 'dawn' ? .38 : .84; for (let i = 0; i < n; i++) { const on = r() < dens; pil.push(on ? { av: pilgrimAv(r), name: '순례자 ' + PN[Math.floor(r() * PN.length)], ph: r() * 6.28, sing: r(), pray: r(), echo: r() } : null); } }
+  const dens = mode === 'dawn' ? .38 : .84; for (let i = 0; i < n; i++) { const on = r() < dens; pil.push(on ? { av: pilgrimAv(r), name: 'NPC 순례자 ' + PN[Math.floor(r() * PN.length)], ph: r() * 6.28, sing: r(), pray: r(), echo: r() } : null); } }
 function pickMySeat() { const saved = +localStorage.getItem('wh_seat'); const taken = new Set([...peers.values()].map(p => p.seat));
   if (L.seats[saved] && !taken.has(saved) && !pil[saved]) { me.seat = saved; return; }
   const c = L.seats.filter(x => x.r === 3 && !taken.has(x.i) && !pil[x.i]).sort((a, b) => Math.abs(a.x - PUL.x) - Math.abs(b.x - PUL.x)); let pick = c[1] || c[0]; if (!pick) { const free = L.seats.filter(x => !taken.has(x.i)); free.sort((a, b) => (!!pil[a.i] - !!pil[b.i]) || Math.abs(a.r - 3) - Math.abs(b.r - 3) || Math.abs(a.x - PUL.x) - Math.abs(b.x - PUL.x)); pick = free[0] || L.seats[0]; if (pil[pick.i]) pil[pick.i] = null; } me.seat = pick.i; localStorage.setItem('wh_seat', me.seat); }

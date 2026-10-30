@@ -55,12 +55,19 @@ function maskFrame(co, f) { const sh = ATLAS?.sheets?.[co]; if (!sh) return null
   return (maskSheets[k] = g.getImageData(0, 0, c.width, c.height).data); }
 const cache = new Map();
 function compose(a, key) { // key: "<char>/<outfit>/<frame>"
-  const base = IMG[key]; if (!base) return null; const [ch, of, f] = key.split('/'); const co = ch + '/' + of; const M = maskFrame(co, f); if (!M) return null;
+  const base = IMG[key]; if (!base) return null; const [ch, of, f] = key.split('/'); const co = ch + '/' + of; let M = maskFrame(co, f); if (!M) return null;
   const W = ATLAS.frameW, H = ATLAS.frameH, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d', { willReadFrequently: true });
   const dir = (f.match(/_(N|NW|SW|S|W)_/) || [])[1] || 'S', back = dir === 'N' || dir === 'NW', side = dir === 'W';
   // pixel recolor
   const L0 = document.createElement('canvas'); L0.width = W; L0.height = H; const g0 = L0.getContext('2d', { willReadFrequently: true }); g0.drawImage(base, 0, 0); const id = g0.getImageData(0, 0, W, H), p = id.data;
   const sk = SKIN[a.s][1], hcol = a.hc ? HAIRC[a.hc][1] : (a.a === 3 ? HAIRC[7][1] : null), oft = OUTFITS[a.g].find(x => x[0] === a.o)[3];
+  { // v13: mask fringe repair — opaque pixels the mask left unclassified (antialias edges, hood lining, cuffs) inherit the class of
+    // their neighbours (up to 3px), so recolors never leave base-colour specks, halos or skin-coloured blotches on clothes/hair
+    const Mx = new Uint8ClampedArray(M); const cls = i => Mx[i] > 128 ? 0 : Mx[i + 2] > 128 ? 2 : Mx[i + 1] > 8 ? 1 : -1;
+    for (let it = 0; it < 3; it++) { const ch = []; for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = (y * W + x) * 4; if (p[i + 3] <= 40 || cls(i) >= 0) continue;
+      const n = [0, 0, 0]; for (const o of [-4, 4, -W * 4, W * 4]) { const c2 = cls(i + o); if (c2 >= 0) n[c2]++; } const b = n.indexOf(Math.max(...n)); if (n[b]) ch.push([i, b]); }
+      for (const [i, b] of ch) { Mx[i] = b === 0 ? 255 : 0; Mx[i + 1] = b === 1 ? 255 : 0; Mx[i + 2] = b === 2 ? 255 : 0; } }
+    M = Mx; }
   let hl = 0, hn = 0, ol = 0, on = 0; for (let i = 0; i < p.length; i += 4) { if (M[i] > 128) { hl += p[i] + p[i + 1] + p[i + 2]; hn++; } if (M[i + 2] > 128 && sat(p, i) > .1) { ol += p[i] + p[i + 1] + p[i + 2]; on++; } }
   hl = hn ? hl / hn : 1; ol = on ? ol / on : 1;
   let x0 = W, x1 = 0, y0 = H, y1 = 0, top = H, bot = 0;
@@ -68,19 +75,26 @@ function compose(a, key) { // key: "<char>/<outfit>/<frame>"
     if (M[i] > 128) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
       if (hcol) { const l = (p[i] + p[i + 1] + p[i + 2]) / hl, k = a.g === 'm' && !a.hc ? 1 : Math.min(1.35, l); for (let q = 0; q < 3; q++) p[i + q] = Math.min(255, hcol[q] * (a.g === 'm' ? Math.min(1.6, .55 + l * .5) : k)); } }
     else if (M[i + 1] > 8 && a.s) { const w = M[i + 1] / 255; for (let q = 0; q < 3; q++) p[i + q] = Math.min(255, p[i + q] * (1 - w + w * sk[q])); }
-    else if (M[i + 2] > 128 && oft && sat(p, i) > .1) { const l = (p[i] + p[i + 1] + p[i + 2]) / ol; for (let q = 0; q < 3; q++) p[i + q] = Math.min(255, oft[q] * Math.min(1.3, l)); } }
+    else if (M[i + 2] > 128 && oft && (sat(p, i) > .1 || p[i] + p[i + 1] + p[i + 2] > 300)) { // v13: also tint the bright low-saturation fabric highlights (they stayed white → speckles on tinted hoodies/shoes)
+      const l = (p[i] + p[i + 1] + p[i + 2]) / ol; for (let q = 0; q < 3; q++) p[i + q] = Math.min(255, oft[q] * Math.min(1.3, l)); } }
   g0.putImageData(id, 0, 0);
   if (!back && a.a !== 1) { const t0 = (() => { for (let i = 3, j = 0; i < p.length; i += 4, j++) if (p[i] > 40) return (j / W) | 0; return 0; })(); try { ageFace(g0, p, M, W, H, headBox(p, W, t0, H - 1), a.a, side); } catch { } }
   if (x1 < x0) { x0 = 60; x1 = 140; y0 = top; y1 = top + 90; }
   // v10 anchors: head box measured from the BODY silhouette of this exact frame (top row → neck narrowing),
   // so hair/hat/face layers follow the head in every direction and walk frame (no floating afro on side views)
   const R = RIG && !window.__noRig && RIG[key]; let HB; // v12 rig: per-frame head anchor (same frame index + offset as the body) shared by hair, face, hat
-  if (R) { HB = { x0: R[0], x1: R[1], y0: R[2], y1: R[3], cx: (R[0] + R[1]) / 2 }; top = R[2]; bot = R[2] + R[5]; y0 = R[4]; } else HB = headBox(p, W, top, bot); ch_anchor = HB;
-  const fh = bot - top, hw = Math.min(HB.x1 - HB.x0, fh * .5), cx = (HB.x0 + HB.x1) / 2, ht = Math.min(y0, HB.y0 + 2), hairCol = hcol || NATIVE[a.g];
+  if (R) { const dy = top - R[2]; HB = { x0: R[0], x1: R[1], y0: top, y1: R[3] + dy, cx: (R[0] + R[1]) / 2 }; y0 = top; } else HB = headBox(p, W, top, bot); ch_anchor = HB;
+  // v13: hair/hat size from ONE per-character reference (front walk frame) converted into this frame's native px via the atlas meta scale,
+  // so pieces keep the same on-screen size in every direction/frame (rig head widths differ 102..133px by direction → hair grew/shrank while walking)
+  const MS = ATLAS.meta || {}, ms = (MS[key] || [1])[0], R0 = RIG && RIG[ch + '/' + of + '/walk_S_0.png'], ms0 = (MS[ch + '/' + of + '/walk_S_0.png'] || [1])[0];
+  const fh = R0 ? R0[5] * ms0 / ms : bot - top, hw = R0 ? Math.min(R0[1] - R0[0], R0[5] * .5) * ms0 / ms : Math.min(HB.x1 - HB.x0, fh * .5), cx = (HB.x0 + HB.x1) / 2, ht = Math.min(y0, HB.y0 + 2), hairCol = hcol || NATIVE[a.g];
   const LOG = window.__rigLog, put = (im, w, cxx, cy, alignTop) => { if (!im) return; const ww = w, hh = ww * im.height / im.width; if (LOG) LOG.push(['L', cxx - HB.cx, (alignTop ? cy : cy - hh / 2) - HB.y0, ww, hh]); g.drawImage(im, cxx - ww / 2, alignTop ? cy : cy - hh / 2, ww, hh); return hh; };
   const hp = HAIRS[a.g][a.hs][1], H0 = hp && HP[hp];
-  const hairPiece = layer => { if (!H0 || H0.l !== layer && !(back && layer === 'over' && H0.l === 'back')) return; if (back && H0.front) return; const t = tinted(hp, hairCol); if (!t) return; let dx = (H0.dx || 0) * hw; if (side) dx = Math.abs(dx) + (H0.l === 'back' ? hw * .18 : 0); if (back) dx = -dx;
-    put(t, hw * H0.w * (side && H0.cap ? .85 : 1), cx + dx, ht + H0.y * fh * .5, true); };
+  const hairPiece = layer => { if (!H0 || (back ? layer !== 'over' : H0.l !== layer)) return; if (window.__rigLog) window.__hairN = (window.__hairN || 0) + 1; if (back && H0.front) return; const t = tinted(hp, hairCol); if (!t) return; let dx = (H0.dx || 0) * hw; if (side) dx = Math.abs(dx) + (H0.l === 'back' ? hw * .18 : 0); if (back) dx = -dx;
+    const pw = hw * H0.w * (side && H0.cap ? .85 : 1), py = ht + H0.y * fh * .5;
+    if ((back || side) && H0.w > .9 && x1 >= x0) { const HM = document.createElement('canvas'); HM.width = W; HM.height = H; const hg = HM.getContext('2d'); const md = hg.createImageData(W, H); for (let i = 0; i < p.length; i += 4) if (M[i] > 128) md.data[i + 3] = p[i + 3]; hg.putImageData(md, 0, 0);
+      const TX = document.createElement('canvas'); TX.width = W; TX.height = H; const tg = TX.getContext('2d'); for (let ty = y0 - 2; ty < y1 + 2; ty += (y1 - y0 + 4) / 2) tg.drawImage(t, t.width * .18, t.height * .1, t.width * .64, t.height * .38, x0 - 2, ty, x1 - x0 + 4, (y1 - y0 + 4) / 2 + 1); hg.globalCompositeOperation = 'source-in'; hg.drawImage(TX, 0, 0); g.drawImage(HM, 0, 0); } // v13: base-sheet hair re-textured with the selected piece in back view (no second hairstyle showing)
+    put(t, pw, cx + dx, py, true); };
   const cosIm = id => id && id !== '-' ? img(`assets/cos/${id}.png`) : null;
   const backItem = () => { const C = COS[a.back]; if (!C) return; put(cosIm(a.back), fh * (C.w || .7), cx + (side ? hw * .25 : 0), top + fh * (.52 + (C.dy || 0))); };
   const held = () => { const C = COS[a.held]; if (!C) return; put(cosIm(a.held), fh * (C.w || .24), side ? cx - hw * .2 : back ? cx + hw * .5 : cx - hw * .58, top + fh * (.66 + (C.dy || 0))); };
@@ -97,7 +111,7 @@ function compose(a, key) { // key: "<char>/<outfit>/<frame>"
     const by = Math.round(HB.y0 + (HB.y1 - HB.y0) * .4), ey = Math.round(HB.y1), fx0 = Math.round(HB.x0 + (HB.x1 - HB.x0) * (side ? .05 : .14)), fx1 = Math.round(HB.x1 - (HB.x1 - HB.x0) * (side ? .05 : .14));
     for (let y = by; y <= ey; y++) for (let x = fx0; x <= fx1; x++) { const i = (y * W + x) * 4; if (M[i + 1] > 8 && M[i] <= 128 || (M[i] <= 128 && p[i + 3] > 200 && p[i] + p[i + 1] + p[i + 2] < 300 && y < ey - 2)) { q[i] = p[i]; q[i + 1] = p[i + 1]; q[i + 2] = p[i + 2]; q[i + 3] = p[i + 3]; } }
     fg.putImageData(fd, 0, 0); g.drawImage(FC, 0, 0); }
-  if (back) { hairPiece('back'); backItem(); } else if (COS[a.back]?.front) backItem();
+  if (back) backItem(); else if (COS[a.back]?.front) backItem();
   face(); hat(); if (!back) held();
   // name-tag anchor = first opaque row (hats can raise it)
   const d2 = g.getImageData(0, 0, W, H).data; let t2 = H; outer: for (let y = 0; y < H; y++) for (let x = 0; x < W; x += 2) if (d2[(y * W + x) * 4 + 3] > 40) { t2 = y; break outer; } c.top = t2; return c; }
@@ -143,5 +157,5 @@ export function preload(a) { SLOTS.forEach(s => a[s] && a[s] !== '-' && img(`ass
 export function rollCos(atBox, owned) { const pool = Object.entries(COS).filter(([id]) => !owned.includes(id)); if (!pool.length) return null;
   const w = { 일반: 10, 희귀: atBox ? 6 : 3.5, 영웅: atBox ? 2.2 : 1, 전설: atBox ? .8 : .3 }; let r = Math.random() * pool.reduce((s, [, c]) => s + w[c.rar], 0);
   for (const [id, c] of pool) if ((r -= w[c.rar]) < 0) return { id, kind: 'cos', name: c.name, rar: c.rar, img: `cos/${id}.png` }; return null; }
-export const AV = { GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor };
+export const AV = { _cc: () => cache.clear(), GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor };
 window.AV = AV;

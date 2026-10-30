@@ -66,3 +66,12 @@
 - Kakao / Naver: 숨김. 켜려면 Providers에 키 등록 후 `window.MAEUL_KAKAO = true` 플래그. 키는 절대 저장소에 커밋하지 않음.
 - 로그아웃: 손님이면 경고 + "먼저 계정 연동" 제안, 연동됐으면 백업 후 로그아웃. 다시 로그인 → secret·저장 복원 후 새로고침 → 같은 예배당·캐릭터·지갑(지갑은 서버에서 secret 기준).
 - 알려진 한계: "처음부터 다시 시작"(delete_account)은 account_links 행을 지우지 않음 → 재로그인 시 빈 기록의 옛 secret으로 돌아감.
+
+## v13 milestone (2026-10-30) — character scale/hair + presence
+- [x] Full bbox spread across S/W/E/N, all frames: ≤1px per combo (was up to 28px); body 148–149px — tools/test_walk_scale.py PASS
+- [x] Back-view double hair: piece drawn exactly once; base-sheet hair re-textured
+- [x] Gait cycleLen 120 (was ~204 px, causing a glide)
+- [x] Presence: stable per-device id, self excluded, one room channel, 10s leave debounce, no toasts on local leave — tools/test_presence.py PASS (live, 3 solo toggles + 190s idle)
+- [x] QA isolation: ?qa=1 or navigator.webdriver → 'chapelqa:' namespace (no real rooms, lobby, or chat history)
+- [x] NPC pilgrims are tagged 'NPC 순례자 …'; the online count is real humans only
+- [ ] OPEN: tan blotches at hoodie cuffs and hood edges; white halo on silver hair; HUD v13 CSS not visually verified; help modal, audio, menus, maps, Google login not started

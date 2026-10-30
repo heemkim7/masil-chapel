@@ -105,7 +105,7 @@ net.on('prayer', () => { if (modal === '#board') V.renderPrayers(); });
 net.on('counts', () => { if (modal === '#map' && $('#dongmap').style.display === 'flex') V.drawDongMap(); });
 net.on('history', L => { if (!L.length) return; chatLog('📜', '최근 대화'); for (const m of L) chatLog(m.name, m.body); });
 function sameFl(c) { const me = scene === 'inside' ? inside.floor : 'F'; return !c.fl || c.fl === me; }
-function refreshOnline() { const e = $('#online'); if (!e) return; const on = net.status === 'online'; e.textContent = S && S.solo ? '🌙 혼자' : on ? `🟢 ${remotes.size + 1}명` : net.status === 'connecting' ? '🟡 연결 중…' : '⚪ 오프라인'; e.title = on ? '같은 방에 있는 이웃 수' : '오프라인: 혼자서도 계속 플레이할 수 있어요'; }
+function refreshOnline() { const e = $('#online'); if (!e) return; const on = net.status === 'online'; e.textContent = S && S.solo ? '🌙 혼자' : on ? `🟢 ${new Set([...net.peers.keys()].filter(k => k !== net.id)).size + 1}명` : net.status === 'connecting' ? '🟡 연결 중…' : '⚪ 오프라인'; e.title = on ? '같은 방에 접속한 실제 사람 수 (나 포함 · NPC 순례자 제외)' : '오프라인: 혼자서도 계속 플레이할 수 있어요'; }
 function updateRemotes(dt) {
   if (netReady && net.sb) V.tickRoom(scene);
   if (S) net.tick(meState());
@@ -349,7 +349,7 @@ document.querySelectorAll('.close').forEach(b => b.onclick = closeModal);
 $('#btn-gacha').onclick = () => (window.P2 ? P2.openOffer(false) : openGacha()); $('#groll').onclick = doRoll; $('#btn-inv').onclick = openInv; $('#btn-decor').onclick = openDecor; $('#btn-board').onclick = openBoard;
 $('#btn-act').onclick = () => worship ? worshipTap() : interact(); $('#wtap').onclick = worshipTap;
 $('#minimap').onclick = () => openMap(); $('#dtext').onclick = () => dlgAdvance(); $('#btn-jump').onclick = doJump;
-$('#chlv') && ($('#chlv').onclick = () => window.P2?.openLevels()); $('#btn-set') && ($('#btn-set').onclick = () => window.P2?.openSet()); $('#btn-menu').onclick = () => dialog('🚪 나가기', '어떻게 나갈까요?\n· 잠깐 나가기: 이 기기에 저장이 남아 다음에 이어서 해요\n· 로그아웃: 이 기기의 세션·저장을 지우고 다음엔 새 손님으로 시작해요 (서버 기록은 남지만 손님 계정은 다시 찾을 수 없어요)', [['🚪 잠깐 나가기', () => { persist(); endSess(); net.leave(); location.reload(); }], ['🔓 로그아웃', () => dialog('🔓 로그아웃', '정말 로그아웃할까요?\n손님 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요.', [['로그아웃', () => { window.__RESETTING = true; try { net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]])], ['취소', null]]);
+$('#chlv') && ($('#chlv').onclick = () => window.P2?.openLevels()); $('#lvbox') && ($('#lvbox').style.cursor = 'pointer', $('#lvbox').onclick = () => window.P2?.openLevels()); $('#btn-set') && ($('#btn-set').onclick = () => window.P2?.openSet()); $('#btn-menu').onclick = () => dialog('🚪 나가기', '어떻게 나갈까요?\n· 잠깐 나가기: 이 기기에 저장이 남아 다음에 이어서 해요\n· 로그아웃: 이 기기의 세션·저장을 지우고 다음엔 새 손님으로 시작해요 (서버 기록은 남지만 손님 계정은 다시 찾을 수 없어요)', [['🚪 잠깐 나가기', () => { persist(); endSess(); net.leave(); location.reload(); }], ['🔓 로그아웃', () => dialog('🔓 로그아웃', '정말 로그아웃할까요?\n손님 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요.', [['로그아웃', () => { window.__RESETTING = true; try { net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]])], ['취소', null]]);
 let toastT; function toast(t) { const d = $('#toast'); d.textContent = t; d.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => d.classList.remove('show'), 2600); }
 function coinFx() { const d = $('#coinbox'); d.classList.remove('bump'); void d.offsetWidth; d.classList.add('bump'); }
 

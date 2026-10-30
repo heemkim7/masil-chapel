@@ -3,10 +3,14 @@
 // v6: Seoul project (ap-northeast-2). Rooms = 행정동 code + scene; a shared lobby presence channel gives per-dong head counts.
 export const SUPA_URL = 'https://gisykxqhticmdhmupnry.supabase.co';
 export const SUPA_KEY = 'sb_publishable__yq2TXlS1wg8-6FotfrbEg_ckhZxgTj'; // publishable key: public by design
+// v13: QA/test clients (?qa=1) live in a separate namespace and never appear in real players' rooms, lobby counts or chat history
+export const NS = /[?&]qa=1/.test(location.search) || window.__QA || navigator.webdriver ? 'chapelqa:' : 'chapel:';
 const CDN = 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 export class Net {
-  constructor() { this.sb = null; this.ch = null; this.room = null; this.id = Math.random().toString(36).slice(2, 10); this.peers = new Map(); this.status = 'offline'; this.h = {}; this.me = null; this.lastSend = 0; this.lastPres = 0; }
+  constructor() { this.sb = null; this.ch = null; this.room = null; this.id = Net.cid(); this.peers = new Map(); this.status = 'offline'; this.h = {}; this.me = null; this.lastSend = 0; this.lastPres = 0; }
+  // v13: ONE stable presence key per user/device (persisted) → the same person can never appear as two peers (join/leave flapping after 혼자 모드 ↔ 함께)
+  static cid() { try { let c = localStorage.getItem('maeul_cid'); if (!c) { c = Math.random().toString(36).slice(2, 10); localStorage.setItem('maeul_cid', c); } return c; } catch { return Math.random().toString(36).slice(2, 10); } }
   on(ev, fn) { (this.h[ev] ||= []).push(fn); } emit(ev, ...a) { for (const f of this.h[ev] || []) f(...a); }
   async init() {
     try { const m = await Promise.race([import(CDN), new Promise((_, r) => setTimeout(() => r(new Error('cdn timeout')), 8000))]);
@@ -15,14 +19,18 @@ export class Net {
   }
   setStatus(s) { this.status = s; this.emit('status', s, this.peers.size); }
   async join(room, me) {
-    this.me = me; if (!this.sb) return; if (this.room === room && this.ch) return;
-    await this.leave(); this.room = room; this.setStatus('connecting');
-    const ch = this.ch = this.sb.channel('chapel:' + room.replace(/^d(\d+)(?:-(\d+))?/, (m, c, n) => c + '-' + (n || 1)), { config: { presence: { key: this.id }, broadcast: { self: false } } });
+    this.me = me; if (!this.sb) return; if (this.room === room && this.ch) return; const seq = this._jseq = (this._jseq || 0) + 1;
+    await this.leave(true); if (seq !== this._jseq) return; this.room = room; this.setStatus('connecting');
+    const topic = NS + room.replace(/^d(\d+)(?:-(\d+))?/, (m, c, n) => c + '-' + (n || 1));
+    for (const c of this.sb.getChannels?.() || []) if (c.topic === 'realtime:' + topic || c.topic === topic) { try { await this.sb.removeChannel(c); } catch { } } // never two subscriptions to one room
+    if (seq !== this._jseq) return;
+    const ch = this.ch = this.sb.channel(topic, { config: { presence: { key: this.id }, broadcast: { self: false } } });
     ch.on('presence', { event: 'sync' }, () => { const st = ch.presenceState(), seen = new Set();
-      for (const [k, arr] of Object.entries(st)) { if (k === this.id) continue; const m = arr[arr.length - 1]; seen.add(k); this.upsert(k, m, true); }
-      for (const k of [...this.peers.keys()]) if (!seen.has(k)) { this.peers.delete(k); this.emit('leave', k); }
+      for (const [k, arr] of Object.entries(st)) { const m = arr[arr.length - 1]; if (k === this.id || m?.id === this.id) continue; seen.add(k); const q = this.peers.get(k); if (q) q.goneAt = 0; this.upsert(k, m, true); }
+      // v13: leave debounced 10s (a presence blip / reconnect never shows 나갔어요→접속했어요 loops)
+      for (const [k, q] of this.peers) if (!seen.has(k) && !q.goneAt) { q.goneAt = performance.now(); setTimeout(() => { const z = this.peers.get(k); if (z && z.goneAt && performance.now() - z.goneAt >= 9900 && this.ch === ch) { this.peers.delete(k); this.emit('leave', k); this.emit('status', this.status, this.peers.size); } }, 10000); }
       this.emit('status', this.status, this.peers.size); });
-    ch.on('broadcast', { event: 'pos' }, ({ payload: p }) => { if (p.id !== this.id) this.upsert(p.id, p, false); });
+    ch.on('broadcast', { event: 'pos' }, ({ payload: p }) => { if (p.id !== this.id && this.peers.has(p.id)) this.upsert(p.id, p, false); });
     ch.on('broadcast', { event: 'chat' }, ({ payload: p }) => this.emit('chat', p));
     ch.on('broadcast', { event: 'emote' }, ({ payload: p }) => this.emit('emote', p));
     ch.on('broadcast', { event: 'praise' }, ({ payload: p }) => this.emit('praise', p));
@@ -35,7 +43,7 @@ export class Net {
       if (s === 'SUBSCRIBED') { this.setStatus('online'); await ch.track(this.state()); this.history(room); }
       else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') this.setStatus('offline'); });
   }
-  async leave() { if (this.ch) { const c = this.ch; this.ch = null; try { await c.untrack(); await this.sb.removeChannel(c); } catch { } } for (const k of this.peers.keys()) this.emit('leave', k); this.peers.clear(); }
+  async leave(rejoin) { this._jseq = rejoin ? this._jseq : (this._jseq || 0) + 1; if (this.ch) { const c = this.ch; this.ch = null; try { await c.untrack(); await this.sb.removeChannel(c); } catch { } } for (const k of this.peers.keys()) this.emit('leave', k, true); this.peers.clear(); } // local=true: we left, no '나갔어요' toasts
   state() { const m = this.me; return { id: this.id, name: m.name, outfit: m.outfit, x: Math.round(m.x), y: Math.round(m.y), face: m.face, anim: m.anim, fl: m.fl, equip: m.equip, av: m.av }; }
   upsert(k, m, fromPresence) {
     let p = this.peers.get(k); const now = performance.now();
@@ -57,11 +65,11 @@ export class Net {
     for (let i = b.length - 1; i > 0; i--) if (b[i - 1].t <= t) { const a = b[i - 1], c = b[i]; if (t >= c.t) return { ...c, stale: t - c.t }; const k = (t - a.t) / (c.t - a.t); return { x: a.x + (c.x - a.x) * k, y: a.y + (c.y - a.y) * k, face: c.face, anim: c.anim }; }
     return b[b.length - 1]; }
   send(ev, payload) { if (this.ch && this.status === 'online') this.ch.send({ type: 'broadcast', event: ev, payload: { id: this.id, ...payload } }); }
-  async chat(name, text) { this.send('chat', { name, text }); if (this.sb && this.room) try { await this.sb.from('chat_messages').insert({ room: this.room, name: name.slice(0, 12), body: text.slice(0, 80), client_id: this.id }); } catch { } }
+  async chat(name, text) { this.send('chat', { name, text }); if (this.sb && this.room && NS === 'chapel:') try { await this.sb.from('chat_messages').insert({ room: this.room, name: name.slice(0, 12), body: text.slice(0, 80), client_id: this.id }); } catch { } }
   // ---- lobby: one presence channel, each member tracks {dong}; gives head counts per 행정동 for the map
   async lobby(dong, name, shard = 1) { if (!this.sb) return; this.lobbyMe = { dong, name, shard };
     if (this.lb) { const k = JSON.stringify(this.lobbyMe); if (k !== this.lbKey) { this.lbKey = k; try { await this.lb.track(this.lobbyMe); } catch { } } return; }
-    const lb = this.lb = this.sb.channel('chapel:lobby', { config: { presence: { key: this.id } } });
+    const lb = this.lb = this.sb.channel(NS + 'lobby', { config: { presence: { key: this.id } } });
     lb.on('presence', { event: 'sync' }, () => { const c = {}, sh = {}; for (const arr of Object.values(lb.presenceState())) { const m = arr[arr.length - 1], d = m.dong; if (d) { c[d] = (c[d] || 0) + 1; const n = m.shard || 1; (sh[d] ||= {})[n] = (sh[d][n] || 0) + 1; } } this.counts = c; this.shards = sh; this.lbSynced = true; this.emit('counts', c); });
     lb.subscribe(async s => { if (s === 'SUBSCRIBED' && this.lobbyMe) { this.lbKey = JSON.stringify(this.lobbyMe); await lb.track(this.lobbyMe); } }); }
   async leaveLobby() { if (this.lb) { const c = this.lb; this.lb = null; this.lbKey = null; try { await c.untrack(); await this.sb.removeChannel(c); } catch { } } this.counts = {}; }
@@ -74,5 +82,5 @@ export class Net {
     return { list: pub.data.map(r => ({ ...r, mine: ids.has(r.id) })), mine: (mine.data || []).filter(r => r.room === dong && !r.is_public).map(r => ({ ...r, mine: true })) }; }
   async postPrayer(dong, name, body, pub) { body = window.Safe ? window.Safe.clean(body) : body; const r = await this.sb.rpc('post_prayer', { p_room: dong, p_name: name, p_body: body, p_public: pub, p_secret: this.secret() }); if (r.error) throw r.error; if (pub) this.send('prayer', { op: 'new' }); return r.data; }
   async prayWith(id) { const r = await this.sb.rpc('pray_with', { p_id: id, p_secret: this.secret() }); if (r.error) throw r.error; this.send('prayer', { op: 'amen', pid: id, n: r.data }); return r.data; }
-  async history(room) { try { const { data } = await this.sb.from('chat_messages').select('name,body,created_at').eq('room', room).order('created_at', { ascending: false }).limit(8); if (data && this.room === room) this.emit('history', data.reverse()); } catch { } }
+  async history(room) { if (NS !== 'chapel:') return; try { const { data } = await this.sb.from('chat_messages').select('name,body,created_at').eq('room', room).order('created_at', { ascending: false }).limit(8); if (data && this.room === room) this.emit('history', data.reverse()); } catch { } }
 }

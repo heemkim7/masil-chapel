@@ -87,3 +87,7 @@
 
 ## 10-30 18:31 KST beta loop
 Suite 160/160, settings/offer/shop polish, seat collision fix, BETA_TEST_PLAN/READINESS written.
+
+## 2026-10-30 evening — v13 milestone
+Root causes: (1) hair was sized by each direction's rig head width (102–133px, not normalised) and the rig head y0 jumped 6px → full bbox 149–177. Fixed with a constant per-character reference and the measured alpha top, so the spread is now ≤1px. (2) The back view drew the hair piece twice, and the baked base-sheet hair showed through. (3) Presence: a random id per Net instance and overlapping join() calls during solo↔room left stale channels, so your own old session appeared as a peer → '님이 접속/나갔어요' flaps and 3명↔1명. (4) '베타' and '처음이' seen on live were our automated beta_suite clients (Playwright), which were joining real rooms; they are now isolated in the 'chapelqa:' namespace.
+Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on live.

@@ -10,7 +10,7 @@
   "speed": 260,
   "accel": 10,
   "drawH": 150,
-  "stepLen": 34
+  "stepLen": 34, "cycleLen": 120
  },
  "chapel": {
   "x": 3600,

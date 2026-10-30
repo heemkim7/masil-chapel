@@ -6,7 +6,7 @@ let pil = [], pt = 0, obiCd = 0, rain = null;
 function pilgrims(dt) { const g = G(); if (!g?.S) return; pt -= dt; if (pt > 0) return; pt = 4;
   const real = g.remotes.size, want = g.scene === 'field' ? Math.max(0, 2 - real) : 0;
   pil = pil.filter(c => g.wanderers.includes(c));
-  while (pil.length < want) { const c = g.addWanderer(); c.name = PNAMES[Math.random() * PNAMES.length | 0]; c.tagColor = '#ffe9a8'; c.lines = PLINES; c.pilgrim = true; pil.push(c); c.say?.('🧳 ' + PLINES[0], 3); }
+  while (pil.length < want) { const c = g.addWanderer(); c.name = 'NPC ' + PNAMES[Math.random() * PNAMES.length | 0]; c.npc = true; c.tagColor = '#ffe9a8'; c.lines = PLINES; c.pilgrim = true; pil.push(c); c.say?.('🧳 ' + PLINES[0], 3); }
   while (pil.length > want) { const c = pil.pop(), i = g.wanderers.indexOf(c); i >= 0 && g.wanderers.splice(i, 1); }
   for (const c of pil) if (Math.random() < .2) c.say?.(PLINES[Math.random() * PLINES.length | 0], 3); }
 function btn() { let b = document.getElementById('btn-obi'); if (!b) { b = document.createElement('button'); b.id = 'btn-obi'; b.className = 'obibtn'; b.textContent = '🍞🐟 오병이어'; b.title = '방 안 모두에게 빵과 물고기 비를 내려요'; b.onclick = () => start(true); document.body.appendChild(b); }
