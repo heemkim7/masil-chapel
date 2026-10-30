@@ -10,7 +10,7 @@ export async function loadAll(cfg, onProgress) {
   const jobs = [];
   const add = (k, s) => jobs.push([k, s]);
   add('island', cfg.world.bg); add('mask', cfg.world.mask); add('in_bg', cfg.interior.bg); add('in_mask', cfg.interior.mask);
-  add('in_pew', 'assets/in_pew.png'); add('in_pew_side', 'assets/in_pew_side.png'); (cfg.interior.bgs || []).forEach((b, i) => add('in_bg' + (i + 1), b)); add('in_offering', 'assets/in_offering.png'); add('in_board', 'assets/in_board.png');
+  add('in_pew', 'assets/in_pew.png'); add('in_pew_side', 'assets/in_pew_side.png'); (cfg.interior.bgs || []).forEach((b, i) => add('in_bg' + (i + 1), b)); add('in_offering', 'assets/in_offering.png'); add('in_board', 'assets/in_board.png'); for (const f of cfg.interior.floors || []) if (f.bg) add('in_' + f.id, f.bg);
   const misc = new Set([cfg.chapel.img, ...(cfg.chapel.arts || []).map(r => r.img), ...cfg.props.map(p => p.img), ...cfg.decor.map(d => d.img),
     ...Object.values(cfg.acc).map(a => a.img), 'item_0_1.png', 'item_0_2.png', 'item_1_2.png', 'prop_0_2.png', 'item_1_0.png', 'item_1_1.png']);
   misc.forEach(m => add(m, 'assets/' + m));

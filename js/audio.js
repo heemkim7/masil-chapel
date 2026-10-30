@@ -19,13 +19,15 @@ export const HYMNS = [
 ];
 export const Aud = {
   ctx: null, out: null, sfx: null, mus: null, muted: true, vol: .7, armed: false, hym: null, last: {},
-  init() {
+  init() { if (this.inited) return; this.inited = true;
     const s = JSON.parse(localStorage.getItem('maeul_audio') || '{}'); this.vol = s.vol ?? .7; this.want = s.on ?? true; // user pref; still silent until a gesture
     const go = () => { this.unlock(); };
     for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, go, { once: false, passive: true });
-    document.addEventListener('visibilitychange', () => { if (!this.ctx) return; document.hidden ? this.ctx.suspend() : (!this.muted && this.ctx.resume()); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { this.el && this.el.pause(); this.ctx && this.ctx.suspend(); } else { this.ctx && !this.muted && this.ctx.resume(); if (this.el && this.track && this.P().bgm) this.el.play().catch(() => { this.pending = true; }); } });
   },
   unlock() {
+    if (this.ctx && this.ctx.state !== 'running' && !document.hidden) this.ctx.resume?.(); // iOS: resume on every gesture until running
+    if (this.pending && this.el && this.track && this.P().bgm) { this.pending = false; this.el.play().catch(() => { this.pending = true; }); }
     if (this.armed) return; this.armed = true;
     try { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); } catch { return; }
     const c = this.ctx; this.out = c.createGain(); this.out.connect(c.destination);
@@ -33,7 +35,7 @@ export const Aud = {
     // tiny reverb (synthetic impulse) for a chapel feel
     const L = c.sampleRate * 1.8, ir = c.createBuffer(2, L, c.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < L; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / L) ** 2.6; }
     this.rev = c.createConvolver(); this.rev.buffer = ir; const rg = c.createGain(); rg.gain.value = .28; this.rev.connect(rg); rg.connect(this.out);
-    this.setMuted(!this.want); c.resume?.();
+    this.setMuted(!this.want); c.resume?.(); this.applyPrefs();
     this.onchange?.();
   },
   save() { localStorage.setItem('maeul_audio', JSON.stringify({ vol: this.vol, on: !this.muted })); },
@@ -78,5 +80,21 @@ export const Aud = {
     let tb = start; for (const [n, d] of h.b) { if (n !== 'R' && d) { voice(NOTE(n), tb, d * sp * .98, .06); voice(NOTE(n) * 1.5, tb, d * sp * .98, .03); } tb += d * sp; }
     const len = (t - start) * 1000; this.hym = { id, h, to: setTimeout(() => this.hym?.id === id && this.hymn(id), len + 1200) }; return h;
   },
+  // ---- v8: recorded hymn tracks (CC0/PD scores, see assets/audio/LICENSES.md) with synth fallback ----
+  pref: null,
+  P() { if (!this.pref) { let o = {}; try { o = JSON.parse(localStorage.getItem('maeul_prefs') || '{}'); } catch { } this.pref = Object.assign({ bgm: true, bgmVol: .5, sfx: true, sfxVol: .8, voice: true, njoin: true, ndon: true, nlvl: true }, o); } return this.pref; },
+  setPref(k, v) { this.P()[k] = v; try { localStorage.setItem('maeul_prefs', JSON.stringify(this.pref)); } catch { } this.applyPrefs(); },
+  applyPrefs() { const p = this.P(); if (this.sfx && this.ctx) this.sfx.gain.setTargetAtTime(p.sfx ? .9 * p.sfxVol : 0, this.ctx.currentTime, .03);
+    if (this.el) { this.el.volume = Math.max(0, Math.min(1, p.bgmVol)); if (!p.bgm) this.el.pause(); else if (this.track && !document.hidden) this.el.play().catch(() => { }); }
+    if (!p.bgm && this.hym) this.stopHymn(); },
+  TRACKS: { old100: 'old100', newbrit: 'newbrit', nicaea: 'nicaea', ode: 'joy', joy: 'joy', stanne: 'stanne' },
+  music(id) { // play a recorded hymn (loops); returns true if a recording is used, falls back to synth hymn()
+    const p = this.P(); this.track = id; if (!p.bgm) return false; const f = this.TRACKS[id] || 'old100';
+    if (!this.el) { this.el = new Audio(); this.el.loop = true; this.el.preload = 'auto'; this.el.setAttribute('playsinline', ''); this.el.onerror = () => { this.elBad = true; this.track && this.hymn(this.track); }; }
+    if (this.elBad) { this.hymn(id); return false; }
+    const src = `assets/audio/${f}.mp3`; if (!this.el.src.endsWith(src)) this.el.src = src; this.el.volume = p.bgmVol; this.el.currentTime = 0;
+    const pr = this.el.play(); pr && pr.catch(() => { this.pending = true; }); return true; },
+  stopMusic() { this.track = null; this.pending = false; if (this.el) this.el.pause(); this.stopHymn(); },
   stopHymn() { if (this.hym) { clearTimeout(this.hym.to); this.hym = null; } if (this.mus && this.ctx) { const g = this.mus; g.gain.setTargetAtTime(0, this.ctx.currentTime, .15); const m = this.mus; this.mus = this.ctx.createGain(); this.mus.gain.value = .45; this.mus.connect(this.out); setTimeout(() => m.disconnect(), 1500); } },
 };
+window.Aud = Aud;

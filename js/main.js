@@ -17,7 +17,7 @@ const SESS = 'maeul_sess_v6', TTL = 30 * 60 * 1000;
 const sess = (() => { try { const o = JSON.parse(localStorage.getItem(SESS)); if (o && Date.now() - o.t < TTL) return o; } catch { } return null; })();
 const net = new Net(), remotes = new Map(); let netReady = null;
 if (sess) net.id = sess.id;
-let lastAct = Date.now(); const touchSess = () => { localStorage.setItem(SESS, JSON.stringify({ id: net.id, t: lastAct })); };
+let lastAct = Date.now(); const touchSess = () => { if (window.__RESETTING) return; localStorage.setItem(SESS, JSON.stringify({ id: net.id, t: lastAct })); };
 const endSess = () => localStorage.removeItem(SESS);
 ['keydown', 'pointerdown'].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, { capture: true, passive: true }));
 
@@ -107,7 +107,7 @@ function updateRemotes(dt) {
     c.update(dt); }
 }
 function doJump() { if (!player || modal || sitting || worship) return; if (player.jump()) net.send('jump', {}); }
-function persist() { if (Date.now() - lastAct < TTL) touchSess(); S.pos = scene === 'field' ? { x: player.x | 0, y: player.y | 0 } : null; S.scene = scene; St.save(S); }
+function persist() { if (window.__RESETTING) return; if (Date.now() - lastAct < TTL) touchSess(); S.pos = scene === 'field' ? { x: player.x | 0, y: player.y | 0 } : null; S.scene = scene; St.save(S); }
 setInterval(() => S && persist(), 3000); addEventListener('pagehide', () => S && persist());
 
 // ---------- quest ----------
@@ -141,8 +141,15 @@ function talkTo(npc) {
 function addXp(n) { const before = St.levelInfo(cfg, S.xp).lv; S.xp = Math.max(0, S.xp + n); const after = St.levelInfo(cfg, S.xp).lv; if (after > before) toast(`🎉 예배당 레벨 업! Lv.${after}`); refreshHud(); }
 
 // ---------- scenes ----------
-function enterChapel(silent) { scene = 'inside'; player.x = cfg.interior.spawn.x; player.y = cfg.interior.spawn.y; player.face = 'N'; sitting = null; snapCam(); if (!silent) toast('⛪ 예배당 안으로 들어왔어요'); persist(); refreshHud(); }
+function enterChapel(silent) { scene = 'inside'; inside.floor = '1F'; try { window.Aud?.music('old100'); } catch { } player.x = cfg.interior.spawn.x; player.y = cfg.interior.spawn.y; player.face = 'N'; sitting = null; snapCam(); if (!silent) toast('⛪ 예배당 안으로 들어왔어요'); persist(); refreshHud(); }
 function exitChapel() { scene = 'field'; player.x = cfg.chapel.door.x; player.y = cfg.chapel.door.y + 80; player.face = 'S'; sitting = null; snapCam(); persist(); refreshHud(); }
+function goFloor(to) { const I = cfg.interior, from = inside.floor; inside.floor = to; sitting = null;
+  if (to === '1F') { const st = (I.stairs1 || []).find(s => s.to === from) || I.spawn; player.x = st.x - 70; player.y = st.y + 20; if (!inside.walkable(player.x, player.y)) { player.x = I.spawn.x; player.y = I.spawn.y; } }
+  else { const f = inside.F(); player.x = f.spawn.x; player.y = f.spawn.y; }
+  snapCam(); try { window.P2?.sfx?.('step'); } catch { } toast(`🪜 ${to === '1F' ? '1층 본당' : inside.F().name}(으)로 이동했어요`); }
+const SPOTMSG = { organ: '🎹 파이프 오르간이 웅장하게 울려요 (찬양 모드는 🎵 버튼)', choir: '🎶 성가대석이에요. 함께 찬양해요!', cafe: '☕ 따뜻한 차 한 잔 하며 이웃과 이야기해요', prayer: '🕯 조용히 기도하는 방이에요. 잠시 마음을 모아요' };
+function spotAct(sp) { if (sp.t === 'choir' || sp.t === 'organ') { startWorship(); return; } if (sp.t === 'prayer') emote('pray'); toast(SPOTMSG[sp.t] || sp.label); }
+window.__goFloor = goFloor;
 const cur = () => scene === 'field' ? world : inside;
 const npcList = () => scene === 'field' ? fieldNpcs : inNpcs;
 function nearest() {
@@ -150,17 +157,21 @@ function nearest() {
   for (const n of npcList()) { const d = Math.hypot(n.x - player.x, n.y - player.y); if (d < bd) { bd = d; best = { type: 'npc', n }; } }
   if (scene === 'field') { const D = cfg.chapel.door; if (Math.hypot(D.x - player.x, D.y - player.y) < 130) best = { type: 'door' }; for (const sh of cfg.shops || []) if (Math.hypot(sh.door.x - player.x, sh.door.y - player.y) < 120) best = { type: 'shop', s: sh }; }
   else { const I = cfg.interior, chk = (p, type, r = 130) => { if (Math.hypot(p.x - player.x, p.y - player.y) < r) best = { type }; };
+    if (!inside.on1) { for (const sp of inside.spots()) if (Math.hypot(sp.x - player.x, sp.y - player.y) < 140) best = { type: 'spot', sp }; for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 110) best = { type: 'stairs', st }; return best; }
     chk(I.offering, 'offering', 120); chk(I.board, 'board', 150); chk(I.door, 'exit', 110);
+    for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 100) best = { type: 'stairs', st };
     I.pews.forEach((p, i) => { const r = inside.pewRect(i); if (Math.abs(player.x - r.cx) < 58 && Math.abs(player.y - r.cy) < 60 && !best) best = { type: 'pew', i }; });
     if (!best || best.type === 'pew') for (const n of inNpcs) if (Math.hypot(n.x - player.x, n.y - player.y) < 140) best = { type: 'npc', n }; }
+  if (scene === 'field' && window.P2?.signPos) { const sp = P2.signPos(); if (Math.hypot(sp.x - player.x, sp.y + 20 - player.y) < 120) best = { type: 'sign' }; }
   if (!best && scene === 'field') { let wd = 110; for (const w of wanderers) { const d = Math.hypot(w.x - player.x, w.y - player.y); if (d < wd) { wd = d; best = { type: 'npc', n: w }; } } }
   return best;
 }
-const ACTLBL = { shop: '상점 들어가기', npc: '대화', door: '들어가기', exit: '나가기', offering: '헌금하기', board: '게시판', pew: '앉기' };
+const ACTLBL = { sign: '레벨 보기', stairs: '계단 이동', spot: '둘러보기', shop: '상점 들어가기', npc: '대화', door: '들어가기', exit: '나가기', offering: '헌금하기', board: '게시판', pew: '앉기' };
 function interact() {
   if (modal || !S) return; if (sitting) { standUp(); return; }
   const t = nearest(); if (!t) return;
   if (t.type === 'npc') { t.n.face = facingTo(t.n, player); talkTo(t.n); }
+  else if (t.type === 'sign') P2.openLevels(); else if (t.type === 'stairs') goFloor(t.st.to); else if (t.type === 'spot') spotAct(t.sp);
   else if (t.type === 'door') enterChapel(); else if (t.type === 'exit') exitChapel();
   else if (t.type === 'shop') window.P2 && P2.openShop(t.s); else if (t.type === 'offering') (window.P2 ? P2.openOffer(true) : openGacha()); else if (t.type === 'board') openBoard(); else if (t.type === 'pew') sitOn(t.i);
 }
@@ -169,11 +180,11 @@ function sitOn(i) { if (window.P2 && P2.seatTaken(i)) { toast('이미 다른 분
 function svcOpts(tail) { const o = [['⛪ 예배 드리기 (찬양→기도→말씀→헌금→축도)', () => Svc.start()]];
   if (net.status === 'online') o.push(Svc.isLeader() ? ['🎙 인도 그만하기', () => Svc.release()] : ['🎙 오늘의 인도자 하기', () => Svc.claim()]); return o.concat(tail); }
 function pickPew() { const used = new Set(inNpcs.filter(n => n.sit).map(n => n.pewI)); let best = 0, bd = 1e9; cfg.interior.pews.forEach((p, i) => { const d = Math.hypot(p[0] - player.x, p[1] - player.y) + (used.has(i) || (window.P2 && P2.seatTaken(i)) ? 4000 : 0); if (d < bd) { bd = d; best = i; } }); return best; }
-function endWorship(abort) { if (!worship) return; if (abort) { worship = null; document.body.classList.remove('worship'); $('#worship').style.display = 'none'; } else worship.t = worship.end + 1; }
+function endWorship(abort) { if (!worship) return; if (abort) try { window.Aud?.stopMusic(); } catch { } if (abort) { worship = null; document.body.classList.remove('worship'); $('#worship').style.display = 'none'; } else worship.t = worship.end + 1; }
 function standUp() { if (!sitting) return; window.P2 && P2.release(sitting.i); const st = inside.seat(sitting.i); player.x = st.x - 20; player.y = st.y + 26; if (!inside.walkable(player.x, player.y)) { player.x = sitting.back.x; player.y = sitting.back.y; } sitting = null; }
 
 // ---------- worship mini-game ----------
-function startWorship(opt = {}) {
+let hymnI = 0; function startWorship(opt = {}) { try { const ids = ['old100', 'newbrit', 'nicaea', 'stanne', 'joy']; window.Aud?.music(ids[hymnI++ % ids.length]); } catch { }
   closeModal(); if (scene !== 'inside') enterChapel(true);
   if (!sitting) sitOn(pickPew());
   const W = cfg.worship, beat = 60 / W.bpm; const notes = []; let t = 2.2;
@@ -191,7 +202,7 @@ function updateWorship(dt) {
   const L = cfg.worship.hymn; const li = Math.min(L.length - 1, Math.floor(w.t / (w.end / L.length))); if (li !== w.line) { w.line = li; const n = inNpcs[1 + (li % 2)]; n && n.say('🎵 ' + L[li], 2.5); }
   if (w.t > w.end) finishWorship();
 }
-function finishWorship() { const w = worship; worship = null; document.body.classList.remove('worship'); $('#worship').style.display = 'none';
+function finishWorship() { try { window.Aud?.stopMusic(); scene === 'inside' && window.Aud?.music('old100'); } catch { } const w = worship; worship = null; document.body.classList.remove('worship'); $('#worship').style.display = 'none';
   const coins = w.hits * cfg.worship.coinPerHit + w.perfect * 4, xp = w.hits * cfg.worship.xpPerHit; S.coins += coins; addXp(xp); S.worshipBest = Math.max(S.worshipBest || 0, w.hits);
   if (S.quest.stage === 4) S.quest.stage = 5; for (const n of inNpcs) n.doEmote(n.char === 'pastor' ? 'pray' : 'jump');
   if (w.svc) { toast(`🎵 찬양 ${w.hits}/${w.notes.length} · 달란트 +${coins}`); coinFx(); refreshHud(); persist(); Svc.afterPraise(); return; }
@@ -326,7 +337,7 @@ document.querySelectorAll('.close').forEach(b => b.onclick = closeModal);
 $('#btn-gacha').onclick = () => (window.P2 ? P2.openOffer(false) : openGacha()); $('#groll').onclick = doRoll; $('#btn-inv').onclick = openInv; $('#btn-decor').onclick = openDecor; $('#btn-board').onclick = openBoard;
 $('#btn-act').onclick = () => worship ? worshipTap() : interact(); $('#wtap').onclick = worshipTap;
 $('#minimap').onclick = () => openMap(); $('#dtext').onclick = () => dlgAdvance(); $('#btn-jump').onclick = doJump;
-$('#btn-menu').onclick = () => dialog('🚪 나가기', '세션을 끝내고 타이틀로 갈까요? (저장은 남아요)\n처음부터 하면 저장도 지워져요.', [['🚪 나가기', () => { persist(); endSess(); net.leave(); location.reload(); }], ['🔁 처음부터', () => { endSess(); St.wipe(); net.leave(); location.reload(); }], ['취소', null]]);
+$('#chlv') && ($('#chlv').onclick = () => window.P2?.openLevels()); $('#btn-set') && ($('#btn-set').onclick = () => window.P2?.openSet()); $('#btn-menu').onclick = () => dialog('🚪 나가기', '어떻게 나갈까요?\n· 잠깐 나가기: 이 기기에 저장이 남아 다음에 이어서 해요\n· 로그아웃: 이 기기의 세션·저장을 지우고 다음엔 새 손님으로 시작해요 (서버 기록은 남지만 손님 계정은 다시 찾을 수 없어요)', [['🚪 잠깐 나가기', () => { persist(); endSess(); net.leave(); location.reload(); }], ['🔓 로그아웃', () => dialog('🔓 로그아웃', '정말 로그아웃할까요?\n손님 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요.', [['로그아웃', () => { window.__RESETTING = true; try { net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]])], ['취소', null]]);
 let toastT; function toast(t) { const d = $('#toast'); d.textContent = t; d.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => d.classList.remove('show'), 2600); }
 function coinFx() { const d = $('#coinbox'); d.classList.remove('bump'); void d.offsetWidth; d.classList.add('bump'); }
 
@@ -341,11 +352,11 @@ addEventListener('keydown', e => { const ae = document.activeElement, tg = ae &&
   if (modal && e.code !== 'Escape') return; {
   keys[e.code] = 1; if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { if (!e.repeat) doJump(); }
   if (act) { e.preventDefault(); if (e.repeat) return; worship ? worshipTap() : interact(); }
-  if (e.code === 'Escape') { closeModal(); $('#emopanel').style.display = 'none'; } if (e.code === 'Digit1') emote('wave'); if (e.code === 'Digit2') emote('jump'); if (e.code === 'Digit3') emote('pray'); if (e.code === 'Enter' && S) { e.preventDefault(); $('#chatin').focus(); } } });
+  if (e.code === 'Escape') { if (!modal && !worship && !DLG) { window.P2?.openSet?.(); return; } closeModal(); $('#emopanel').style.display = 'none'; } if (e.code === 'Digit1') emote('wave'); if (e.code === 'Digit2') emote('jump'); if (e.code === 'Digit3') emote('pray'); if (e.code === 'Enter' && S) { e.preventDefault(); $('#chatin').focus(); } } });
 addEventListener('keyup', e => keys[e.code] = 0);
 const toWorld = (cx, cy) => ({ x: (cx - innerWidth / 2) / cam.z + cam.x, y: (cy - innerHeight / 2) / cam.z + cam.y });
 cv.addEventListener('pointerdown', e => { if (!S || modal) return; const p = toWorld(e.clientX, e.clientY);
-  if (S.mode === 'decor') { placeAt(p.x, p.y); return; } if (shOn()) { const h = shHit(p.x, p.y); if (h) { shOwner(h); return; } } if (e.pointerType === 'touch') return; clickTarget = p; });
+  if (S.mode === 'decor') { placeAt(p.x, p.y); return; } if (scene === 'field' && window.P2?.signPos) { const sp = P2.signPos(); if (Math.abs(p.x - sp.x) < 155 && p.y > sp.y - 140 && p.y < sp.y + 10) { P2.openLevels(); return; } } if (shOn()) { const h = shHit(p.x, p.y); if (h) { shOwner(h); return; } } if (e.pointerType === 'touch') return; clickTarget = p; });
 cv.addEventListener('pointermove', e => { if (S && S.mode === 'decor') { const p = toWorld(e.clientX, e.clientY); decorHover = { x: snap(p.x), y: snap(p.y) }; } if (!S || !shOn() || e.pointerType === 'touch') return; const p = toWorld(e.clientX, e.clientY), h = shHit(p.x, p.y); cv.title = h ? `${cfg.decor.find(d => d.id === h.id)?.name || ''} · 놓은 사람: ${h.owner}` : ''; });
 cv.addEventListener('pointermove', e => { if (S && S.mode === 'decor') ghost = toWorld(e.clientX, e.clientY); });
 // virtual joystick
@@ -389,9 +400,10 @@ function update(dt) {
   if ((mmT -= dt) <= 0) { mmT = .1; drawMinimap(); if (modal === '#map') drawMap(); }
   const t = nearest(); const b = $('#btn-act'); b.textContent = worship ? '♪' : sitting ? '일어나기' : t ? ACTLBL[t.type] : '대화'; b.classList.toggle('glow', !!t || !!sitting || !!worship);
   // camera
-  const Wd = cur(), z = cam.z = Math.max(.55, Math.min(1, Math.min(innerWidth, innerHeight * 1.4) / (scene === 'field' ? 1200 : 1100)));
+  const Wd = cur(), Vw = scene === 'field' ? { x: 0, y: 0, w: Wd.W, h: Wd.H } : inside.view(), z = cam.z = scene === 'field' ? Math.max(.55, Math.min(1, Math.min(innerWidth, innerHeight * 1.4) / 1200)) : Math.max(innerWidth / Vw.w, innerHeight / Vw.h) * 1.002; // interior: cover-fit the painted room, never letterboxed
   let tx = player.x, ty = player.y - 60; const hw = innerWidth / 2 / z, hh = innerHeight / 2 / z;
-  tx = Wd.W > hw * 2 ? Math.max(hw, Math.min(Wd.W - hw, tx)) : Wd.W / 2; ty = Wd.H > hh * 2 ? Math.max(hh, Math.min(Wd.H - hh, ty)) : Wd.H / 2;
+  tx = Vw.w > hw * 2 ? Math.max(Vw.x + hw, Math.min(Vw.x + Vw.w - hw, tx)) : Vw.x + Vw.w / 2; ty = Vw.h > hh * 2 ? Math.max(Vw.y + hh, Math.min(Vw.y + Vw.h - hh, ty)) : Vw.y + Vw.h / 2;
+  if (scene !== 'field' && Math.abs(cam.zPrev - z) > .001) { cam.x = tx; cam.y = ty; } cam.zPrev = z;
   const k = 1 - Math.exp(-6 * dt); cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
 }
 // HD background: EDSR x3 WebP tiles (1 tile px = 1 world px), lazy-loaded only for visible tiles and only when the base image would be upscaled noticeably (PC / high-DPR)
@@ -408,7 +420,7 @@ function drawHD(dpr) {
     if (im.complete && im.naturalWidth) ctx.drawImage(im, c * T, r * T, im.naturalWidth / k + .5, im.naturalHeight / k + .5);
   }
 }
-function snapCam() { cam.x = player.x; cam.y = player.y - 60; }
+function snapCam() { cam.x = player.x; cam.y = player.y - 60; cam.zPrev = -1; }
 function render() {
   const dpr = Math.min(2, devicePixelRatio || 1), bw = Math.round(innerWidth * dpr), bh = Math.round(innerHeight * dpr); if ((cv.width !== bw || cv.height !== bh) && !(document.body.classList.contains('kbd') && cv.width === bw)) { cv.width = bw; cv.height = bh; cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px'; }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = scene === 'field' ? cfg.world.sky : '#3b2f4a'; ctx.fillRect(0, 0, innerWidth, innerHeight);
@@ -432,11 +444,11 @@ function render() {
     for (const c of remotes.values()) objs.push({ y: c.y, draw: g => c.draw(g), c });
     for (const c of [...fieldNpcs, ...wanderers]) objs.push({ y: c.y, draw: g => c.draw(g), c });
   } else {
-    inside.drawStatic(ctx); objs.push(...inside.objects()); window.P2 && objs.push(...P2.objs(tm));
-    for (const c of remotes.values()) { if (c.sitting) c.face = 'W'; objs.push({ y: c.y, draw: g => sitDraw(g, c, !!c.sitting), c }); }
-    for (const c of inNpcs) objs.push({ y: c.y, draw: g => sitDraw(g, c, c.sit), c });
+    inside.drawStatic(ctx); if (inside.on1) { objs.push(...inside.objects()); window.P2 && objs.push(...P2.objs(tm)); }
+    if (inside.on1) for (const c of remotes.values()) { if (c.sitting) c.face = 'W'; objs.push({ y: c.y, draw: g => sitDraw(g, c, !!c.sitting), c }); }
+    if (inside.on1) for (const c of inNpcs) objs.push({ y: c.y, draw: g => sitDraw(g, c, c.sit), c });
   }
-  objs.push(...decorObjects());
+  if (scene === 'field' || inside.on1) objs.push(...decorObjects());
   objs.push({ y: player.y, draw: g => sitDraw(g, player, !!sitting), c: player });
   objs.sort((a, b) => a.y - b.y); for (const o of objs) o.draw(ctx);
   if (S.mode === 'decor' && ghost && decorSel) { const d = cfg.decor.find(q => q.id === decorSel), im = IMG[d.img], h = d.h, w = h * im.width / im.height; ctx.globalAlpha = decorOK(ghost.x, ghost.y) ? .6 : .25; ctx.save(); ctx.translate(ghost.x, ghost.y); if (decorFlip) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h * .95, w, h); ctx.restore(); ctx.globalAlpha = 1; }
@@ -449,7 +461,7 @@ function render() {
     ctx.fillStyle = '#6b4f9a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lbl, at.x, at.y - 14 + b); ctx.textBaseline = 'alphabetic'; } }
   for (const o of objs) if (o.c) o.c.drawLabel(ctx);
   // interaction hint marker
-  const t = !modal && nearest(); if (t && t.type !== 'pew' && t.type !== 'shop') { const p = t.type === 'npc' ? t.n : t.type === 'door' ? cfg.chapel.door : cfg.interior[{ exit: 'door', offering: 'offering', board: 'board' }[t.type]];
+  const t = !modal && nearest(); if (t && t.type !== 'pew' && t.type !== 'shop') { const p = t.type === 'npc' ? t.n : t.type === 'stairs' ? t.st : t.type === 'spot' ? t.sp : t.type === 'sign' ? { x: P2.signPos().x, y: P2.signPos().y + 30 } : t.type === 'door' ? cfg.chapel.door : cfg.interior[{ exit: 'door', offering: 'offering', board: 'board' }[t.type]];
     ctx.font = '30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('💬', p.x, p.y - (t.type === 'npc' ? 200 : 170) + Math.sin(tm * 4) * 5); }
   if (scene === 'field') { const D = cfg.chapel.door; ctx.font = '700 18px Pretendard,sans-serif'; ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(80,60,100,.6)'; ctx.lineWidth = 4; ctx.textAlign = 'center'; const nm = `⛪ 마실채플 · ${V.current() ? V.current().name : '우리 동네'}`; ctx.strokeText(nm, D.x, D.y + 40); ctx.fillText(nm, D.x, D.y + 40); }
 }
@@ -508,4 +520,4 @@ window.DEBUG_COL = /[?&]debug=col/.test(location.search); addEventListener('keyd
 window.G = { inNpcs: () => inNpcs, get modalOpen() { return !!document.querySelector(".modal.show, .modal.open, .modal[style*=flex]"); }, SH, placeAt, AV, Cust, wanderers, addWanderer: () => { const p = world.randomPoint(); const c = new Char(SP, 'player', 'basic', p.x, p.y, { name: '주민', tagColor: '#d7e6ff', cfg, drawH: 145 }); c.ai = { t: Math.random() * 3, tgt: null, chat: 3 + Math.random() * 6 }; wanderers.push(c); return c; }, get S() { return S; }, get player() { return player; }, get scene() { return scene; }, cfg: () => cfg,
   start: (n, o) => { St.wipe(); selOutfit = o; startGame(St.newSave(n, o)); }, moveDir: (deg, ms) => { scripted = { a: deg * Math.PI / 180, ms }; },
   tp: (x, y) => { sitting = null; player.x = x; player.y = y; snapCam(); }, interact, enterChapel, exitChapel, openGacha, doRoll, openInv, openDecor, placeAt, openBoard, startWorship, worshipTap,
-  get worship() { return worship; }, V, net, remotes, jump: doJump, openMap, teleport, world: () => world, closeModal, emote, pickups, C: Col, Svc, nearest, refreshHud, sitOn, toast, openModal, get inside() { return inside; }, addXp, coinFx, persist, dialog, get modal() { return modal; }, get sitting() { return sitting; }, standUp, pickPew, openInv, drawMinimap: () => drawMinimap() };
+  get worship() { return worship; }, V, net, remotes, jump: doJump, openMap, teleport, world: () => world, closeModal, emote, pickups, C: Col, Svc, nearest, refreshHud, sitOn, toast, openModal, get inside() { return inside; }, cam, goFloor, addXp, coinFx, persist, dialog, get modal() { return modal; }, get sitting() { return sitting; }, standUp, pickPew, openInv, drawMinimap: () => drawMinimap() };

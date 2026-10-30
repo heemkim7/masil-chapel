@@ -29,31 +29,38 @@
   "arts": [
    {
     "min": 1,
-    "img": "v7/church_t1.webp",
-    "h": 760,
-    "ax": 0.6,
-    "ay": 0.85
-   },
-   {
-    "min": 2,
-    "img": "v7/church_t2.webp",
-    "h": 1050,
-    "ax": 0.6,
-    "ay": 0.93
-   },
-   {
-    "min": 3,
-    "img": "v7/church_t3.webp",
-    "h": 1150,
-    "ax": 0.6,
-    "ay": 0.92
-   },
-   {
-    "min": 4,
     "img": "v7/church_grand.webp",
     "h": 1400,
     "ax": 0.4,
     "ay": 0.9
+   },
+   {
+    "min": 2,
+    "img": "v7/church_l2.webp",
+    "h": 1480,
+    "ax": 0.388,
+    "ay": 0.835
+   },
+   {
+    "min": 3,
+    "img": "v7/church_l3.webp",
+    "h": 1420,
+    "ax": 0.366,
+    "ay": 0.8
+   },
+   {
+    "min": 4,
+    "img": "v7/church_l4.webp",
+    "h": 1500,
+    "ax": 0.427,
+    "ay": 0.825
+   },
+   {
+    "min": 5,
+    "img": "v7/church_l5.webp",
+    "h": 1560,
+    "ax": 0.443,
+    "ay": 0.795
    }
   ]
  },
@@ -625,8 +632,8 @@
   "H": 864,
   "bg": "assets/in_side_t1.jpg",
   "bgs": [
-   "assets/in_side_t1.jpg",
    "assets/in_side_t2.jpg",
+   "assets/in_side_t3.jpg",
    "assets/in_side_t3.jpg"
   ],
   "mask": "assets/in_side_mask.png",
@@ -732,7 +739,106 @@
     560,
     560
    ]
-  ]
+  ],
+  "floors": [
+   {
+    "id": "1F",
+    "name": "1층 본당",
+    "bg": null
+   },
+   {
+    "id": "2F",
+    "name": "2층 성가대석",
+    "bg": "assets/in_f2.jpg",
+    "band": [
+     690,
+     800
+    ],
+    "xr": [
+     80,
+     1480
+    ],
+    "spawn": {
+     "x": 1300,
+     "y": 740
+    },
+    "stairs": {
+     "x": 1420,
+     "y": 740,
+     "to": "1F"
+    },
+    "spots": [
+     {
+      "x": 200,
+      "y": 720,
+      "t": "organ",
+      "label": "🎹 파이프 오르간"
+     },
+     {
+      "x": 800,
+      "y": 720,
+      "t": "choir",
+      "label": "🎶 성가대 찬양"
+     }
+    ]
+   },
+   {
+    "id": "B1",
+    "name": "지하 친교실·기도실",
+    "bg": "assets/in_b1.jpg",
+    "band": [
+     640,
+     840
+    ],
+    "xr": [
+     60,
+     1490
+    ],
+    "spawn": {
+     "x": 740,
+     "y": 720
+    },
+    "stairs": {
+     "x": 740,
+     "y": 690,
+     "to": "1F"
+    },
+    "spots": [
+     {
+      "x": 250,
+      "y": 700,
+      "t": "cafe",
+      "label": "☕ 친교 카페"
+     },
+     {
+      "x": 1140,
+      "y": 740,
+      "t": "prayer",
+      "label": "🕯 기도실"
+     }
+    ]
+   }
+  ],
+  "stairs1": [
+   {
+    "x": 1060,
+    "y": 585,
+    "to": "2F",
+    "label": "⬆️ 2층 성가대석"
+   },
+   {
+    "x": 180,
+    "y": 640,
+    "to": "B1",
+    "label": "⬇️ 지하 친교실"
+   }
+  ],
+  "view1": {
+   "x": 52,
+   "y": 150,
+   "w": 1436,
+   "h": 570
+  }
  },
  "worship": {
   "bpm": 96,

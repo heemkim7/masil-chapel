@@ -12,6 +12,22 @@ const VERSES = [['여호와는 나의 목자시니 내게 부족함이 없으리
 const GLASS = [{ id: 'g1', name: '어린양의 창', n: 4 }, { id: 'g2', name: '비둘기의 창', n: 4 }, { id: 'g3', name: '빛의 십자가 창', n: 4 }];
 const BADGES = [[7, '🫒 올리브 잎'], [30, '🕊️ 비둘기'], [100, '🌟 빛의 비둘기']];
 const ART = t => t >= 4 ? 3 : t >= 2 ? 2 : 1; // server tier 1..5 → interior art 1..3
+// v8: every level is a real church (no tent / log cabin). Thresholds mirror server church_tier().
+export const LEVELS = [
+  { t: 1, need: 0, name: '스테인드글라스 예배당', img: 'v7/church_grand.webp', unlock: ['종탑과 스테인드글라스 본당', '1층 본당 · 2층 성가대석 · 지하 친교실'] },
+  { t: 2, need: 1000, name: '두 종 예배당', img: 'v7/church_l2.webp', unlock: ['더 높은 종탑 · 종 2개', '꽃 정원과 산울타리', '따뜻한 랜턴', '실내 장식 업그레이드'] },
+  { t: 3, need: 5000, name: '정원 예배당', img: 'v7/church_l3.webp', unlock: ['오른쪽 별관(부속동)', '분수와 꽃길', '파사드 줄조명', '장미창 추가'] },
+  { t: 4, need: 20000, name: '빛의 대성당', img: 'v7/church_l4.webp', unlock: ['쌍둥이 종탑', '빛나는 황금 십자가', '양쪽 날개 건물', '빛의 대예배당 실내'] },
+  { t: 5, need: 80000, name: '영광의 대성당', img: 'v7/church_l5.webp', unlock: ['파스텔 돔과 금빛 장식', '두 개의 아치 별관', '반짝이는 스테인드글라스', '정원 · 분수 · 줄조명 완성'] }];
+const lvOf = t => LEVELS.reduce((a, L) => t >= L.need ? L.t : a, 1);
+function lvProg() { const L = LEVELS[tier - 1], N = LEVELS[tier]; return N ? Math.max(0, Math.min(1, (total - L.need) / (N.need - L.need))) : 1; }
+function lvHud() { const b = document.getElementById('chlv'); if (!b) return; b.firstChild.nodeValue = `⛪ Lv.${tier} `; const bar = document.getElementById('chlvbar'); if (bar) bar.style.width = (lvProg() * 100).toFixed(1) + '%'; const N = LEVELS[tier]; b.title = N ? `${LEVELS[tier - 1].name} · 다음 레벨까지 ${(N.need - total).toLocaleString()} 달란트` : `${LEVELS[tier - 1].name} · 최고 레벨`; }
+export function openLevels() { const m = modal('p2lv', '⛪ 우리 예배당 레벨'), d = G().V?.current?.();
+  m.querySelector('.body').innerHTML = `<p class="lvsum"><b>${esc(d ? d.name : '우리 동네')} 마실채플 Lv.${tier}</b> · 누적 헌금 ${total.toLocaleString()} 달란트${LEVELS[tier] ? ` · 다음 레벨까지 ${(LEVELS[tier].need - total).toLocaleString()}` : ' · 최고 레벨!'}<span class="lvbarbig"><i style="width:${(lvProg() * 100).toFixed(1)}%"></i></span><small>헌금은 무료 달란트로만 드려요 · 동네 모두의 헌금이 모여 레벨이 올라가요</small></p>
+  <div class="lvlist">${LEVELS.map(L => `<div class="lvcard ${L.t === tier ? 'cur' : L.t > tier ? 'locked' : 'done'}"><div class="lvimg"><img src="assets/${L.img}" alt="Lv.${L.t}" loading="lazy">${L.t > tier ? '<span class="lock">🔒</span>' : ''}${L.t === tier ? '<span class="now">지금 여기</span>' : ''}</div>
+    <div class="lvtx"><b>Lv.${L.t} ${L.name}</b><em>${L.need ? `누적 ${L.need.toLocaleString()} 달란트` : '시작 레벨'}</em><ul>${L.unlock.map(u => `<li>${u}</li>`).join('')}</ul></div></div>`).join('')}</div>`;
+  G().openModal('#p2lv'); }
+
 let P, seats = new Map(), names = new Map(), joinMute = 0, tq = [], tbusy = 0, DL = null, tier = 1, total = 0, shards = [], vary = null, ritual = null, last = {};
 
 function st() { const s = S(); s.p2 ||= { shard: 0, fruit: 0, days: [], glass: {}, food: 0, ach: {}, offered: 0 }; return s.p2; }
@@ -38,7 +54,7 @@ function wireNet() { const net = G().net; if (!net || !net.on) return;
   net.on('join', (p, m) => { const n = (m && (m.name || m.n)) || p.name || '친구'; names.set(p.id, n); if (performance.now() < joinMute) return; const d = G().V?.current?.(); jtoast(`👋 <b>${esc(n)}</b>님이 접속했어요${d ? ' · ' + esc(d.name) : ''}`, 'bell'); });
   net.on('leave', k => { const n = names.get(k); names.delete(k); for (const [i, o] of seats) if (o.id === k) seats.delete(i); if (n && performance.now() > joinMute) jtoast(`🌙 ${esc(n)}님이 나갔어요`, null); });
   net.on('seat', p => { if (p.op === 'claim') seats.set(p.i, { id: p.id || p.from, name: p.name }); else for (const [i, o] of seats) if (i === p.i) seats.delete(i); });
-  net.on('offer', p => { jtoast(`💝 <b>${esc(p.name)}</b>님이 헌금 ${+p.amount}달란트를 드렸어요`, 'coin'); if (p.total) setTotal(p.total, p.tier); });
+  net.on('offer', p => { if (Aud.P().ndon) jtoast(`💝 <b>${esc(p.name)}</b>님이 헌금 ${+p.amount}달란트를 드렸어요`, 'coin'); if (p.total) setTotal(p.total, p.tier); });
   net.on('tier', p => { if (p.tier > tier) { setTotal(p.total, p.tier); upgradeFx(); } });
   net.on('prayer', p => { if (p.op === 'amen' && p.owner && p.owner === net.secret?.().slice(0, 8)) jtoast('🕯 누군가 내 기도제목에 함께 기도했어요', 'amen'); });
   const orig = net.join?.bind(net); if (orig) net.join = async (...a) => { joinMute = performance.now() + 2500; seats.clear(); return orig(...a); };
@@ -49,10 +65,10 @@ const seatApi = { seatTaken: i => seats.has(i) && seats.get(i).id !== 'me', clai
   release() { for (const [i, o] of seats) if (o.id === 'me') { seats.delete(i); G().net?.send?.('seat', { op: 'free', i }); } } };
 
 // ---------- church tier ----------
-function setTotal(t, tr) { total = Math.max(total, +t || 0); tier = Math.max(tier, tr || 1); const ins = G().inside; if (ins) ins.tier = ART(tier); }
-async function loadTotal() { const d = G().V?.current?.(), sb = G().net?.sb; if (!d) { const L = +localStorage.getItem('p2_local_total') || 0; setTotal(L, L >= 5000 ? 3 : L >= 1000 ? 2 : 1); return; }
+function setTotal(t, tr) { total = Math.max(total, +t || 0); tier = Math.max(tier, tr || 1); const ins = G().inside; if (ins) ins.tier = ART(tier); lvHud(); }
+async function loadTotal() { const d = G().V?.current?.(), sb = G().net?.sb; if (!d) { const L = +localStorage.getItem('p2_local_total') || 0; setTotal(L, lvOf(L)); return; }
   try { const r = await sb.from('churches').select('total').eq('dong', d.cd).maybeSingle(); const t = r.data?.total || 0; const tr = await sb.rpc('church_tier', { t }); setTotal(t, tr.data || 1); } catch { } }
-function upgradeFx() { celebrate(`⛪ 예배당이 새로워졌어요!<br><b>${['', 'Lv1 천막 예배당', 'Lv2 통나무 예배당', 'Lv3 붉은 벽돌 예배당', 'Lv4 스테인드글라스 대성당', 'Lv4 스테인드글라스 대성당'][tier]}</b>`); voiceCat('pastor', 'upgrade'); }
+function upgradeFx() { if (!Aud.P().nlvl) return; celebrate(`⛪ 예배당이 새로워졌어요!<br><b>Lv${tier} ${LEVELS[tier - 1]?.name || ''}</b>`); voiceCat('pastor', 'upgrade'); }
 
 // ---------- offering ritual ----------
 function openOffer(atBox) { if (!S()) return; const m = modal('p2offer', '💝 헌금하기'); const b = m.querySelector('.body');
@@ -154,7 +170,7 @@ function fieldObjs(tm) { const out = []; const im = IMG('v7/ic_shard.webp');
   for (const o of shards) if (o.t < tm) out.push({ y: o.y, draw: g => { const b = Math.sin(tm * 3 + o.i) * 6; g.fillStyle = 'rgba(255,250,200,.35)'; g.beginPath(); g.ellipse(o.x, o.y, 20, 7, 0, 0, 7); g.fill(); g.drawImage(im, o.x - 20, o.y - 50 + b, 40, 40); } });
   // per-dong signboard + landmark label
   const c = C().chapel, d = G().V?.current?.(), nm = d ? d.name : '우리 동네', v = vary;
-  out.push({ y: c.door.y + 70, draw: g => { const x = c.door.x + 250, y = c.door.y + 60; g.fillStyle = '#8a5a3a'; g.fillRect(x - 5, y - 70, 10, 70); g.fillStyle = '#fff8ea'; g.strokeStyle = '#b07a4a'; g.lineWidth = 5; g.beginPath(); g.roundRect(x - 120, y - 120, 240, 56, 14); g.fill(); g.stroke(); g.fillStyle = '#4a2b78'; g.font = '800 24px Pretendard,sans-serif'; g.textAlign = 'center'; g.fillText(`${nm} 마실채플`, x, y - 84); } });
+  out.push({ y: c.door.y + 70, draw: g => { const x = c.door.x + 250, y = c.door.y + 60; g.fillStyle = '#8a5a3a'; g.fillRect(x - 5, y - 70, 10, 70); g.fillStyle = '#fff8ea'; g.strokeStyle = '#b07a4a'; g.lineWidth = 5; g.beginPath(); g.roundRect(x - 150, y - 132, 300, 72, 14); g.fill(); g.stroke(); g.fillStyle = '#4a2b78'; g.font = '800 23px Pretendard,sans-serif'; g.textAlign = 'center'; g.fillText(`${nm} 마실채플 Lv.${tier}`, x, y - 100); const pw = 230, pr = lvProg(); g.fillStyle = '#eadcf7'; g.beginPath(); g.roundRect(x - pw / 2, y - 86, pw, 12, 6); g.fill(); g.fillStyle = '#f2b33d'; if (pr > 0) { g.beginPath(); g.roundRect(x - pw / 2, y - 86, Math.max(12, pw * pr), 12, 6); g.fill(); } g.font = '700 12px Pretendard,sans-serif'; g.fillStyle = '#7a5a9a'; g.fillText('👆 눌러서 레벨 보기', x, y - 50); } });
   if (v) { const L = C().spots.find(s => s.id === 'plaza'); out.push({ y: 1e5, draw: g => { g.font = '800 30px Pretendard,sans-serif'; g.textAlign = 'center'; g.lineWidth = 6; g.strokeStyle = '#fff'; g.fillStyle = '#4a2b78'; g.strokeText(v.land, L.x, L.y - 260); g.fillText(v.land, L.x, L.y - 260); } }); }
   return out; }
 // per-dong deterministic palette / season (light variation; full unique maps per dong = later expansion)
@@ -166,8 +182,8 @@ function ground(g, tm) { if (!vary) return; const w = G().world(); g.fillStyle =
 // ---------- voices ----------
 async function dl() { return DL ||= await (await fetch('data/dialogue.json')).json(); }
 let au = null; function playVoice(line) { try { au?.pause(); au = new Audio(`assets/voice/${line.id}.mp3`); au.volume = Aud.muted ? 0 : .9; au.play().catch(() => { }); } catch { } }
-async function voice(who, npc) { const D = await dl(); const L = D.lines.filter(l => l.who === who && (l.cat === 'talk' || l.cat === 'greet')); if (!L.length) return; const l = L[Math.floor(Math.random() * L.length)]; playVoice(l); npc?.say?.(l.text, 4); }
-async function voiceCat(who, cat, i) { const D = await dl(); const L = D.lines.filter(l => l.who === who && l.cat === cat); if (!L.length) return; const l = L[i ?? Math.floor(Math.random() * L.length)] || L[0]; playVoice(l); return l; }
+async function voice(who, npc) { if (!Aud.P().voice) return; const D = await dl(); const L = D.lines.filter(l => l.who === who && (l.cat === 'talk' || l.cat === 'greet')); if (!L.length) return; const l = L[Math.floor(Math.random() * L.length)]; playVoice(l); npc?.say?.(l.text, 4); }
+async function voiceCat(who, cat, i) { if (!Aud.P().voice) return; const D = await dl(); const L = D.lines.filter(l => l.who === who && l.cat === cat); if (!L.length) return; const l = L[i ?? Math.floor(Math.random() * L.length)] || L[0]; playVoice(l); return l; }
 
 // ---------- service extras: portrait + 오늘의 인도자 + group photo ----------
 function wireService() { const Svc = G().C && G().Svc; if (!Svc) return; const r0 = Svc.render.bind(Svc), f0 = Svc.finish.bind(Svc);
@@ -185,8 +201,15 @@ const KEYS = { KeyI: ['🎒 가방', () => toggle('p2bag', openBag)], KeyC: ['�
   KeyM: ['🗺️ 마을 지도', () => toggle('map', () => G().openMap())], KeyJ: ['🌱 말씀 여정 · 임무', () => toggle('missions', () => G().V.openMissions())], KeyK: ['🏅 수집 도감 · 업적', () => toggle('p2col', openCol)],
   KeyV: ['📖 성경 읽기', () => toggle('p2bible', () => Reader.open())], KeyL: ['🏆 동네 예배당 성장 순위', () => toggle('church', openLead)], KeyP: ['📸 장면 담기', () => toggle('shotm', () => $('#btn-shot')?.click())], KeyO: ['⚙️ 설정', () => toggle('p2set', openSet)], KeyH: ['⌨️ 단축키 안내', () => toggle('p2help', openHelp)], KeyN: ['🧭 전국 지도', () => toggle('p2nat', openNation)], KeyG: ['💝 헌금하기', () => toggle('p2offer', () => openOffer(false))] };
 function openHelp() { const m = modal('p2help', '⌨️ 단축키'); m.querySelector('.body').innerHTML = `<div class="keys">${[['WASD/방향키', '이동'], ['Space / E', '대화 · 들어가기/나가기 · 앉기/일어나기 · 대사 넘기기(타이핑 중이면 완성)'], ['Shift', '점프'], ['Tab', '지도 열기/닫기'], ['←→ / WASD', '대화 선택지 고르기'], ['Enter', '채팅'], ['Esc', '닫기'], ['1 2 3', '이모트'], ...Object.entries(KEYS).map(([k, [l]]) => [k.slice(3), l])].map(([k, l]) => `<div><kbd>${k}</kbd><span>${l}</span></div>`).join('')}</div><p class="mnote">같은 키를 다시 누르면 닫혀요 · 배치 모드: R 회전 · Esc 취소</p>`; G().openModal('#p2help'); }
-function openSet() { const m = modal('p2set', '⚙️ 설정'); m.querySelector('.body').innerHTML = `<label class="setrow">🔊 효과음 · 음성 <input type="checkbox" id="p2snd" ${Aud.muted ? '' : 'checked'}></label><label class="setrow">음량 <input type="range" id="p2vol" min="0" max="1" step=".05" value="${Aud.vol ?? .7}"></label><label class="setrow">🔔 접속 알림 <input type="checkbox" id="p2jt" ${localStorage.getItem('p2_jt') === '0' ? '' : 'checked'}></label>`;
-  $('#p2snd').onchange = e => { Aud.muted = !e.target.checked; Aud.save?.(); }; $('#p2vol').oninput = e => { Aud.vol = +e.target.value; Aud.master && (Aud.master.gain.value = Aud.vol); Aud.save?.(); }; $('#p2jt').onchange = e => localStorage.setItem('p2_jt', e.target.checked ? '1' : '0'); G().openModal('#p2set'); }
+function openSet() { const m = modal('p2set', '⚙️ 설정'), P = Aud.P(), ck = (id, k, l) => `<label class="setrow">${l} <input type="checkbox" data-pk="${k}" id="${id}" ${P[k] ? 'checked' : ''}></label>`, rg = (k, l) => `<label class="setrow">${l} <input type="range" data-pv="${k}" min="0" max="1" step=".05" value="${P[k]}"></label>`;
+  m.querySelector('.body').innerHTML = `<h4 class="seth">🎵 소리</h4>${ck('p2bgm', 'bgm', '🎹 찬송 배경음악')}${rg('bgmVol', '배경음악 음량')}${ck('p2snd', 'sfx', '🔊 효과음')}${rg('sfxVol', '효과음 음량')}${ck('p2voice', 'voice', '🗣️ NPC 목소리')}
+  <h4 class="seth">🔔 알림</h4>${ck('p2jt', 'njoin', '접속 알림 (이웃이 들어왔어요)')}${ck('p2don', 'ndon', '💝 헌금 알림')}${ck('p2lvl', 'nlvl', '⛪ 예배당 레벨업 알림')}
+  <h4 class="seth">👤 계정</h4><div class="setrow danger"><span>🔓 로그아웃<small>이 기기의 세션·저장만 지워요 (손님 계정은 다시 찾을 수 없어요)</small></span><button id="p2logout" class="warnbtn soft">로그아웃</button></div>
+  <div class="setrow danger"><span>🔁 처음부터 다시 시작<small>서버의 내 기록(기도·배치·여정·지갑 등)까지 모두 지워요</small></span><button id="p2reset" class="warnbtn">처음부터</button></div>`;
+  m.querySelectorAll('[data-pk]').forEach(x => x.onchange = () => { Aud.setPref(x.dataset.pk, x.checked); if (x.dataset.pk === 'njoin') localStorage.setItem('p2_jt', x.checked ? '1' : '0'); if (x.dataset.pk === 'sfx') Aud.setMuted?.(false); });
+  m.querySelectorAll('[data-pv]').forEach(x => x.oninput = () => Aud.setPref(x.dataset.pv, +x.value));
+  $('#p2logout').onclick = () => G().dialog('🔓 로그아웃', '정말 로그아웃할까요?\n손님 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요. (서버 기록은 남아요)', [['로그아웃', () => { window.__RESETTING = true; try { G().net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]]);
+  $('#p2reset').onclick = () => G().dialog('🔁 처음부터 다시 시작', '정말 처음부터 시작할까요?\n서버에 저장된 내 기록과 이 기기의 저장이 모두 지워지고 되돌릴 수 없어요.', [['모두 지우고 처음부터', () => { window.__RESETTING = true; try { G().net.leave(); } catch { } window.MaeulReset.full(); }], ['취소', null]]); G().openModal('#p2set'); }
 function wireKeys() { addEventListener('keydown', e => { const ae = document.activeElement, tg = ae && ae.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || ae?.isContentEditable || !S() || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
     if (e.code === 'KeyR' && S().mode === 'decor') { $('#dflip')?.click(); return; }
     if (e.code === 'Escape' && S().mode === 'decor') { $('#ddone')?.click(); return; }
@@ -239,7 +262,7 @@ function hudButtons() { const side = $('#side'); if (!side || $('#btn-p2bag')) r
 let lastRoom = '';
 export function initPhase2() { if (!$('#jtoasts')) { const d = document.createElement('div'); d.id = 'jtoasts'; document.body.append(d); }
   const unlock = () => { try { Aud.init?.(); Aud.unlock?.(); } catch { } }; addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydown', unlock, { once: true });
-  P = window.P2 = { ...seatApi, sfx, objs, fieldObjs, ground, openShop, openOffer, openBag, openCol, openLead, openNation, voice, jtoast, st, get tier() { return tier; }, setTier: t => setTotal(total, t), shards: () => shards, addGlass };
+  P = window.P2 = { ...seatApi, sfx, objs, fieldObjs, ground, openShop, openOffer, openBag, openCol, openLead, openNation, voice, jtoast, openSet, openLevels, signPos: () => { const c = C().chapel; return { x: c.door.x + 250, y: c.door.y + 60 }; }, get total() { return total; }, st, get tier() { return tier; }, setTier: t => setTotal(total, t), forceTier: t => { tier = t; total = LEVELS[t - 1].need; setTotal(total, t); }, shards: () => shards, addGlass };
   wireNet(); wireKeys(); wireService();
   const boot = () => { if (!S() || !G().world?.()) return setTimeout(boot, 300); renameCurrency(); hudButtons(); window.__p2mobile?.(); attend(); seedShards(); computeVary(); loadTotal(); };
   boot();
