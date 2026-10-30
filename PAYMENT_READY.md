@@ -18,7 +18,7 @@ Real-money payments are **not live**. Everything below is wired so they can be s
 | grants / refunds | idempotent grants (unique per order) + clawback records |
 
 - RLS is on for every table, and anon/authenticated have no direct access. Writes go through security-definer RPCs only.
-- `grant_order(order_id)` is idempotent and `refund_order(order_id)` claws back 만나 (a negative balance is allowed and flagged). Both are **revoked from anon** and are service-role only.
+- `grant_order(order_id)` is idempotent and `refund_order(order_id)` claws back 만나 up to the current balance (never below 0) and records the refund. Both are **revoked from anon** and are service-role only.
 - The Edge Function stubs `supabase/functions/verify_receipt` and `payment_webhook` return 503 unless `PAYMENTS_ENABLED=true`. They are **not deployed**.
 
 ## Client
