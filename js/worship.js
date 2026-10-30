@@ -95,12 +95,18 @@ const SC = new Map(), SRC_H = 150;
 let tmpChar = null;
 function makeChar(av, char) { const g = G(), C = g.player.constructor, c = new C(g.player.sprites, char ? char[0] : 'player', char ? char[1] : 'basic', 0, 0, { name: '', cfg: g.cfg(), drawH: SRC_H });
   if (av) window.AV.apply(c, av); c.drawH = SRC_H; return c; }
-function sprite(av, face, char, emote) { const key = (av || char.join('/')) + '|' + face + '|' + (emote || ''); let e = SC.get(key); if (e && e.ok) return e;
+function sprite(av, face, char, emote, sit) { const key = (av || char.join('/')) + '|' + face + '|' + (emote || '') + (sit ? '|s' : ''); let e = SC.get(key); if (e && e.ok) return e;
   if (e && performance.now() - e.t < 400) return e.ok ? e : null; // retry not-yet-loaded avatars at most ~2.5×/s
   const c = makeChar(av, char); c.face = c.dface = c._lf = face; c.blendT = 1; c.speedNow = 0; c.t = 0; if (emote) { c.emote = emote; c.emoteT = .35; }
   const p = c.pose(face); const ready = !av || !!window.AV.frame(c, p.key); const W = 130, H = 200, cv = e?.cv || document.createElement('canvas'); cv.width = W; cv.height = H;
   const x = cv.getContext('2d'); x.clearRect(0, 0, W, H); c.x = W / 2; c.y = H - 8; c.puffs = []; try { c._draw(x); } catch { }
-  e = { cv, ax: W / 2, ay: H - 8, top: c.headY != null ? (H - 8 - c.headY) : SRC_H * .95, ok: ready, t: performance.now() }; if (ready) spriteN++; SC.set(key, e); return e; }
+  let top = c.headY != null ? (H - 8 - c.headY) : SRC_H * .95;
+  if (sit) { // seated pose through the same feet anchor: torso drops onto the seat, legs fold (thighs foreshortened toward/away from camera)
+    const src = document.createElement('canvas'); src.width = W; src.height = H; src.getContext('2d').drawImage(cv, 0, 0); const ay = H - 8, leg = Math.round(top * .2), drop = Math.round(leg * .62), hip = ay - leg;
+    x.clearRect(0, 0, W, H); x.drawImage(src, 0, 0, W, hip, 0, drop, W, hip); // upper body lowered
+    const lh = leg - drop; x.drawImage(src, 0, hip, W, leg, face === 'N' ? 0 : -W * .03, hip + drop - (face === 'S' ? 2 : 0), W * (face === 'N' ? 1 : 1.06), lh + 2); // folded legs
+    top -= drop; }
+  e = { cv, ax: W / 2, ay: H - 8, top, ok: ready, t: performance.now() }; if (ready) spriteN++; SC.set(key, e); return e; }
 
 // ---------------- state
 let lowQ = false, el, cv, ctx, wl, wctx, bg, mask, pulImg, bgT, dpr = 1, vw = 0, vh = 0, s = 1, ox = 0, oy = 0, panX = null, raf = 0, lastT = 0, open = false;
@@ -210,7 +216,7 @@ function frame(now) { if (!open) return; raf = requestAnimationFrame(frame); con
   if (fr < 1) { if (cam.z < 1.02 && oy + BH * s < vh) { const gr = c.createLinearGradient(0, oy + BH * s, 0, vh); gr.addColorStop(0, '#c9a6d4'); gr.addColorStop(1, '#b896c8'); c.fillStyle = gr; c.fillRect(0, oy + BH * s - 2, vw, vh); }
     const T = camT(); curT = T; c.setTransform(dpr * T.s, 0, 0, dpr * T.s, dpr * T.x, dpr * T.y);
     drawBg(c, now); drawStage(c, dt, P); drawSeats(c, dt, now, P, false); drawFx(c, dt); drawTag(c, dt); }
-  if (fr > 0) { const e = ease(fr), sc = s * (1.12 - .12 * e), fx0 = (vw - BW * sc) / 2, fy0 = vh > vw * 1.2 ? vh - BH * sc - 150 : (vh - BH * sc) / 2 + 10;
+  if (fr > 0) { const e = ease(fr), por = vh > vw * 1.2, sf = por ? Math.min(s, (vw - 6) / 1760) : s, sc = sf * (1.12 - .12 * e), fx0 = vw / 2 - 800 * sc, fy0 = por ? Math.max(120, (vh - 220 - (BH - 300) * sc) / 2 + 40) - 300 * sc : (vh - BH * sc) / 2 + 10;
     c.setTransform(dpr, 0, 0, dpr, 0, 0); c.globalAlpha = e; c.fillStyle = '#e9d2bf'; c.fillRect(0, 0, vw, vh); c.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * fx0, dpr * fy0);
     drawFront(c, now); drawSeats(c, fr < 1 ? 0 : dt, now, P, true); c.globalAlpha = 1; if (fr >= 1) curT = null; }
   c.setTransform(dpr, 0, 0, dpr, 0, 0); drawReact(c, dt); hudText(P); }
@@ -285,14 +291,17 @@ function drawSeats(c, dt, now, P, F) { if (!lowQ || (F && fr < 1 && fr > 0)) ret
 function seatPass(c, dt, now, P, md, F) { const t = now / 1000, k = P.p.k, song = k === 'song', prayK = k === 'pray' || k === 'cry' || k === 'bless';
   const occ = new Map(); for (const q of peers.values()) occ.set(q.seat, q);
   const rows = F ? [...L.rows].reverse() : L.rows;
-  for (const row of rows) { const far = !F && row.r <= 1; if (F && md !== 2) drawPewF(c, row); // LOD: far rows skip per-seat breathing/sway transforms
+  const WK = md === 1 ? [] : walkList(F), NR = L.rows.length, dyn = new Set(); if (md === 2) { for (const [w] of WK) dyn.add(slotOf(w).n); for (const st of L.seats) { const p = pil[st.i]; if (st.i === me.seat || occ.has(st.i) || (p && (p.act || (p.amenAt && now >= p.amenAt)))) dyn.add(st.r); } }
+  const WD = (n, g) => { for (const it of WK) { const o = slotOf(it[0]); if (o.n === n && o.g === g) drawWalker(c, it, F); } };
+  if (F) { WD(NR, 1); WD(NR - 1, 1); } else WD(-1, 1);
+  for (const row of rows) { const far = !F && row.r <= 1, pw = md !== 2 || dyn.has(row.r) || dyn.has(row.r + (F ? 1 : -1)); if (F) { if (row.r < NR - 1) WD(row.r, 1); if (pw) drawPewF(c, row); WD(row.r, 0); } else { if (row.r > 0) WD(row.r - 1, 1); WD(row.r, 0); } // LOD: far rows skip per-seat breathing/sway transforms
     for (const st of row.pts) { const mine = st.i === me.seat, q = mine ? null : occ.get(st.i), p = q ? null : pil[st.i];
       if (!mine && !q && !p) continue; if ((mine && me.walk) || (q && q.walk)) continue; const S2 = F ? { ...fp(st.x, st.y), i: st.i } : st; const stat = !!p && !p.act && !(p.amenAt && now >= p.amenAt); if ((md === 1 && !stat) || (md === 2 && stat)) continue; if (md === 1) dt = 0; const av = mine ? G().player.av : q ? q.av : p.av; let state = mine ? me.st : q ? q.st : null, hands = mine ? me.hands : q ? q.hands : false;
       if (p) { state = prayK ? (p.pray < .85 ? 'pray' : 'sit') : song ? (p.sing < .72 ? 'sing' : 'sit') : 'sit'; hands = song && P.p.hands && p.sing < .4 && P.t > 8; }
       let actN = mine ? me.act : q ? q.act : null, actT = mine ? me.actT : q ? q.actT : 0;
       if (p && p.amenAt && now >= p.amenAt) { p.act = 'amen'; p.actT = 0; p.amenAt = 0; } if (p && p.act) { p.actT += dt; actN = p.act; actT = p.actT; if (p.actT > 1.3) p.act = null; }
       if (mine && me.act) { me.actT += dt; if (me.actT > (ACT_DUR[me.act] || 1.4)) me.act = null; } if (q && q.act) { q.actT += dt; if (q.actT > 1.4) q.act = null; }
-      const e = sprite(av, S2.face); if (!e) continue; const st0 = st; { const st = S2; const f = st.h / SRC_H; let dx = 0, dy = 0;
+      const e = sprite(av, S2.face, null, null, 1); if (!e) continue; const st0 = st; { const st = S2; const f = st.h / SRC_H; let dx = 0, dy = 0;
       if (!far && md !== 1) { dy = Math.sin(t * 2.2 + st.i) * .5; if (state === 'sing') dx = Math.sin(t * 2.4 + st.i * .7) * 1.6; }
       if (state === 'pray') dy += st.h * .05; if (actN === 'amen') dy -= Math.sin(Math.min(1, actT / .45) * Math.PI) * st.h * .09; if (actN === 'cry') dx += Math.sin(t * 22) * 1.2;
       c.drawImage(e.cv, st.x - e.ax * f + dx, st.y - e.ay * f + dy, e.cv.width * f, e.cv.height * f);
@@ -303,27 +312,32 @@ function seatPass(c, dt, now, P, md, F) { const t = now / 1000, k = P.p.k, song 
       if (actN === 'wave' && actT < 1.6) arms(c, st.x, top, st.h, .6 + Math.sin(actT * 14) * .3);
       if (mine) { c.fillStyle = '#ffd25a'; c.beginPath(); const yy = top - st.h * .1 + Math.sin(t * 3) * 2; c.moveTo(st.x - 7, yy - 10); c.lineTo(st.x + 7, yy - 10); c.lineTo(st.x, yy - 1); c.closePath(); c.fill(); }
       if (q && !mine) { c.fillStyle = '#ff9ec7'; c.beginPath(); c.arc(st.x, top - st.h * .08, 3.2, 0, 7); c.fill(); } } }
-    if (!F && md !== 2) drawPew(c, row); }
-  if (md !== 1) drawWalkers(c, dt, F);
+    if (F && pw) drawSeatF(c, row); if (!F && pw) drawPew(c, row); }
+  if (F) WD(-1, 1); else WD(NR - 1, 1);
   const recent = amenLog.filter(x => now - x < 1800); amenLog = recent; const pilA = pil.reduce((a, p) => a + (p && p.act === 'amen' ? 1 : 0), 0);
   if ((recent.length + pilA >= 8) && (!ripple || now - ripple.t0 > 2600)) { ripple = { t0: now, x: L.seats[me.seat]?.x || PUL.x, y: L.seats[me.seat]?.y || 700 }; window.Aud?.sfx?.('amen'); } }
-function drawPew(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .36; i ? c.lineTo(x, yt) : c.moveTo(x, yt); }
+function drawPew(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .46; i ? c.lineTo(x, yt) : c.moveTo(x, yt); }
   for (let i = A.length - 1; i >= 0; i--) { const [x, y, h] = A[i]; c.lineTo(x, y - h * .02); } c.closePath(); c.fillStyle = '#b98a64'; c.fill(); c.strokeStyle = '#8f6446'; c.lineWidth = 2; c.stroke();
-  c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .36; i ? c.lineTo(x, yt) : c.moveTo(x, yt); } c.strokeStyle = '#e2bf98'; c.lineWidth = 3; c.stroke();
-  for (const E of [A[0], A[A.length - 1]]) { const [x, y, h] = E; c.fillStyle = '#9a6a4a'; rrect(c, x - 4, y - h * .42, 8, h * .42, 3); c.fill(); } } }
+  c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .46; i ? c.lineTo(x, yt) : c.moveTo(x, yt); } c.strokeStyle = '#e2bf98'; c.lineWidth = 3; c.stroke();
+  for (const E of [A[0], A[A.length - 1]]) { const [x, y, h] = E; c.fillStyle = '#9a6a4a'; rrect(c, x - 4, y - h * .52, 8, h * .52, 3); c.fill(); } } }
 function drawPewF(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; const a = fp(A[0][0], A[0][1]), b = fp(A[A.length - 1][0], A[A.length - 1][1]), h = a.h, y = a.y;
   c.fillStyle = '#a87a56'; rrect(c, a.x, y - h * .62, b.x - a.x, h * .5, h * .08); c.fill(); c.fillStyle = '#e2bf98'; c.fillRect(a.x, y - h * .62, b.x - a.x, h * .05);
   c.fillStyle = '#8a5f42'; c.fillRect(a.x - 3, y - h * .66, 8, h * .62); c.fillRect(b.x - 5, y - h * .66, 8, h * .62); } }
-function drawWalkers(c, dt, F) { const W = []; if (me.walk) W.push([me.walk, 1]); for (const q of peers.values()) if (q.walk) W.push([q.walk, 0]);
-  W.sort((a, b) => F ? b[0].y - a[0].y : a[0].y - b[0].y); const t = performance.now() / 1000;
-  for (const [w, mine] of W) { if (!F || true) { /* step once per frame (rear pass) */ } const P2 = F ? fp(w.x, w.y) : { x: w.x, y: w.y, h: drawHAt(w.y) * 1.08 }; const face = F ? flipF(w.face) : w.face;
-    const e = sprite(w.av, face); if (!e) continue; const f = P2.h / SRC_H, dy = -Math.abs(Math.sin(w.t * 9)) * P2.h * .04; c.drawImage(e.cv, P2.x - e.ax * f, P2.y - e.ay * f + dy, e.cv.width * f, e.cv.height * f);
+function walkList(F) { const W = []; if (me.walk) W.push([me.walk, 1]); for (const q of peers.values()) if (q.walk) W.push([q.walk, 0]); W.sort((a, b) => F ? b[0].y - a[0].y : a[0].y - b[0].y); return W; }
+// depth slot of a walker: g=0 -> on row n's seat line (same depth as that row's people, behind its rear backrest / in front of its front backrest); g=1 -> in the gap between row n and n+1
+function slotOf(w) { const R = Math.hypot(w.x - PUL.x, (w.y - 300) * 2), rw = (R - 506) / 102, NR = L.rows.length; if (rw < -.25) return { n: -1, g: 1 }; if (rw > NR - .75) return { n: NR - 1, g: 1 };
+  const n = Math.round(rw); if (Math.abs(rw - n) < .22) return { n, g: 0 }; return { n: Math.floor(rw), g: 1 }; }
+function drawSeatF(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; const a = fp(A[0][0], A[0][1]), b = fp(A[A.length - 1][0], A[A.length - 1][1]), h = a.h, y = a.y; // seat front: hides shins so the row reads as seated
+  c.fillStyle = '#c99a70'; rrect(c, a.x - 4, y - h * .2, b.x - a.x + 8, h * .09, h * .03); c.fill(); c.fillStyle = '#9a6c4c'; c.fillRect(a.x, y - h * .11, b.x - a.x, h * .1); c.fillStyle = '#7d5539'; c.fillRect(a.x - 3, y - h * .2, 8, h * .2); c.fillRect(b.x - 5, y - h * .2, 8, h * .2); } }
+function drawWalker(c, it, F) { const [w, mine] = it; { const P2 = F ? fp(w.x, w.y) : { x: w.x, y: w.y, h: drawHAt(w.y) * 1.08 }; const face = F ? flipF(w.face) : w.face;
+    const e = sprite(w.av, face); if (!e) return; const f = P2.h / SRC_H, dy = -Math.abs(Math.sin(w.t * 9)) * P2.h * .04; c.drawImage(e.cv, P2.x - e.ax * f, P2.y - e.ay * f + dy, e.cv.width * f, e.cv.height * f);
     if (mine) { const top = P2.y - e.top * f + dy; c.fillStyle = '#ffd25a'; c.beginPath(); c.moveTo(P2.x - 7, top - 18); c.lineTo(P2.x + 7, top - 18); c.lineTo(P2.x, top - 9); c.closePath(); c.fill(); } } }
 function flipF(d) { return { N: 'S', S: 'N', E: 'W', W: 'E', NE: 'SW', NW: 'SE', SE: 'NW', SW: 'NE' }[d] || 'S'; }
 function tickWalkers(dt) { if (me.walk) { stepWalk(me.walk, dt); if (me.walk?.end) me.walk = null; } for (const q of peers.values()) if (q.walk) { stepWalk(q.walk, dt); if (q.walk?.end) q.walk = null; } }
 function drawFx(c, dt) { if (!ripple) return; const u = (performance.now() - ripple.t0) / 1600; if (u > 1) { ripple = null; return; }
   c.save(); c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 3; i++) { const v = u - i * .12; if (v <= 0) continue; c.strokeStyle = `rgba(255,214,120,${.42 * (1 - v)})`; c.lineWidth = 16 * (1 - v) + 2; c.beginPath(); c.ellipse(ripple.x, ripple.y - 40, 60 + v * 900, (60 + v * 900) * .46, 0, 0, 7); c.stroke(); }
-  c.restore(); c.font = '800 54px Pretendard, sans-serif'; c.textAlign = 'center'; c.fillStyle = `rgba(255,236,170,${Math.sin(u * Math.PI)})`; c.strokeStyle = `rgba(90,60,120,${.6 * Math.sin(u * Math.PI)})`; c.lineWidth = 6; c.strokeText('아멘!', PUL.x, 250); c.fillText('아멘!', PUL.x, 250); }
+  c.restore(); c.font = '800 54px Pretendard, sans-serif'; c.textAlign = 'center'; c.fillStyle = `rgba(255,236,170,${Math.sin(u * Math.PI)})`; c.strokeStyle = `rgba(90,60,120,${.6 * Math.sin(u * Math.PI)})`; c.lineWidth = 6; if (view === 'pastor') { c.save(); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.font = '800 40px Pretendard, sans-serif'; const ay = vh - (vh > vw * 1.2 ? 250 : 150) - Math.sin(u * Math.PI) * 14; c.strokeText('아멘!', vw / 2, ay); c.fillText('아멘!', vw / 2, ay); c.restore(); return; }
+  c.strokeText('아멘!', PUL.x, 250); c.fillText('아멘!', PUL.x, 250); }
 function drawTag(c, dt) { if (!tagShow) return; tagShow.t -= dt; if (tagShow.t <= 0) { tagShow = null; return; } label(c, tagShow.x, tagShow.y, tagShow.name, '#fff', 16); }
 function drawReact(c, dt) { if (!react) return; react.t += dt; const u = react.t; if (u > 2.2) { react = null; return; }
   const a = Math.min(1, u / .25, (2.2 - u) / .3), n = react.list.length, w = Math.min(vw - 24, 84 * n + 40), h = 132, x = (vw - w) / 2, y = vh > vw * 1.2 ? Math.max(112, Math.min(BH * s + oy - h - 10, vh - 200 - h)) : 74;
@@ -440,7 +454,7 @@ function startAmbience() { const A = window.Aud; if (!A?.ctx || A.muted) return;
 function stopAmbience() { if (!audio) return; try { const c = window.Aud.ctx; audio.g.gain.setTargetAtTime(0, c.currentTime, .3); const a = audio; setTimeout(() => { try { a.src.stop(); a.s2?.stop(); } catch { } }, 900); } catch { } audio = null; }
 
 // ---------------- QA hooks: simulated clients + fps
-export const WH = { enter, close, leave, setView, cycleView, get view() { return view; }, get fr() { return fr; }, tapSeat: i => { const st = L.seats[i]; if (st) { const T = curT || { s, x: ox, y: oy }; tap(st.x * T.s + T.x, (st.y - st.h * .5) * T.s + T.y); } }, emptySeats: () => L.seats.filter(x => !pil[x.i] && x.i !== me.seat && !seatPeer(x.i)).map(x => x.i), get walking() { return !!me.walk; }, get open() { return open; }, get fps() { return fps; }, seats: () => L?.seats.length || 0, get peers() { return peers; }, phaseAt, occurrences, setWeather: w => { weather = w; bgT = null; }, act, sheet, spot,
+export const WH = { fxTest() { ripple = { t0: performance.now(), x: PUL.x, y: 700 }; }, enter, close, leave, setView, cycleView, get view() { return view; }, get fr() { return fr; }, tapSeat: i => { const st = L.seats[i]; if (st) { const T = curT || { s, x: ox, y: oy }; tap(st.x * T.s + T.x, (st.y - st.h * .5) * T.s + T.y); } }, emptySeats: () => L.seats.filter(x => !pil[x.i] && x.i !== me.seat && !seatPeer(x.i)).map(x => x.i), get walking() { return !!me.walk; }, get open() { return open; }, get fps() { return fps; }, seats: () => L?.seats.length || 0, get peers() { return peers; }, phaseAt, occurrences, setWeather: w => { weather = w; bgT = null; }, act, sheet, spot,
   simulate(n = 20) { for (let i = 0; i < n; i++) { const id = 'sim' + (simN++); onNet({ id, k: 'p', s: (hash(id) % (L?.seats.length || 100)), n: '테스트' + i, av: pilgrimAv(rnd(hash(id))), st: i % 3 ? 'sing' : 'pray', hd: i % 2 }); }
     clearInterval(WH._sim); WH._sim = setInterval(() => { for (const [id] of peers) if (id.startsWith('sim')) { if (Math.random() < .08) onNet({ id, k: 'a', a: 'amen' }); else onNet({ id, k: 'p', s: peers.get(id).seat, n: peers.get(id).name, av: peers.get(id).av, st: peers.get(id).st, hd: 0 }); } }, 1000); },
   onNet, get me() { return me; } };
