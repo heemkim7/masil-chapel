@@ -84,3 +84,6 @@
 - QA, unthrottled, 1366 and 390: 60fps, 120 seats, 30 simulated peers, 0 errors.
 - QA, 390 at dpr 3 with 4x CPU throttle: rear 43, front 56, pastor 41, seat 39 fps.
 - Shots: shots/ui/cam_v2_{1366,390}_{walkin,rear,front,pastor,seat,move}.png
+
+## 10-30 18:31 KST beta loop
+Suite 160/160, settings/offer/shop polish, seat collision fix, BETA_TEST_PLAN/READINESS written.

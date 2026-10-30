@@ -505,7 +505,7 @@ function paintMap(g, w, h, big) {
   for (const n of wanderers) { const [x, y] = P(n.x, n.y); dot(g, x, y, r * .7, '#86a8ff'); }
   { const [x, y] = P(cfg.chapel.x, cfg.chapel.y); g.font = `${big ? 30 : 15}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⛪', x, y); }
   { g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 ${big ? 13 : 9}px Pretendard,sans-serif`; g.lineWidth = big ? 4 : 3; g.strokeStyle = 'rgba(255,255,255,.95)'; g.fillStyle = '#4a2b78';
-    if (!big) for (const sp of cfg.spots) { const [x, y] = P(sp.x, sp.y); g.strokeText(sp.name, x, y); g.fillText(sp.name, x, y); } }
+    if (!big && w >= 110) { const box = []; for (const sp of cfg.spots) { const [x, y] = P(sp.x, sp.y), tw = g.measureText(sp.name).width + 4, b = [x - tw / 2, y - 6, x + tw / 2, y + 6]; if (b[0] < 1 || b[2] > w - 1 || box.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1])) continue; box.push(b); g.strokeText(sp.name, x, y); g.fillText(sp.name, x, y); } } }
   const pp = scene === 'field' ? player : { x: cfg.chapel.door.x, y: cfg.chapel.door.y };
   { const [x, y] = P(pp.x, pp.y); const pulse = 1 + Math.sin(performance.now() / 220) * .2; g.globalAlpha = .35; dot(g, x, y, r * 2.2 * pulse, '#ff6fa8', 'rgba(0,0,0,0)'); g.globalAlpha = 1; dot(g, x, y, r * 1.15, '#ff4f93');
     if (scene === 'field') { g.strokeStyle = '#ff4f93'; g.lineWidth = big ? 3 : 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(player.ang) * r * 3, y + Math.sin(player.ang) * r * 3); g.stroke(); } }

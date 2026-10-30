@@ -162,7 +162,7 @@ function buildPilgrims() { const r = rnd(hash('pilgrims' + (mode === 'dawn' ? 'd
   const dens = mode === 'dawn' ? .38 : .84; for (let i = 0; i < n; i++) { const on = r() < dens; pil.push(on ? { av: pilgrimAv(r), name: '순례자 ' + PN[Math.floor(r() * PN.length)], ph: r() * 6.28, sing: r(), pray: r(), echo: r() } : null); } }
 function pickMySeat() { const saved = +localStorage.getItem('wh_seat'); const taken = new Set([...peers.values()].map(p => p.seat));
   if (L.seats[saved] && !taken.has(saved) && !pil[saved]) { me.seat = saved; return; }
-  const c = L.seats.filter(x => x.r === 3 && !taken.has(x.i) && !pil[x.i]).sort((a, b) => Math.abs(a.x - PUL.x) - Math.abs(b.x - PUL.x)); me.seat = (c[1] || c[0] || L.seats[0]).i; localStorage.setItem('wh_seat', me.seat); }
+  const c = L.seats.filter(x => x.r === 3 && !taken.has(x.i) && !pil[x.i]).sort((a, b) => Math.abs(a.x - PUL.x) - Math.abs(b.x - PUL.x)); let pick = c[1] || c[0]; if (!pick) { const free = L.seats.filter(x => !taken.has(x.i)); free.sort((a, b) => (!!pil[a.i] - !!pil[b.i]) || Math.abs(a.r - 3) - Math.abs(b.r - 3) || Math.abs(a.x - PUL.x) - Math.abs(b.x - PUL.x)); pick = free[0] || L.seats[0]; if (pil[pick.i]) pil[pick.i] = null; } me.seat = pick.i; localStorage.setItem('wh_seat', me.seat); }
 function buildStaff() { const pos = { senior: [PUL.x, 404, 'S', 168], assoc: [640, 470, 'SE', 112], evang: [1180, 470, 'SW', 108], praise: [1010, 430, 'S', 112], choir: [712, 452, 'W', 104], usher: [130, 800, 'NE', 150] };
   for (const st of STAFF) { const P = pos[st.id]; if (!P) continue; const c = makeChar(st.av, st.char); c.x = P[0]; c.y = P[1]; c.drawH = P[3]; c.face = c.dface = c._lf = P[2]; c.blendT = 1; c.speedNow = 0; staffC[st.id] = { c, st, base: P }; }
   staffC.choirs = [0, 1, 2, 3, 4].map(i => ({ x: 498 + i * 40, y: 432, av: pilgrimAv(rnd(900 + i)) })); }
@@ -182,7 +182,7 @@ function pickMySeatAvoid() { localStorage.removeItem('wh_seat'); pickMySeat(); s
 
 // ---------------- actions (기도 / 찬양 / 아멘)
 function act(a) { const g = G(), now = performance.now(), ph = phaseAt().p;
-  if (a === 'amen') { if (now - lastAct < 450) return; lastAct = now; me.act = 'amen'; me.actT = 0; amenLog.push(now); g.net?.send('wh', { k: 'a', a: 'amen' }); window.Aud?.sfx?.('amen'); echoAmen(L.seats[me.seat], true); reaction('아멘'); return; }
+  if (a === 'amen') { if (now - lastAct < 450) return; lastAct = now; me.act = 'amen'; me.actT = 0; amenLog.push(now); g.net?.send('wh', { k: 'a', a: 'amen' }); try { window.Aud?.bell?.(); } catch { } echoAmen(L.seats[me.seat], true); reaction('아멘'); return; }
   if (a === 'pray') { me.st = me.st === 'pray' ? 'sit' : 'pray'; if (me.st === 'pray' && ph.k === 'cry') { me.act = 'cry'; me.actT = 0; g.net?.send('wh', { k: 'a', a: 'cry' }); } }
   if (a === 'sing') { if (me.st === 'sing' && ph.hands) me.hands = !me.hands; else { me.st = me.st === 'sing' ? 'sit' : 'sing'; me.hands = false; } if (me.st === 'sing' && ph.k === 'song') reaction('찬양'); }
   if (now - lastSend > 500) { lastSend = now; g.net?.send('wh', { k: 'st', st: me.st, hd: me.hands ? 1 : 0 }); }
@@ -315,7 +315,7 @@ function seatPass(c, dt, now, P, md, F) { const t = now / 1000, k = P.p.k, song 
     if (F && pw) drawSeatF(c, row); if (!F && pw) drawPew(c, row); }
   if (F) WD(-1, 1); else WD(NR - 1, 1);
   const recent = amenLog.filter(x => now - x < 1800); amenLog = recent; const pilA = pil.reduce((a, p) => a + (p && p.act === 'amen' ? 1 : 0), 0);
-  if ((recent.length + pilA >= 8) && (!ripple || now - ripple.t0 > 2600)) { ripple = { t0: now, x: L.seats[me.seat]?.x || PUL.x, y: L.seats[me.seat]?.y || 700 }; window.Aud?.sfx?.('amen'); } }
+  if ((recent.length + pilA >= 8) && (!ripple || now - ripple.t0 > 2600)) { ripple = { t0: now, x: L.seats[me.seat]?.x || PUL.x, y: L.seats[me.seat]?.y || 700 }; try { window.Aud?.bell?.(); } catch { } } }
 function drawPew(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .46; i ? c.lineTo(x, yt) : c.moveTo(x, yt); }
   for (let i = A.length - 1; i >= 0; i--) { const [x, y, h] = A[i]; c.lineTo(x, y - h * .02); } c.closePath(); c.fillStyle = '#b98a64'; c.fill(); c.strokeStyle = '#8f6446'; c.lineWidth = 2; c.stroke();
   c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .46; i ? c.lineTo(x, yt) : c.moveTo(x, yt); } c.strokeStyle = '#e2bf98'; c.lineWidth = 3; c.stroke();
