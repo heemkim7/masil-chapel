@@ -113,3 +113,10 @@ Tests: beta_suite 160/160 local; test_walk_scale PASS; test_presence 6/6 PASS on
 - All 6 gacha outfits (hanbok, formal, winter, summer, spring, autumn), both genders, were pulled: the boy and girl hanbok aren't real hanbok, and all 12 share one leg template with skin specks at the legs and hem (identical speck counts across recolours).
 - Removed from config.json gacha.pool (now 12 items, weight 236) and from the UI (SHIP NEW_O = []; owned codes fall back to basic). Server: migration 20261030_07 sets active=false. Verified the active server pool is 12 items / 236, matching config. The beta suite is 160/160.
 - Players who already own an o_* item keep it in their inventory, but it shows as basic until a fixed version ships.
+
+## Batch 3: server-authoritative gacha, wings, monocle
+- Gacha: the 40% cosmetic roll for 헌금 축복 moved into the server's `_gacha` (migration 20261030_08, new private table cos_catalog, 48 rows mirroring AV.COS, same rarity weights as rollCos). The client no longer re-rolls; it shows and stores exactly the item the server returns. Dry-run (300 rolls, rolled back): 48 distinct cosmetics, 0 cosmetic duplicates, then pool items; no rows left behind.
+  - Remaining edge: if a player's local s.cos has an item the server inventory doesn't, the server can award it, and the client then shows it as a duplicate without a server refund.
+- Wings c24: 2x resample, cool outline and edge shading, w 1.35. They now read clearly on grass (eye-checked /workspace/mk/prod/wm1.jpg, S/SW/W/NW/N x boy and girl).
+- Monocle c19: bigger (w .38), translucent lens, raised, with a per-direction SW offset. It sits on the eye at S and SW for the boy and both girl hairs (wm3c.jpg) and passes on W.
+- Beta suite 160/160.

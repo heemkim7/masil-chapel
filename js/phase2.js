@@ -99,7 +99,8 @@ async function give(amt, pray, atBox) { const s = S(); if (!amt || s.coins < amt
   const R = srv ? await srv : null; fx.remove(); pl.kneel = 0;
   if (R && (R.error || !R.data)) { const m = String(R.error?.message || ''); s.coins += amt; await window.W?.sync(); G().refreshHud(); return G().toast(m.includes('insufficient') ? '달란트가 부족해요' : m.includes('rate') || m.includes('cap') ? '잠시 후 다시 드려주세요 🙏' : '헌금을 전하지 못했어요. 잠시 후 다시 시도해요'); }
   const SI = R?.data?.item; let it;
-  if (SI) it = (SI.cos && window.AV && window.AV.rollCos(atBox, s.cos ||= [])) || C().gacha.pool.find(p => p.id === SI.id) || { id: SI.id, name: SI.name, rar: SI.rar, kind: SI.kind === 'decor' ? 'decor' : undefined };
+  if (SI) it = SI.kind === 'cos' && !C().gacha.pool.some(p => p.id === SI.id) ? { id: SI.id, kind: 'cos', name: window.AV?.COS?.[SI.id]?.name || SI.name, rar: SI.rar, img: `cos/${SI.id}.png` } // v18: server is authoritative (cos roll moved into _gacha)
+    : C().gacha.pool.find(p => p.id === SI.id) || { id: SI.id, name: SI.name, rar: SI.rar, kind: SI.kind === 'decor' ? 'decor' : undefined };
   else it = (window.AV && Math.random() < .4 && window.AV.rollCos(atBox, s.cos ||= [])) || roll(atBox);
   // reward
   const p = st(); p.offered += amt; p.fruit += 1; let dup = false, glass = null;

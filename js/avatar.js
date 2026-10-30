@@ -30,9 +30,9 @@ export const COS = {
   c04: D('꽃 화관', 'hat', '희귀', { w: 1.1, sink: .14 }), c05: D('황금 왕관', 'hat', '전설', { w: .72, sink: .12 }), c06: D('신사 실크햇', 'hat', '영웅', { w: 1.0, sink: .2 }), c07: D('토끼 머리띠', 'hat', '희귀', { w: .95, sink: .18 }),
   c08: D('고양이 머리띠', 'hat', '희귀', { w: 1.0, sink: .2 }), c09: D('산타 모자', 'hat', '희귀', { w: 1.2, sink: .32 }), c10: D('학사모', 'hat', '영웅', { w: 1.15, sink: .2 }), c11: D('요리사 모자', 'hat', '희귀', { w: .95, sink: .22 }),
   c12: D('천사 링', 'hat', '전설', { w: .72, sink: -.12 }), c13: D('분홍 리본', 'hat', '일반', { w: .6, sink: .1, dx: .3 }), c14: D('썬바이저', 'hat', '일반', { w: 1.08, sink: .3 }), c15: D('초록 벙거지', 'hat', '희귀', { w: 1.2, sink: .34 }),
-  c16: D('동글 안경', 'face', '일반', { w: .78 }), c17: D('하트 선글라스', 'face', '희귀', { w: .8 }), c18: D('별 선글라스', 'face', '영웅', { w: .84 }), c19: D('외눈 안경', 'face', '희귀', { w: .3, dx: -.2 }),
+  c16: D('동글 안경', 'face', '일반', { w: .78 }), c17: D('하트 선글라스', 'face', '희귀', { w: .8 }), c18: D('별 선글라스', 'face', '영웅', { w: .84 }), c19: D('외눈 안경', 'face', '희귀', { w: .38, dx: -.18, dy: -.035, dxsw: -.09 }),
   c20: D('하트 볼터치', 'face', '일반', { w: .7, dy: .12 }), c21: D('콧수염', 'face', '희귀', { w: .4, dy: .2 }), c22: D('하얀 마스크', 'face', '일반', { w: .58, dy: .06 }), c23: D('나비 핀', 'hat', '희귀', { w: .32, sink: .45, dx: .4 }),
-  c24: D('천사 날개', 'back', '전설', { w: 1.25, ay: .45 }), c25: D('나비 날개', 'back', '영웅', { w: 1.2, ay: .5 }), c26: D('빨간 망토', 'back', '희귀', { w: .8, ay: .12 }), c27: D('노란 백팩', 'back', '일반', { w: .62, ay: .12 }),
+  c24: D('천사 날개', 'back', '전설', { w: 1.35, ay: .45 }), c25: D('나비 날개', 'back', '영웅', { w: 1.2, ay: .5 }), c26: D('빨간 망토', 'back', '희귀', { w: .8, ay: .12 }), c27: D('노란 백팩', 'back', '일반', { w: .62, ay: .12 }),
   c28: D('곰돌이 백팩', 'back', '희귀', { w: .66, ay: .2 }), c29: D('기타', 'back', '영웅', { w: .7, ay: .35 }), c30: D('무지개 목도리', 'back', '희귀', { w: .6, ay: .02, front: 1 }), c31: D('요정 날개', 'back', '전설', { w: 1.2, ay: .5 }),
   c32: D('꽃다발', 'held', '희귀'), c33: D('하트 풍선', 'held', '일반', { w: .34, dy: -.5 }), c34: D('등불', 'held', '희귀'), c35: D('작은 성경', 'held', '일반'),
   c36: D('왕사탕', 'held', '일반'), c37: D('아이스크림', 'held', '일반'), c38: D('곰인형', 'held', '희귀', { w: .3 }), c39: D('우산', 'held', '희귀', { w: .4, dy: -.3 }),
@@ -224,7 +224,7 @@ export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d 
   let htop = H; for (let i = 3, j = 0; i < hp.length; i += 4, j++) if (hp[i] > 40) { htop = (j / W) | 0; break; }
   const cos = (slot, over) => { const id = a[slot]; if (!id || id === '-' || !COS[id]) return; const C = COS[id], im = img(`assets/cos/${id}.png`); if (!im) return; let w, cx = hcx + (C.dx || 0) * hw * (back ? -1 : 1), cy, h;
     if (slot === 'hat') { w = hw * (C.w || 1) * .95; h = w * im.height / im.width; cy = Math.min(htop, top) + hh * (C.sink || 0) * .9 - h / 2; }
-    else if (slot === 'face') { if (back) return; w = hw * (C.w || .8) * (side ? .7 : 1); h = w * im.height / im.width; cx = side ? hcx - hw * .2 : cx; cy = top + hh * (.6 + (C.dy || 0)); }
+    else if (slot === 'face') { if (back) return; w = hw * (C.w || .8) * (side ? .7 : 1); h = w * im.height / im.width; cx = side ? hcx - hw * .2 : cx + (d === 'SW' ? (C.dxsw || 0) * hw : 0); cy = top + hh * (.6 + (C.dy || 0)); }
     else if (slot === 'back') { if ((C.front ? !back : back) !== over) return; w = hw * (C.w || .8) * 1.15; h = w * im.height / im.width; cy = top + hh * (.93 + (C.dy || 0)) + 8 - h * (C.ay ?? .3); }
     else { if (back) return; w = hw * (C.w || .32) * 1.5; h = w * im.height / im.width; const nk = top + hh * .93, hy = nk + (272 - nk) * .5; cx = side ? hcx - hw * .3 : hcx + hw * .42; cy = hy - h * .6 + hh * (C.dy || 0); }
     g.drawImage(im, cx - w / 2, cy, w, h); };
