@@ -55,11 +55,24 @@ export const V = {
       L.push([`${n === this.shard() ? '📍' : '🚪'} ${n}번 방 · ${k}/${cap}명${k >= cap ? ' (가득)' : ''}`, () => k >= cap && n !== this.shard() ? A.toast('이 방은 가득 찼어요') : this.setShard(n)]); }
     L.push(['🔗 이 방 링크 복사', () => window.shareLink(this.link())], ['닫기', null]);
     A.dialog(`🏠 ${d.name} 방 목록`, '같은 동네라도 100명씩 방이 나뉘어요. 원하는 방으로 옮길 수 있어요.', L); },
-  dongLabel() { const S = this.S; if (!S) return ''; if (S.solo) return '🌙 혼자 모드'; const d = this.current(); if (!d) return '📍 동네 선택'; return (S.visit ? '🧳 ' : d.cd === '0' ? '🌈 ' : '📍 ') + d.name + (this.shard() > 1 ? ` ${this.shard()}번 방` : ''); },
+  dongLabel() { const S = this.S; if (!S) return ''; if (S.solo) return '🌙 혼자 모드'; const d = this.current(); if (!d) return '📍 동네 선택'; return (d.cd === '0' ? '🌈 ' : S.visit ? '🧳 ' : '📍 ') + d.name + (this.shard() > 1 ? ` ${this.shard()}번 방` : ''); },
   async setDong(cd, opt = {}) { const S = this.S, d = await this.byCode(cd); if (!d) return false; S.solo = false;
     if (opt.visit && S.dong && S.dong.cd !== cd) S.visit = d; else { S.dong = d; S.visit = null; } if (!opt.keepShard) { S.shard = 1; S.shardLock = false; }
+    if (S.visit) S.recent = [{ cd: d.cd, name: d.name, sgg: d.sgg }, ...(S.recent || []).filter(r => r.cd !== d.cd)].slice(0, 4);
     A.persist(); this.hud(); A.toast(S.visit ? `🧳 ${d.sgg} ${d.name}에 놀러 왔어요` : `📍 ${d.sgg} ${d.name} 예배당에 들어왔어요`); A.chatLog('📍', `${d.sido} ${d.sgg} ${d.name} 방`); return true; },
   goSolo() { const S = this.S; S.solo = true; S.visit = null; A.net.leave(); A.net.leaveLobby(); A.persist(); this.hud(); A.toast('🌙 혼자 모드: 다른 사람 없이 조용히 플레이해요'); A.closeModal(); },
+  // top-bar place switcher: current place + 광장 / 우리 동네 / recent visits / search; tickRoom() reconnects to the new room on the next frame
+  goPlace(k) { const S = this.S; S.solo = false; S.shard = 1; S.shardLock = false;
+    if (k === 'plaza') S.visit = S.dong ? PLAZA : null; else if (k === 'home') S.visit = null;
+    A.persist(); this.hud(); A.closeModal(); const d = this.current(); A.toast(`${d.cd === '0' ? '🌈' : '📍'} ${d.name}(으)로 이동했어요`); },
+  openPlaces() { const S = this.S, d = this.current(), here = d ? d.cd : null, L = [];
+    L.push([`🌈 모두의 광장${here === '0' ? ' · 지금 여기' : ''}`, () => here === '0' ? A.closeModal() : this.goPlace('plaza')]);
+    if (S.dong) L.push([`🏠 우리 동네 ${S.dong.name}${here === S.dong.cd && !S.visit ? ' · 지금 여기' : ''}`, () => (here === S.dong.cd && !S.visit) ? A.closeModal() : this.goPlace('home')]);
+    for (const r of (S.recent || [])) if (!S.dong || r.cd !== S.dong.cd) L.push([`🧳 ${r.sgg} ${r.name}${here === r.cd ? ' · 지금 여기' : ''}`, () => here === r.cd ? A.closeModal() : (A.closeModal(), this.setDong(r.cd, { visit: true }))]);
+    L.push(['🔍 다른 동네 찾기', () => this.openDongPick(false)]);
+    if (d) L.push(['🚪 같은 장소 다른 방', () => this.openShards()]);
+    L.push([S.solo ? '🌙 혼자 모드 · 지금 여기' : '🌙 혼자 모드', () => S.solo ? A.closeModal() : this.goSolo()], ['닫기', null]);
+    A.dialog('📍 장소 이동', `지금: ${this.dongLabel().replace(/^\S+ /, '')}`, L); },
   goHome() { const S = this.S; if (S.visit) { S.visit = null; A.persist(); this.hud(); A.toast(`🏠 우리 동네 ${S.dong.name}(으)로 돌아왔어요`); } },
   tickRoom(scene) { const net = A.net; if (!net.sb) return; const r = this.room(scene);
     if (!r) { if (net.room) { net.room = null; net.leave(); } return; }
@@ -137,10 +150,10 @@ export const V = {
   onEmote(e) { if (e === 'wave') this.done('greet'); if (e === 'pray') A.toast('🙏 잠시 기도해요'); },
   onChat(t) { if (/평안|안녕|반가|하이|hello/i.test(t)) this.done('greet'); },
   openEmo() { const p = $('#emopanel'); const on = p.style.display !== 'flex'; p.style.display = on ? 'flex' : 'none'; $('#btn-emo').classList.toggle('on', on); },
-  hud() { const S = this.S; if (!S) return; const m = this.mis(); $('#dongbtn').textContent = this.dongLabel().replace(/^(\S+) /, '$1 마실채플 · '); $('#mbadge').textContent = `Lv.${this.lv()} · 오늘 ${Object.keys(m.done).length}/4`; },
+  hud() { const S = this.S; if (!S) return; const m = this.mis(); $('#dongbtn').textContent = this.dongLabel().replace(/^(\S+) /, innerWidth < 560 ? '$1 ' : '$1 마실채플 · ') + ' ▾'; $('#dongbtn').setAttribute('aria-label', '장소 이동: ' + this.dongLabel().replace(/^\S+ /, '')); $('#mbadge').textContent = `Lv.${this.lv()} · 오늘 ${Object.keys(m.done).length}/4`; },
   wire() {
     $('#dpgps').onclick = () => this.gps(); $('#dpsolo').onclick = () => this.goSolo(); $('#dpq').oninput = e => this.dpList(e.target.value);
-    $('#dongbtn').onclick = () => this.openDongPick(false); $('#mbadge').onclick = () => this.openMissions();
+    $('#dongbtn').onclick = () => this.openPlaces(); $('#mbadge').onclick = () => this.openMissions();
     $('#btn-verse').onclick = () => this.openVerse(); $('#vdraw').onclick = () => this.drawVerse(); $('#vshare').onclick = () => { this.shareVerse(); A.closeModal(); };
     $('#bpost').onclick = () => this.postPrayer(); $('#btext').oninput = e => $('#bcount').textContent = `${e.target.value.length}/60`;
     $('#btn-emo').onclick = () => this.openEmo(); $('#btn-praise').onclick = () => this.togglePraise(); $('#pstop').onclick = () => this.stopPraise();

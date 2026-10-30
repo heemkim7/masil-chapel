@@ -36,7 +36,7 @@ export class Interior {
   drawMarks(ctx) { const t = performance.now() / 1000; ctx.textAlign = 'center';
     for (const st of this.stairs()) { const down = this.on1 && st.to === 'B1', b = Math.sin(t * 3) * 4, k = this.cs();
       (down ? stairDown : stairUp)(ctx, st.x, st.y, k, t);
-      pill(ctx, (down ? '▼ ' : '▲ ') + st.label, st.x, st.y - 150 * k - 18 + b); }
+      pill(ctx, (down ? '▼ ' : '▲ ') + st.label, st.x, st.y + 34 + b * .5); } // at the stair foot: clear of seated name tags and the pulpit
     for (const sp of this.spots()) pill(ctx, sp.label, sp.x, sp.y - 120 * this.cs());
     if (!this.on1) { ctx.font = '900 22px Pretendard,sans-serif'; ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(74,43,120,.85)'; ctx.fillStyle = '#ffe9a8'; ctx.strokeText(this.F().name, this.W / 2, 40); ctx.fillText(this.F().name, this.W / 2, 40); } }
   pewImgH() { return this.I.pewH; }

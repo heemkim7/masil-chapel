@@ -112,17 +112,15 @@ export const svg = (n, cls = '') => I[n] ? `<svg class="ic ${cls}" viewBox="0 0 
 const keys = Object.keys(E).sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 const RX = new RegExp('(' + keys.join('|') + ')\uFE0F?', 'g');
 // pages/chat text stay plain: only UI chrome is converted (chat log, prayer notes and user names are never touched)
+// per-button icons, applied at conversion time so menu icons read instantly regardless of the generic emoji map
+const BTN = { 'btn-board': 'board', 'btn-inv': 'palette', 'btn-decor': 'sofa', 'btn-gacha': 'offer', 'minimap': 'map', 'btn-set': 'gear', 'btn-p2help': 'help', 'btn-p2bible': 'bible', 'btn-verse': 'book', 'mbadge': 'checklist' };
 const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'CANVAS', 'svg', 'OPTION']);
 const isUser = el => el.closest && el.closest('#chatlog,.bubble,.note-text,.btext,[data-user]');
 function conv(root) {
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: t => (RX.lastIndex = 0, RX.test(t.nodeValue) && t.parentElement && !SKIP.has(t.parentElement.tagName) && !isUser(t.parentElement)) ? 1 : 3 });
   const L = []; while (w.nextNode()) L.push(w.currentNode);
-  for (const t of L) { const f = document.createElement('template'); f.innerHTML = t.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(RX, (m, k) => svg(E[k])).replace(/(<\/svg>)\s+/g, '$1 '); t.replaceWith(f.content); }
+  for (const t of L) { const hb = t.parentElement.closest('button[id],#mbadge,#minimap'); let ov = hb && BTN[hb.id]; const f = document.createElement('template'); f.innerHTML = t.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(RX, (m, k) => { const n = ov || E[k]; ov = null; return svg(n); }).replace(/(<\/svg>)\s+/g, '$1 '); t.replaceWith(f.content); }
 }
 export function initIcons() { conv(document.body); let q = 0; new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) { if (n.nodeType === 1) conv(n); else if (n.nodeType === 3 && n.parentElement) conv(n.parentElement); }
   for (const m of ms) if (m.type === 'characterData' && m.target.parentElement) conv(m.target.parentElement); }).observe(document.body, { childList: true, subtree: true, characterData: true }); }
 export const ICONS = I;
-// per-button overrides: the menu icons must read instantly, so they don't depend on the generic emoji map
-const BTN = { 'btn-board': 'board', 'btn-inv': 'palette', 'btn-decor': 'sofa', 'btn-gacha': 'capsule', 'minimap': 'map', 'btn-set': 'gear', 'btn-p2help': 'help', 'btn-p2bible': 'bible', 'btn-verse': 'book', 'mbadge': 'checklist' };
-export function fixButtons() { for (const [id, n] of Object.entries(BTN)) { const b = document.getElementById(id); const sv = b && b.querySelector('svg.ic'); if (sv && sv.dataset.n !== n) { sv.innerHTML = I[n]; sv.dataset.n = n; } } }
-setInterval(fixButtons, 1500);

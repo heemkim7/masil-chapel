@@ -20,7 +20,7 @@ export function start(mine, seed) {
   cv.addEventListener('pointerdown', tap); let last = performance.now();
   const f = now => { if (!rain) return; const dt = Math.min(.05, (now - last) / 1000); last = now; rain.t += dt; const c = cv.getContext('2d'); c.setTransform(pr, 0, 0, pr, 0, 0); c.clearRect(0, 0, innerWidth, innerHeight);
     c.font = '40px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; for (const p of rain.P) { if (!p.on) continue; p.y += p.v * dt; p.r += dt; if (p.y > innerHeight + 40) p.y = -40; c.save(); c.translate(p.x + Math.sin(p.r * 2) * 10, p.y); c.rotate(Math.sin(p.r) * .4); c.fillText(p.e, 0, 0); c.restore(); }
-    c.font = '800 20px Pretendard,sans-serif'; c.fillStyle = '#7a4b00'; c.strokeStyle = '#fff'; c.lineWidth = 4; const s = `🍞🐟 ${rain.got}개 모았어요 · ${Math.max(0, Math.ceil(rain.end - rain.t))}초`; c.strokeText(s, innerWidth / 2, 70); c.fillText(s, innerWidth / 2, 70);
+    c.font = '800 20px Pretendard,sans-serif'; c.fillStyle = '#7a4b00'; c.strokeStyle = '#fff'; c.lineWidth = 4; const s = `🍞🐟 ${rain.got}개 모았어요 · ${Math.max(0, Math.ceil(rain.end - rain.t))}초`; const cy = innerWidth < 760 ? 228 : 128; c.strokeText(s, innerWidth / 2, cy); c.fillText(s, innerWidth / 2, cy);
     if (rain.t < rain.end) requestAnimationFrame(f); else finish(); };
   requestAnimationFrame(f); }
 async function finish() { const r = rain; rain = null; r.cv.remove(); const g = G(); if (r.got > 0) { const d = await window.W?.earn?.('obi'); g?.toast?.(d && d.granted ? `🙌 ${r.got}개를 모아 달란트 +${d.granted}! 나눔의 기적이에요` : `🙌 ${r.got}개를 모았어요! (오늘 보상은 이미 받았어요)`); g?.refreshHud?.(); } }
