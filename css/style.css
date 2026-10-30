@@ -230,7 +230,12 @@ html,body{overscroll-behavior:none}
 .cz-ctl{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;max-height:min(46vh,360px);overflow-y:auto}
 .cz-row{display:flex;align-items:center;gap:6px}
 .cz-row>span{flex:0 0 40px;font-size:12px;font-weight:700;color:#8a5a70}
-.cz-ch{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.cz-ch{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:2px;cursor:grab;touch-action:pan-x pan-y;user-select:none;-webkit-user-select:none;overscroll-behavior-x:contain;min-width:0;flex:1}
+.cz-ch::-webkit-scrollbar{display:none}.cz-ch.drag{cursor:grabbing}.cz-ch.drag .chip{pointer-events:none}
+.cz-ch.fr{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
+.cz-ch.fl{-webkit-mask-image:linear-gradient(90deg,transparent,#000 15%);mask-image:linear-gradient(90deg,transparent,#000 15%)}
+.cz-ch.fl.fr{-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.cz-row{min-width:0}
 .cz-ch .chip{flex:0 0 auto;min-height:32px;min-width:32px;padding:4px 9px;font-size:12px;white-space:nowrap}
 .cz-ch .chip[style]{width:32px;padding:0;border-radius:50%}
 .cz-ch .chip.on{outline:3px solid #ff8fb8;outline-offset:1px}
@@ -285,3 +290,4 @@ html,body{overscroll-behavior:none}
 .cl .flag{border:0;background:none;cursor:pointer;font-size:11px;opacity:.55;padding:0 2px;pointer-events:auto}.cl .flag:hover{opacity:1}
 
 .obibtn{position:fixed;right:calc(14px + env(safe-area-inset-right));top:calc(250px + env(safe-area-inset-top));z-index:40;border:0;border-radius:18px;padding:10px 14px;font:800 15px Pretendard,sans-serif;color:#7a4b00;background:linear-gradient(#fff6c8,#ffd77a);box-shadow:0 4px 0 #e0b04a,0 6px 14px rgba(160,110,0,.25)}.obibtn:disabled{opacity:.5}#obicv{position:fixed;inset:0;width:100vw;height:100vh;z-index:85;touch-action:none}
+.cz-ch img{-webkit-user-drag:none;pointer-events:none}

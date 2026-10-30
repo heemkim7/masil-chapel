@@ -9,6 +9,7 @@
 <link rel="icon" href="assets/icon192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/ds.css">
 <style>#shotimg{width:100%;height:auto;border-radius:14px;display:block}</style></head><body>
 <canvas id="game"></canvas>
 <div id="loading"><div class="logo"><span class="wm">마실채플</span><em>우리 동네 예배당</em></div><div class="lb"><i id="loadbar"></i></div></div>
@@ -21,7 +22,7 @@
 </div></div>
 <div id="hud" style="display:none">
   <div id="top"><div id="coinbox">달란트 <b id="coins">0</b></div>
-    <div id="lvbox"><span id="lvl">예배당 Lv.1</span><div class="bar"><i id="lvbar"></i></div></div><span id="scene"></span><button id="dongbtn">📍 동네 선택</button><button id="chlv" title="우리 예배당 레벨 · 눌러서 보기">⛪ Lv.1<i><b id="chlvbar"></b></i></button><button id="online" title="방 목록">⚪ 오프라인</button>
+    <div id="lvbox"><span id="lvl">예배당 Lv.1</span><div class="bar"><i id="lvbar"></i></div></div><span id="scene"></span><button id="dongbtn">📍 동네 선택</button><button id="chlv" title="우리 예배당 레벨 · 눌러서 보기">⛪<span id="chlvt">Lv.1</span><i><b id="chlvbar"></b></i></button><button id="online" title="방 목록">⚪ 오프라인</button>
     <button id="btn-set" title="설정 (Esc)" aria-label="설정">⚙️</button><button id="btn-menu" title="나가기 / 로그아웃">🚪</button></div>
   <button id="minimap" title="지도 열기" aria-label="지도 열기"><canvas id="mmcv"></canvas><span>🗺️ 지도</span></button>
   <div id="quest"><button id="mbadge">Lv.1 · 오늘 0/4</button><b>📜 임무</b><span id="qtext"></span></div>

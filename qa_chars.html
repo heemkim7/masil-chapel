@@ -1,0 +1,38 @@
+<!doctype html><meta charset=utf-8><body style="margin:0;background:#f4eefa;font:10px sans-serif"><canvas id=c></canvas><pre id=o></pre>
+<script type=module>
+import { loadAll, IMG } from './js/assets.js'; import { AV } from './js/avatar.js';
+import * as A from './js/avatar.js';
+const Q = new URLSearchParams(location.search), mode = Q.get('m') || 'qa';
+const cfg = await (await fetch('config.json')).json().catch(() => null);
+const atlas = await (await fetch('assets/characters/atlas.json')).json(); A.init(atlas);
+// load sheets only
+await Promise.all(Object.entries(atlas.sheets).filter(([k]) => /^(player|boy)\//.test(k)).map(([co, sh]) => new Promise(r => { const i = new Image(); i.onload = () => { for (const [f, [x, y]] of Object.entries(sh.cells)) { const c = document.createElement('canvas'); c.width = atlas.frameW; c.height = atlas.frameH; c.getContext('2d').drawImage(i, x, y, atlas.frameW, atlas.frameH, 0, 0, atlas.frameW, atlas.frameH); IMG[co + '/' + f] = c; } r(); }; i.src = 'assets/characters/' + sh.img; })));
+const sleep = t => new Promise(r => setTimeout(r, t));
+const DIRS = [['S', 0], ['SW', 0], ['W', 0], ['NW', 0], ['N', 0], ['NW', 1], ['W', 1], ['SW', 1]];
+const nF = d => (d === 'NW' ? 2 : d === 'SW' ? 4 : 6);
+async function frm(code, key) { const ch = {}; AV.apply(ch, code); for (let t = 0; t < 60; t++) { const f = AV.frame(ch, ch.char + '/' + ch.outfit + '/' + key); if (f) return f; await sleep(30); } return null; }
+const enc = o => { const a = AV.parse(AV.DEFAULT); Object.assign(a, o); return AV.encode(a); };
+const rows = []; // [label, code]
+const G = ['f', 'm'];
+if (mode === 'qa') { for (const g of G) for (let ag = 0; ag < 4; ag++) { const hs = AV.HAIRS[g].length, os = AV.OUTFITS[g]; for (let s = 0; s < AV.SKIN.length; s += 2) { const h = (ag * 3 + s) % hs, o = os[(ag + s) % os.length][0]; rows.push([`${g} age${ag} skin${s} hair${h} ${o}`, enc({ g, a: ag, s, hs: h, o })]); } } }
+if (mode === 'hair') { for (const g of G) for (let h = 0; h < AV.HAIRS[g].length; h++) rows.push([`${g} hair${h} ${AV.HAIRS[g][h][0]}`, enc({ g, hs: h })]); }
+if (mode === 'age') { for (const g of G) for (let ag = 0; ag < 4; ag++) for (const s of [0, 3, 5]) rows.push([`${g} ${AV.AGE[ag][0]} skin${s}`, enc({ g, a: ag, s })]); }
+if (mode === 'skin') { for (const g of G) for (const o of AV.OUTFITS[g]) for (let s = 0; s < AV.SKIN.length; s++) rows.push([`${g} ${o[0]} skin${s}`, enc({ g, o: o[0], s })]); }
+const walk = mode === 'qa' || mode === 'hair', cellW = 76, cellH = 108, cols = DIRS.length * (walk ? 2 : 1);
+const cv = document.getElementById('c'); cv.width = 150 + cols * cellW; cv.height = rows.length * cellH; const g = cv.getContext('2d'); g.fillStyle = '#f4eefa'; g.fillRect(0, 0, cv.width, cv.height);
+const fails = [], stats = [];
+for (let r = 0; r < rows.length; r++) { const [lab, code] = rows[r]; g.fillStyle = '#333'; g.fillText(lab, 4, r * cellH + 50); let col = 0;
+  for (const [d, mir] of DIRS) for (const fi of (walk ? [0, 3 % nF(d)] : [0])) { const key = `walk_${d}_${fi}.png`; const f = await frm(code, key); const x = 150 + col * cellW, y = r * cellH; col++; if (!f) { fails.push(lab + ' ' + key + ' nofr'); continue; }
+    g.save(); g.translate(x + (mir ? cellW : 0), y); g.scale(mir ? -cellW / atlas.frameW : cellW / atlas.frameW, cellH / atlas.frameH * 1); g.drawImage(f, 0, 0); g.restore();
+    // alignment: composed head region vs base body head box
+    const base = IMG[(code.startsWith('m') ? 'boy/' : 'player/') + (AV.OUTFITS[code[0]].find(o => o[0] === AV.parse(code).o)[2]) + '/' + key];
+    const W = atlas.frameW, H = atlas.frameH, pb = base.getContext('2d').getImageData(0, 0, W, H).data, pc = f.getContext('2d').getImageData(0, 0, W, H).data;
+    let tb = 0; for (let i = 3; i < pb.length; i += 4) if (pb[i] > 40) { tb = ((i >> 2) / W) | 0; break; }
+    const HB = A.headBox(pb, W, tb, H - 1), hw = HB.x1 - HB.x0;
+    let x0 = 1e9, x1 = -1, gap = 0, prevEmpty = false, seen = false;
+    for (let yy = 0; yy < HB.y1; yy++) { let any = false; for (let xx = 0; xx < W; xx++) if (pc[(yy * W + xx) * 4 + 3] > 60) { any = true; if (yy < HB.y0 + (HB.y1 - HB.y0) * .5) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); } } if (any) { if (seen && prevEmpty) gap++; seen = true; } prevEmpty = !any; }
+    const off = ((x0 + x1) / 2 - HB.cx) / hw; stats.push(Math.abs(off));
+    const bad = Math.abs(off) > .22 || gap > 0; if (bad) { fails.push(`${lab} ${key} off=${off.toFixed(2)} gap=${gap}`); g.strokeStyle = 'red'; g.lineWidth = 2; g.strokeRect(x + 1, y + 1, cellW - 2, cellH - 2); } } }
+const o = { mode, rows: rows.length, frames: stats.length, maxOff: Math.max(...stats).toFixed(3), meanOff: (stats.reduce((a, b) => a + b, 0) / stats.length).toFixed(3), fails };
+document.getElementById('o').textContent = JSON.stringify(o); document.title = 'DONE'; window.QA = o; window.PNG = cv.toDataURL();
+</script>

@@ -54,3 +54,15 @@
 ## v9 backlog (2026-10-30 KST) — deploys dpl_6BgSGpsfqh5xQmsarpnVYKwv5Ppy, dpl_8S1bTXadQQvcVgp6BeRUMRzXXAvi, dpl_CuZqEH3aMwLuwVrRAN212QpeQH5N
 - [x] UGC safety (842acbd) · [x] mobile + floor sync (aa39c68) · [x] phase 4 (bf58ab9, cb907c1) · [x] collision/paths (8ac8028)
 - [x] Live: test_v8 / test_p4 / test_floor / test_wallet → 0 page errors
+
+## 계정 연동 (Supabase Auth) — 2026-10-30
+- 손님 시작 유지: 정체성은 기기의 `maeul_secret`. 연동 = Supabase Auth 사용자 1명 ↔ `public.account_links` 1행 {secret, save 스냅샷}.
+- 마이그레이션: `supabase/migrations/20261030_05_account_links.sql` (적용됨). RLS: 본인 행만 select/insert/update, anon 권한 없음. (롤백 트랜잭션으로 타인 조회 0행·타인 수정 불가 확인)
+- 이메일: `signInWithOtp` → 메일의 6자리 코드(`verifyOtp`) 또는 매직 링크. 코드를 쓰려면 Auth → Email Templates의 Magic Link 템플릿에 `{{ .Token }}` 추가.
+- Site URL / Redirect URLs: `https://maeul-chapel-25d.vercel.app` (설정됨으로 보고받음).
+- Google: 클라이언트는 `/auth/v1/settings`의 `external.google`이 true일 때만 버튼을 보여줌. 손님이 익명 세션이면 `linkIdentity`, 아니면 `signInWithOAuth` (redirectTo = 사이트).
+  - 2026-10-30 15:50 KST 확인 결과 **external.google = false** (아직 적용 안 됨). Google Cloud OAuth 클라이언트 ID/Secret을 Auth → Providers → Google에 넣고 저장해야 함. 승인된 리디렉션 URI: `https://gisykxqhticmdhmupnry.supabase.co/auth/v1/callback`.
+  - Manual Linking(`security_manual_linking_enabled`): linkIdentity를 쓰려면 Auth → Settings에서 켜야 함. 이 환경엔 관리 API 도구가 없어 확인/변경 못 함 → 대시보드에서 확인 필요. 익명 로그인(anonymous sign-ins)도 현재 꺼져 있어 지금은 signInWithOAuth 경로만 사용됨(동작엔 문제 없음).
+- Kakao / Naver: 숨김. 켜려면 Providers에 키 등록 후 `window.MAEUL_KAKAO = true` 플래그. 키는 절대 저장소에 커밋하지 않음.
+- 로그아웃: 손님이면 경고 + "먼저 계정 연동" 제안, 연동됐으면 백업 후 로그아웃. 다시 로그인 → secret·저장 복원 후 새로고침 → 같은 예배당·캐릭터·지갑(지갑은 서버에서 secret 기준).
+- 알려진 한계: "처음부터 다시 시작"(delete_account)은 account_links 행을 지우지 않음 → 재로그인 시 빈 기록의 옛 secret으로 돌아감.

@@ -13,6 +13,25 @@ let lt = 0; function tick(t) { const dt = Math.min(.05, (t - lt) / 1000 || 0); l
 function preview(c, code, w, h) { const pr = Math.min(3, devicePixelRatio || 1); c.width = w * pr; c.height = h * pr; c.style.width = w + 'px'; c.style.height = h + 'px';
   const ch = new Char(SP, 'player', 'basic', w / 2, h - 12, { cfg: CFG, drawH: 150 }); AV.apply(ch, code); const k = h / 210; ch.drawH = Math.round(ch.drawH * k); const v = { c, ch, pr, spin: 0, walk: false }; live.add(v); return v; }
 const sw = rgb => rgb ? `rgb(${rgb.join(',')})` : 'conic-gradient(#f4a0ba,#4a3428,#f4a0ba)';
+// v10 carousel: click-drag with momentum (mouse + touch via pointer events), wheel→horizontal, keyboard arrows,
+// a drag >5px never selects, selected chip scrolled into view, fade edges hint at more items.
+function scroller(el) {
+  const edge = () => { const m = el.scrollWidth - el.clientWidth; el.classList.toggle('fl', el.scrollLeft > 2); el.classList.toggle('fr', el.scrollLeft < m - 2); };
+  let down = null, v = 0, raf = 0;
+  const glide = () => { cancelAnimationFrame(raf); const step = () => { if (Math.abs(v) < .3) return; el.scrollLeft -= v; v *= .93; edge(); raf = requestAnimationFrame(step); }; raf = requestAnimationFrame(step); };
+  el.addEventListener('pointerdown', e => { if (e.button) return; cancelAnimationFrame(raf); down = { x: e.clientX, sl: el.scrollLeft, lx: e.clientX, lt: performance.now(), id: e.pointerId }; el._dragged = false; v = 0; });
+  el.addEventListener('pointermove', e => { if (!down || e.pointerId !== down.id) return; const dx = e.clientX - down.x;
+    if (!el._dragged && Math.abs(dx) > 5) { el._dragged = true; try { el.setPointerCapture(e.pointerId); } catch { } el.classList.add('drag'); }
+    if (el._dragged) { el.scrollLeft = down.sl - dx; const t = performance.now(), dt = Math.max(1, t - down.lt); v = v * .5 + ((e.clientX - down.lx) * 16 / dt) * .5; down.lx = e.clientX; down.lt = t; edge(); e.preventDefault(); } });
+  const up = e => { if (!down) return; down = null; el.classList.remove('drag'); if (el._dragged) { glide(); setTimeout(() => el._dragged = false, 0); } };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('click', e => { if (el._dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
+  el.addEventListener('wheel', e => { const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY; const m = el.scrollWidth - el.clientWidth; if (m <= 0) return; if ((d < 0 && el.scrollLeft <= 0) || (d > 0 && el.scrollLeft >= m)) return; el.scrollLeft += d; edge(); e.preventDefault(); }, { passive: false });
+  el.addEventListener('scroll', edge, { passive: true });
+  el.addEventListener('keydown', e => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; const bs = [...el.querySelectorAll('button')], i = bs.indexOf(document.activeElement), n = bs[Math.max(0, Math.min(bs.length - 1, i + (e.key === 'ArrowRight' ? 1 : -1)))]; if (n) { n.focus(); n.scrollIntoView({ inline: 'nearest', block: 'nearest' }); e.preventDefault(); } });
+  const on = el.querySelector('.on'); if (on) el.scrollLeft = Math.max(0, on.offsetLeft - el.offsetLeft - el.clientWidth / 2 + on.offsetWidth / 2);
+  requestAnimationFrame(edge); edge();
+}
 // mount the editor into `el`. opts: {owned: [cosIds], onChange(code), compact}
 export function mount(el, code, opts = {}) {
   let a = AV.parse(code); el.innerHTML = `<div class="cz"><div class="cz-prev"><canvas></canvas><button class="cz-turn" type="button">🔄 돌려보기</button></div><div class="cz-ctl"></div></div>`;
@@ -28,7 +47,8 @@ export function mount(el, code, opts = {}) {
     for (const [slot, lab] of [['hat', '모자'], ['face', '얼굴'], ['back', '등'], ['held', '손']]) { const its = owned.filter(id => AV.COS[id]?.slot === slot); if (its.length || a[slot] !== '-') h += `<div class="cz-row"><span>${lab}</span><div class="cz-ch"><button type="button" class="chip ${a[slot] === '-' ? 'on' : ''}" data-k="${slot}" data-v="-">없음</button>${its.map(id => `<button type="button" class="chip cos ${a[slot] === id ? 'on' : ''}" data-k="${slot}" data-v="${id}" title="${esc(AV.COS[id].name)}"><img src="assets/cos/${id}.png" alt=""></button>`).join('')}</div></div>`; }
     if (!owned.length && !opts.title) h += `<p class="mnote">🎩 모자·날개·손소품은 옷가게나 헌금 축복에서 얻어요</p>`;
     const ctl = el.querySelector('.cz-ctl'); ctl.innerHTML = h;
-    ctl.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const k = b.dataset.k, val = b.dataset.v; set(k, ['g', 'o', 'hat', 'face', 'back', 'held'].includes(k) ? val : +val); }); };
+    ctl.querySelectorAll('.cz-ch').forEach(scroller);
+    ctl.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { if (b.closest('.cz-ch')?._dragged) return; const k = b.dataset.k, val = b.dataset.v; set(k, ['g', 'o', 'hat', 'face', 'back', 'held'].includes(k) ? val : +val); }); };
   draw(); return { get code() { return AV.encode(a); } }; }
 // in-game modal
 export function open() { const G = window.G, S = G.S; S.cos ||= []; let m = document.getElementById('p2cust');

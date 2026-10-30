@@ -16,11 +16,16 @@ import { C as Col } from './collect.js';
 import { Svc } from './service.js';
 import { V } from './v6.js';
 import { initMobile } from './mobile.js';
+import { initIcons } from './icons.js';
+try { initIcons(); } catch (e) { console.warn('icons', e); }
 import { initPhase4 } from './phase4.js';
 // session: 30-min sliding TTL; same presence key on reload => no ghost duplicate of ourselves
 const SESS = 'maeul_sess_v6', TTL = 30 * 60 * 1000;
 const sess = (() => { try { const o = JSON.parse(localStorage.getItem(SESS)); if (o && Date.now() - o.t < TTL) return o; } catch { } return null; })();
 const net = new Net(), remotes = new Map(); let netReady = null;
+import('./account.js').catch(e => console.warn('acct', e));
+// returning from a magic link / OAuth redirect: start the client now so it can pick the session out of the URL, then restore
+if (/[?&#](code|access_token|error_description)=/.test(location.href)) { netReady = net.init(); netReady.then(() => window.Acct?.boot()); }
 if (sess) net.id = sess.id;
 let lastAct = Date.now(); const touchSess = () => { if (window.__RESETTING) return; localStorage.setItem(SESS, JSON.stringify({ id: net.id, t: lastAct })); };
 const endSess = () => localStorage.removeItem(SESS);
@@ -80,7 +85,7 @@ function startGame(save) { touchSess();
   for (const n of cfg.interiorNpcs) { let x = n.x, y = n.y; if (n.pew != null) { const st = inside.seat(n.pew); x = st.x; y = st.y; }
     const c = new Char(SP, n.char, n.outfit, x, y, { name: n.name, tagColor: n.sit ? '#d7e6ff' : '#c8f7d6', cfg }); c.id = n.id; c.sit = !!n.sit; c.pewI = n.pew; c.face = n.sit ? 'W' : n.id === 'pastor' ? 'E' : c.face; inNpcs.push(c); }
   if (S.scene === 'inside') enterChapel(true); else { scene = 'field'; let p = S.pos || { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; if (!world.walkable(p.x, p.y)) p = { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; player.x = p.x; player.y = p.y; }
-  spawnPickups(); snapCam(); refreshHud(); persist(); netReady ||= net.init(); Promise.resolve(netReady).then(() => W.sync()); toast(`${S.name}님, 마실채플에 오신 걸 환영해요!`);
+  spawnPickups(); snapCam(); refreshHud(); persist(); const _first = !netReady; netReady ||= net.init(); Promise.resolve(netReady).then(() => { W.sync(); if (_first) window.Acct?.boot(); }); toast(`${S.name}님, 마실채플에 오신 걸 환영해요!`);
   if (!S.dong && !S.solo && !S.hintDong) { S.hintDong = 1; setTimeout(() => toast('🌈 지금은 모두의 광장이에요. 위쪽 📍 버튼으로 우리 동네를 인증하면 동네 방에 들어가요'), 2500); }
 }
 // ---------- multiplayer glue ----------
@@ -105,7 +110,7 @@ function updateRemotes(dt) {
   if (S) net.tick(meState());
   for (const [id, c] of remotes) { const p = net.peers.get(id), s = p && net.sample(p); if (!s) continue;
     const dx = s.x - c.x, dy = s.y - c.y, d = Math.hypot(dx, dy);
-    if (d > 400) { c.x = s.x; c.y = s.y; } else { c.x = s.x; c.y = s.y; c.dist += d; }
+    if (d > 400) { c.x = s.x; c.y = s.y; c.snapFace = true; } else { const kp = 1 - Math.exp(-18 * dt); c.x += dx * kp; c.y += dy * kp; c.dist += d * kp; } // v10 eased remote position
     // v7: steady remotes — facing comes from the sender's own hysteretic face (never from noisy per-frame deltas), speed is smoothed
     const walking = s.anim === 'walk'; const kv = 1 - Math.exp(-8 * dt); c.svx = (c.svx || 0) + ((dt ? dx / dt : 0) - (c.svx || 0)) * kv; c.vx = c.svx;
     c.speedNow = walking ? Math.max(60, c.speedNow ? c.speedNow + (d / Math.max(dt, 1e-3) - c.speedNow) * kv : 120) : 0; c.sitting = s.anim === 'sit';
@@ -406,7 +411,7 @@ function update(dt) {
   if ((mmT -= dt) <= 0) { mmT = .1; drawMinimap(); if (modal === '#map') drawMap(); }
   const t = nearest(); const b = $('#btn-act'); b.textContent = worship ? '♪' : sitting ? '일어나기' : t ? ACTLBL[t.type] : '대화'; b.classList.toggle('glow', !!t || !!sitting || !!worship);
   // camera
-  const Wd = cur(), Vw = scene === 'field' ? { x: 0, y: 0, w: Wd.W, h: Wd.H } : inside.view(), z = cam.z = scene === 'field' ? Math.max(.55, Math.min(1, Math.min(innerWidth, innerHeight * 1.4) / 1200)) : Math.max(innerWidth / Vw.w, innerHeight / Vw.h) * 1.002; // interior: cover-fit the painted room, never letterboxed
+  const Wd = cur(), Vw = scene === 'field' ? { x: 0, y: 0, w: Wd.W, h: Wd.H } : inside.view(), z = cam.z = scene === 'field' ? Math.max(.55, Math.min(1, Math.min(innerWidth, innerHeight * 1.4) / 1200)) : Math.min(1, innerWidth / Vw.w, innerHeight / Vw.h); // v10 interior: CONTAIN-fit (whole room visible, never zoomed past 1:1 so sprites never upscale)
   let tx = player.x, ty = player.y - 60; const hw = innerWidth / 2 / z, hh = innerHeight / 2 / z;
   tx = Vw.w > hw * 2 ? Math.max(Vw.x + hw, Math.min(Vw.x + Vw.w - hw, tx)) : Vw.x + Vw.w / 2; ty = Vw.h > hh * 2 ? Math.max(Vw.y + hh, Math.min(Vw.y + Vw.h - hh, ty)) : Vw.y + Vw.h / 2;
   if (scene !== 'field' && Math.abs(cam.zPrev - z) > .001) { cam.x = tx; cam.y = ty; } cam.zPrev = z;
@@ -473,7 +478,7 @@ function render() {
 }
 function sitDraw(g, c, sit) { if (!sit || scene !== 'inside') { c.draw(g); return; }
   // v7 side-view seated pose: side-profile body raised onto the cushion, legs clipped at the seat line, then the pew's seat-front + legs are redrawn over the lap
-  const I = cfg.interior, y = c.y, sx = c.speedNow, em = c.emote; c.speedNow = 0; if (em !== 'pray') c.emote = null; if (!['E', 'W'].includes(c.face)) c.face = 'W';
+  const I = cfg.interior, y = c.y, sx = c.speedNow, em = c.emote; c.speedNow = 0; if (em !== 'pray') c.emote = null; if (!['E', 'W'].includes(c.face)) c.face = 'W'; c.dface = c.face;
   let pi = -1, bd = 1e9; I.pews.forEach((p, k) => { const d = Math.abs(p[0] + I.seatDx - c.x) + Math.abs(p[1] - y); if (d < bd) { bd = d; pi = k; } });
   g.save(); g.beginPath(); g.rect(c.x - 200, y - 500, 400, 500 - I.seatCut); g.clip(); c.y = y - I.sitLift; c.draw(g); c.y = y; g.restore();
   if (pi >= 0) inside.drawPew(g, pi, 'front'); c.speedNow = sx; if (em !== 'pray') c.emote = em; }

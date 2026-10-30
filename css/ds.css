@@ -1,0 +1,59 @@
+/* ===== 마실채플 design system v10 — loaded after style.css, single source of truth for UI chrome =====
+   spacing 4/8/12/16/24 · control heights 32/40/48 · radius 10/14/20 · type 12/14/16/20 · icon 16/20/24 */
+:root{--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--h-sm:32px;--h-md:40px;--h-lg:48px;--r-sm:10px;--r-md:14px;--r-lg:20px;
+  --f-xs:12px;--f-sm:14px;--f-md:16px;--f-lg:20px;--i-sm:16px;--i-md:20px;--i-lg:24px;
+  --ink:#4a3f66;--ink2:#7d6f99;--line:#e7dcf5;--surf:#fff;--surf2:#f8f3ff;--pri:#ee8fb7;--pri-d:#d4729c;--sec:#8fbdea;--sec-d:#6b9ad0;--acc:#f2b33d;--gap:var(--s2)}
+/* icons */
+.ic{width:var(--i-md);height:var(--i-md);flex:0 0 auto;vertical-align:-.22em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.ic .d{fill:currentColor;fill-opacity:.16;stroke:none}
+h2 .ic,h3 .ic{width:var(--i-lg);height:var(--i-lg);margin-right:var(--s1);color:var(--pri-d)}
+small .ic,.chip .ic{width:var(--i-sm);height:var(--i-sm)}
+/* buttons */
+button{min-height:var(--h-sm);padding:0 var(--s3);border-radius:var(--r-md);font-size:var(--f-sm);line-height:1.2;display:inline-flex;align-items:center;justify-content:center;gap:var(--s1);color:var(--ink);box-shadow:0 2px 0 var(--line),0 1px 3px rgba(80,50,120,.08);transition:transform .08s,box-shadow .08s}
+button:active{transform:translateY(1px);box-shadow:0 1px 0 var(--line)}
+button:focus-visible{outline:2px solid var(--sec);outline-offset:2px}
+.big{min-height:var(--h-lg);padding:0 var(--s5);font-size:var(--f-md);border-radius:var(--r-md);background:var(--pri);color:#fff;box-shadow:0 3px 0 var(--pri-d)}
+.big.alt{background:var(--sec);box-shadow:0 3px 0 var(--sec-d)}
+.row{gap:var(--s2);margin:var(--s2) 0;flex-wrap:wrap}
+/* HUD */
+#top{gap:var(--s2)}#top>*{min-height:var(--h-md)}#top button{min-height:var(--h-md);padding:0 var(--s3)}#btn-set,#btn-menu{width:var(--h-md);padding:0}
+#top .ic{width:var(--i-md);height:var(--i-md)}
+#side{gap:var(--s2)}#side button{width:56px;height:56px;padding:0;gap:2px;flex-direction:column;border-radius:var(--r-md);font-size:var(--f-xs)}
+#side button .ic{width:var(--i-lg);height:var(--i-lg);color:var(--pri-d)}#side small{font-size:11px;font-weight:700;color:var(--ink)}
+#emotes{gap:var(--s2)}#emotes button{width:var(--h-lg);height:var(--h-lg);padding:0;border-radius:50%}#emotes .ic{width:var(--i-lg);height:var(--i-lg)}
+#btn-jump{flex-direction:column;gap:0}#minimap span{display:inline-flex;align-items:center;gap:var(--s1)}
+#quest b{display:inline-flex;align-items:center;gap:var(--s1)}
+/* modals & panels */
+.modal{padding:var(--s3);box-sizing:border-box}
+.panel{box-sizing:border-box;padding:var(--s5) var(--s4) var(--s4);border-radius:var(--r-lg);max-width:calc(100vw - 24px);overflow-x:hidden;overflow-wrap:anywhere;word-break:keep-all}
+.panel.wide{width:min(600px,calc(100vw - 24px))}
+.panel h2{font-size:var(--f-lg);margin:0 0 var(--s3);padding:0 calc(var(--h-md) + var(--s1));display:flex;align-items:center;justify-content:center;gap:var(--s1);line-height:1.3;min-height:var(--h-md)}
+.panel h4{font-size:var(--f-sm);margin:var(--s4) 0 var(--s2);color:var(--ink2)}
+.panel input,.panel select,.panel textarea{min-height:var(--h-md);box-sizing:border-box;border-radius:var(--r-sm);max-width:100%}
+.close{width:var(--h-md);height:var(--h-md);min-height:0;right:var(--s2);top:var(--s2);padding:0;border-radius:50%;box-shadow:none;background:var(--surf2)}
+.close .ic{width:var(--i-sm);height:var(--i-sm)}
+.tabs,.mtabs{display:flex;gap:var(--s1);flex-wrap:wrap;justify-content:center}.tabs button,.mtabs button{min-height:var(--h-sm)}
+.panel img{max-width:100%}
+.panel table{max-width:100%}
+/* level modal (p2lv) */
+#p2lv .panel{width:min(920px,92vw);max-width:92vw;max-height:86vh;overflow-y:auto;overflow-x:hidden;text-align:left}
+#p2lv .lvlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:var(--s3)}
+#p2lv .lvcard{flex-direction:column;align-items:stretch;gap:var(--s2);padding:var(--s3);border-width:2px;min-width:0}
+#p2lv .lvimg{width:100%;max-height:none;aspect-ratio:4/3}
+#p2lv .lvtx{min-width:0;word-break:keep-all;overflow-wrap:break-word}#p2lv .lvtx b{font-size:var(--f-md)}#p2lv .lvtx ul{font-size:13px}
+#p2lv .lvimg .lock .ic{width:40px;height:40px;color:#fff}
+@media (max-width:620px){#p2lv .lvlist{grid-template-columns:1fr}#p2lv .lvcard{flex-direction:row;align-items:center}#p2lv .lvimg{width:38%;flex:0 0 38%;aspect-ratio:1}#p2lv .lvtx{flex:1}}
+@media (max-width:560px){.panel{padding:var(--s5) var(--s3) var(--s3)}#side button{width:50px;height:50px}#side small{font-size:10px}}
+/* leaderboard region */
+#lblist li .lbn{display:inline-flex;flex-direction:column;min-width:0;flex:1;line-height:1.25}
+#lblist li .lbrg{font-size:12px;color:#8a7f99;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#chregion{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+button.mini{padding:4px 10px;font-size:12px;border-radius:999px;min-height:28px}
+/* account linking */
+#p2acct .body{display:flex;flex-direction:column;gap:12px}
+#p2acct .aclab{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+#p2acct input{width:100%;box-sizing:border-box;min-height:40px;padding:8px 12px;border-radius:12px;border:1.5px solid #e4dcef;font-size:15px}
+#p2acct .oauth.g{background:#fff;color:#3c4043;border:1.5px solid #dadce0}
+#p2acct .acct-ok{margin:0;font-size:15px}
+/* PC: keep the talk/jump buttons clear of the right-hand menu column */
+@media (pointer:fine) and (min-width:701px){#btn-act{right:calc(var(--sr, 0px) + 92px)}#btn-jump{right:calc(var(--sr, 0px) + 108px);bottom:calc(var(--sb, 0px) + 136px)}}

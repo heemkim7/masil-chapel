@@ -70,8 +70,12 @@ function compose(a, key) { // key: "<char>/<outfit>/<frame>"
     else if (M[i + 1] > 8 && a.s) { const w = M[i + 1] / 255; for (let q = 0; q < 3; q++) p[i + q] = Math.min(255, p[i + q] * (1 - w + w * sk[q])); }
     else if (M[i + 2] > 128 && oft && sat(p, i) > .1) { const l = (p[i] + p[i + 1] + p[i + 2]) / ol; for (let q = 0; q < 3; q++) p[i + q] = Math.min(255, oft[q] * Math.min(1.3, l)); } }
   g0.putImageData(id, 0, 0);
+  if (!back && a.a !== 1) { const t0 = (() => { for (let i = 3, j = 0; i < p.length; i += 4, j++) if (p[i] > 40) return (j / W) | 0; return 0; })(); try { ageFace(g0, p, M, W, H, headBox(p, W, t0, H - 1), a.a, side); } catch { } }
   if (x1 < x0) { x0 = 60; x1 = 140; y0 = top; y1 = top + 90; }
-  const fh = bot - top, hw = Math.min(x1 - x0, fh * .5), cx = (x0 + x1) / 2, ht = y0, hairCol = hcol || NATIVE[a.g];
+  // v10 anchors: head box measured from the BODY silhouette of this exact frame (top row → neck narrowing),
+  // so hair/hat/face layers follow the head in every direction and walk frame (no floating afro on side views)
+  const HB = headBox(p, W, top, bot); ch_anchor = HB;
+  const fh = bot - top, hw = Math.min(HB.x1 - HB.x0, fh * .5), cx = (HB.x0 + HB.x1) / 2, ht = Math.min(y0, HB.y0 + 2), hairCol = hcol || NATIVE[a.g];
   const put = (im, w, cxx, cy, alignTop) => { if (!im) return; const ww = w, hh = ww * im.height / im.width; g.drawImage(im, cxx - ww / 2, alignTop ? cy : cy - hh / 2, ww, hh); return hh; };
   const hp = HAIRS[a.g][a.hs][1], H0 = hp && HP[hp];
   const hairPiece = layer => { if (!H0 || H0.l !== layer && !(back && layer === 'over' && H0.l === 'back')) return; if (back && H0.front) return; const t = tinted(hp, hairCol); if (!t) return; let dx = (H0.dx || 0) * hw; if (side) dx = Math.abs(dx) + (H0.l === 'back' ? hw * .18 : 0); if (back) dx = -dx;
@@ -90,6 +94,37 @@ function compose(a, key) { // key: "<char>/<outfit>/<frame>"
   face(); hat(); if (!back) held();
   // name-tag anchor = first opaque row (hats can raise it)
   const d2 = g.getImageData(0, 0, W, H).data; let t2 = H; outer: for (let y = 0; y < H; y++) for (let x = 0; x < W; x += 2) if (d2[(y * W + x) * 4 + 3] > 40) { t2 = y; break outer; } c.top = t2; return c; }
+// v10 age faces, painted on the recoloured frame: eyes found as the dark blobs inside the head box.
+// 0 child: bigger eyes + round rosy cheeks · 2 middle-aged: slightly lowered lids + soft smile lines · 3 senior: lids, crow's feet, softer rosy cheeks
+function eyesOf(p, M, W, HB) { const y0 = Math.round(HB.y0 + (HB.y1 - HB.y0) * .42), y1 = Math.round(HB.y1 - (HB.y1 - HB.y0) * .12), seen = new Uint8Array(W * (y1 - y0 + 1)), blobs = [];
+  const dark = (x, y) => { const i = (y * W + x) * 4; return p[i + 3] > 200 && M[i] <= 128 && p[i] + p[i + 1] + p[i + 2] < 230; };
+  for (let y = y0; y <= y1; y++) for (let x = HB.x0; x <= HB.x1; x++) { const k = (y - y0) * W + x; if (seen[k] || !dark(x, y)) continue; const st = [[x, y]]; seen[k] = 1; let n = 0, ax = 1e9, bx = -1, ay = 1e9, by = -1;
+    while (st.length) { const [u, v] = st.pop(); n++; ax = Math.min(ax, u); bx = Math.max(bx, u); ay = Math.min(ay, v); by = Math.max(by, v);
+      for (const [du, dv] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const U = u + du, V2 = v + dv; if (U < HB.x0 || U > HB.x1 || V2 < y0 || V2 > y1) continue; const kk = (V2 - y0) * W + U; if (!seen[kk] && dark(U, V2)) { seen[kk] = 1; st.push([U, V2]); } } }
+    const w = bx - ax + 1, h = by - ay + 1; if (n > 25 && w < (HB.x1 - HB.x0) * .32 && h < (HB.y1 - HB.y0) * .3 && h > 4) blobs.push({ x: ax, y: ay, w, h, n }); }
+  return blobs.sort((a, b) => b.n - a.n).slice(0, 2); }
+function ageFace(g, p, M, W, H, HB, age, side) { const E = eyesOf(p, M, W, HB); if (!E.length) return;
+  const skinAt = (x, y) => { const i = (Math.round(y) * W + Math.round(x)) * 4; return [p[i], p[i + 1], p[i + 2]]; };
+  const fc = (HB.x0 + HB.x1) / 2, eh = Math.max(...E.map(e => e.h)), cy = Math.max(...E.map(e => e.y + e.h)) + eh * .55;
+  const shade = (c, k, al) => `rgba(${c.map(v => Math.round(v * k)).join(',')},${al})`;
+  const blush = (r, al) => { for (const e of E) { const ex = e.x + e.w / 2, out = ex < fc ? -1 : 1, x = side ? ex + (ex < fc ? -1 : 1) * e.w * .1 : ex + out * e.w * .25; const gr = g.createRadialGradient(x, cy, 0, x, cy, r); gr.addColorStop(0, `rgba(255,130,150,${al})`); gr.addColorStop(1, 'rgba(255,130,150,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(x, cy, r, r * .72, 0, 0, 7); g.fill(); } };
+  if (age === 0) { const src = document.createElement('canvas'); src.width = W; src.height = H; src.getContext('2d').drawImage(g.canvas, 0, 0);
+    for (const e of E) { const pad = 2, sx = e.x - pad, sy = e.y - pad, sw = e.w + pad * 2, sh = e.h + pad * 2, k = 1.16; g.drawImage(src, sx, sy, sw, sh, sx - sw * (k - 1) / 2, sy - sh * (k - 1) * .6, sw * k, sh * k); }
+    blush(Math.max(5, eh * .62), .42); return; }
+  for (const e of E) { const sk = skinAt(e.x + e.w / 2, Math.max(HB.y0, e.y - Math.max(3, e.h * .45))); g.fillStyle = `rgb(${sk.join(',')})`; const lid = e.h * (age === 2 ? .16 : .2);
+    g.beginPath(); g.ellipse(e.x + e.w / 2, e.y + lid * .2, e.w * .62, lid * 1.1, 0, Math.PI, 0); g.fill(); // gently lowered upper lid
+    const ln = shade(sk, .72, age === 3 ? .55 : .4); g.strokeStyle = ln; g.lineWidth = 1.4; g.lineCap = 'round';
+    const ex = e.x + e.w / 2, out = side ? (ex < fc ? -1 : 1) : ex < fc ? -1 : 1, ox = out < 0 ? e.x - 1.5 : e.x + e.w + 1.5;
+    if (age === 3) { for (const dy of [-.18, .12, .42]) { g.beginPath(); g.moveTo(ox, e.y + e.h * (.3 + dy * .4)); g.lineTo(ox + out * e.w * .22, e.y + e.h * (.3 + dy)); g.stroke(); } }
+    // smile line beside the cheek
+    if (!side || ex > fc - 1) { const sx = ex + out * e.w * .55, sy = cy + eh * .25; g.strokeStyle = shade(sk, .78, age === 3 ? .45 : .32); g.beginPath(); g.arc(sx, sy, eh * .45, out < 0 ? -.1 * Math.PI : .55 * Math.PI, out < 0 ? .45 * Math.PI : 1.1 * Math.PI); g.stroke(); } }
+  if (age === 3) blush(Math.max(4, eh * .5), .26); }
+let ch_anchor = null; export const lastAnchor = () => ch_anchor;
+export function headBox(p, W, top, bot) { const fh = bot - top, lim = top + Math.round(fh * .55); let best = 0, bestY = top; const rows = [];
+  for (let y = top; y <= lim; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (p[(y * W + x) * 4 + 3] > 40) { if (a < 0) a = x; b = x; } rows.push([a, b]); const w = a < 0 ? 0 : b - a; if (w > best) { best = w; bestY = y; } }
+  let neck = lim; for (let y = bestY; y <= lim; y++) { const [a, b] = rows[y - top]; if (a >= 0 && b - a < best * .62) { neck = y; break; } }
+  let x0 = 1e9, x1 = -1; for (let y = top; y < neck; y++) { const [a, b] = rows[y - top]; if (a >= 0) { x0 = Math.min(x0, a); x1 = Math.max(x1, b); } }
+  return { x0, x1, y0: top, y1: neck, cx: (x0 + x1) / 2 }; }
 function sat(p, i) { const mx = Math.max(p[i], p[i + 1], p[i + 2]), mn = Math.min(p[i], p[i + 1], p[i + 2]); return mx ? (mx - mn) / mx : 0; }
 function ready(a) { const hp = HAIRS[a.g][a.hs]?.[1]; if (hp && !img(`assets/cos/${hp}.png`)) return false; return SLOTS.every(s => !a[s] || a[s] === '-' || !COS[a[s]] || img(`assets/cos/${a[s]}.png`)); }
 // public: used by Char._img

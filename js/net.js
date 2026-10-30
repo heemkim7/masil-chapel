@@ -10,7 +10,7 @@ export class Net {
   on(ev, fn) { (this.h[ev] ||= []).push(fn); } emit(ev, ...a) { for (const f of this.h[ev] || []) f(...a); }
   async init() {
     try { const m = await Promise.race([import(CDN), new Promise((_, r) => setTimeout(() => r(new Error('cdn timeout')), 8000))]);
-      this.sb = m.createClient(SUPA_URL, SUPA_KEY, { realtime: { params: { eventsPerSecond: 30 } }, auth: { persistSession: false } }); return true;
+      this.sb = m.createClient(SUPA_URL, SUPA_KEY, { realtime: { params: { eventsPerSecond: 30 } }, auth: { persistSession: true, storageKey: 'maeul_auth', detectSessionInUrl: true, flowType: 'pkce' } }); return true;
     } catch (e) { console.warn('[net] offline:', e.message); this.setStatus('offline'); return false; }
   }
   setStatus(s) { this.status = s; this.emit('status', s, this.peers.size); }

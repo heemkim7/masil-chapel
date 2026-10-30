@@ -61,14 +61,26 @@ export class Char {
   }
   // smooth facing: visual angle eases toward the steering angle; the 8-way sprite only switches
   // once visAng is past the sector edge by a hysteresis margin (no flicker on near-diagonal input)
+  // v10 turning: `face` is the TARGET direction (input/net/NPC); `dface` is the DISPLAYED sprite direction.
+  // visAng rotates toward the target at a capped rate and dface steps one sector at a time (min hold),
+  // so right→left passes through the front/back diagonals instead of snapping.
   updateFacing(dt) {
-    if (this.steer) {
-      this.visAng += angDiff(this.ang, this.visAng) * (1 - Math.exp(-16 * dt));
-      let ci = DIRS8.indexOf(this.face); if (ci < 0) ci = 2;
-      if (Math.abs(angDiff(this.visAng, ci * SEC)) > SEC / 2 + 0.22) this.face = DIRS8[((Math.round(this.visAng / SEC) % 8) + 8) % 8];
-    } else { const ci = DIRS8.indexOf(this.face); if (ci >= 0 && Math.abs(angDiff(this.visAng, ci * SEC)) > SEC) this.visAng = ci * SEC; }
-    if (this.face !== this._lf) { this.prevFace = this._lf; this._lf = this.face; this.blendT = 0; }
-    this.blendT = Math.min(1, this.blendT + dt / 0.13);
+    if (this.steer) { let ci = DIRS8.indexOf(this.face); if (ci < 0) ci = 2;
+      if (Math.abs(angDiff(this.ang, ci * SEC)) > SEC / 2 + 0.22) this.face = DIRS8[((Math.round(this.ang / SEC) % 8) + 8) % 8]; }
+    let ti = DIRS8.indexOf(this.face); if (ti < 0) ti = 2;
+    if (this.dface == null || this.snapFace) { this.dface = this.face; this.visAng = ti * SEC; this.snapFace = false; }
+    const tgt = this.steer ? this.ang : ti * SEC, d = angDiff(tgt, this.visAng), mx = 13 * dt;
+    this.visAng += Math.abs(d) <= mx ? d : Math.sign(d || 1) * mx;
+    this.holdT = (this.holdT || 0) + dt;
+    let di = DIRS8.indexOf(this.dface); if (di < 0) di = 2;
+    if (this.dface !== this.face && this.holdT >= 0.045) {
+      const want = ((Math.round(this.visAng / SEC) % 8) + 8) % 8;
+      if (want !== di) { let st = ((want - di) % 8 + 8) % 8; st = st > 4 ? -1 : st === 4 ? (angDiff(tgt, di * SEC) < 0 ? -1 : 1) : 1;
+        this.dface = DIRS8[(di + st + 8) % 8]; this.holdT = 0; }
+      else if (Math.abs(d) < 1e-3) { this.dface = this.face; this.holdT = 0; }
+    }
+    if (this.dface !== this._lf) { this.prevFace = this._lf; this._lf = this.dface; this.blendT = 0; }
+    this.blendT = Math.min(1, this.blendT + dt / 0.08);
     // lean toward lateral motion (screen x), eased
     this.lean = 0; // v7: lean removed (it rotated the head around the feet and read as head shake)
     // dust puffs at footfalls
@@ -77,11 +89,11 @@ export class Char {
     for (const p of this.puffs) p.t += dt; this.puffs = this.puffs.filter(p => p.t < .5);
   }
   say(text, dur = 3.5) { this.bubble = text; this.bubbleT = dur; }
-  doEmote(e) { this.emote = e; this.emoteT = 0; this.face = 'S'; }
+  doEmote(e) { this.emote = e; this.emoteT = 0; this.face = 'S'; this.snapFace = true; }
   update(dt) { this.t += dt; if (this.bubbleT > 0 && (this.bubbleT -= dt) <= 0) this.bubble = null; if (this.emote && (this.emoteT += dt) > 1.6) this.emote = null; this.updateFacing(dt); this.steer = false; if (this.jumpT != null && (this.jumpT += dt) > .56) this.jumpT = null; }
   jump() { if (this.jumpT == null) { this.jumpT = 0; return true; } return false; }
   // pick frame + transform. Walk frames step by distance travelled; `mix` = fraction toward the next frame (for in-betweening)
-  pose(face = this.face) {
+  pose(face = this.dface || this.face) {
     const S = this.sprites, c = this.char, o = this.outfit, walking = this.speedNow > 0;
     let sx = 1, sy = 1, lift = 0, sel, fi = 0, mix = 0;
     if (this.emote) {
@@ -97,7 +109,7 @@ export class Char {
       fi = Math.floor(ph) % n; mix = ph - Math.floor(ph);
       // continuous bob/squash per footstep (2 steps per cycle of n frames => one bounce every n/2 frames)
       const b = Math.sin(ph / n * Math.PI * 4);
-      lift = Math.round(Math.abs(b) * 2); // v7: gentle whole-pixel bob, no squash while walking (squash read as trembling)
+      lift = (1 - Math.cos(ph / n * Math.PI * 4)) * 1.2; // v10: eased sub-pixel bob (cosine, no corner at footfall) // v7: gentle whole-pixel bob, no squash while walking (squash read as trembling)
     }
     if (!sel) {
       const front = ['S', 'SE', 'SW'].includes(face) && S.has(c, o, 'idle_S');
@@ -116,7 +128,7 @@ export class Char {
     if (M) { const k2 = k * M[0]; ctx.drawImage(img, -M[1] * k2, -M[2] * k2, at.frameW * k2, at.frameH * k2); return ((img.top ?? 0) - M[2]) * k2; } ctx.drawImage(img, -at.frameW * k / 2, -at.baselineY * k, at.frameW * k, at.frameH * k); return ((img.top ?? 0) - at.baselineY) * k;
   }
   _layer(ctx, p, alpha) {
-    ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y - p.lift)); ctx.scale(p.flip ? -p.sx : p.sx, p.sy);
+    ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y) - p.lift); ctx.scale(p.flip ? -p.sx : p.sx, p.sy);
     const back = p.dir === 'N' || p.dir === 'NW';
     const acc = (front) => { if (!this.equip) return; for (const slot of ['back', 'hat', 'pet']) { const id = this.equip[slot]; if (!id) continue; const A = this.cfg.acc[id]; const ai = IMG[A.img]; if (!ai) continue;
       const isFront = A.back ? back : true; if (isFront !== front) continue;
@@ -142,7 +154,7 @@ export class Char {
       ctx.beginPath(); ctx.rect(this.x - 200, this.y - 600 - cut, 400, 600 - cut * .78 - 4); ctx.clip(); this._layer(ctx, p, 1); ctx.restore();
       ctx.fillStyle = 'rgba(120,90,160,.25)'; ctx.beginPath(); ctx.ellipse(this.x, this.y - 6, H * .2, H * .06, 0, 0, 7); ctx.fill();
       ctx.font = `${Math.round(H * .17)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillText('🙏', this.x, this.y - H * .38); ctx.globalAlpha = 1; return; }
-    if (this.blendT < 1 && this.prevFace && !this.emote) { const pp = this.pose(this.prevFace); this._layer(ctx, pp, 1); this._layer(ctx, p, this.blendT); }
+    if (this.blendT < 1 && this.prevFace && !this.emote) { const pp = this.pose(this.prevFace), e = this.blendT * this.blendT * (3 - 2 * this.blendT); this._layer(ctx, pp, 1 - e * .6); this._layer(ctx, p, e); }
     else this._layer(ctx, p, 1);
     ctx.globalAlpha = 1;
   }

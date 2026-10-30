@@ -21,7 +21,7 @@ export const LEVELS = [
   { t: 5, need: 80000, name: '영광의 대성당', img: 'v7/church_l5.webp', unlock: ['파스텔 돔과 금빛 장식', '두 개의 아치 별관', '반짝이는 스테인드글라스', '정원 · 분수 · 줄조명 완성'] }];
 const lvOf = t => LEVELS.reduce((a, L) => t >= L.need ? L.t : a, 1);
 function lvProg() { const L = LEVELS[tier - 1], N = LEVELS[tier]; return N ? Math.max(0, Math.min(1, (total - L.need) / (N.need - L.need))) : 1; }
-function lvHud() { const b = document.getElementById('chlv'); if (!b) return; b.firstChild.nodeValue = `⛪ Lv.${tier} `; const bar = document.getElementById('chlvbar'); if (bar) bar.style.width = (lvProg() * 100).toFixed(1) + '%'; const N = LEVELS[tier]; b.title = N ? `${LEVELS[tier - 1].name} · 다음 레벨까지 ${(N.need - total).toLocaleString()} 달란트` : `${LEVELS[tier - 1].name} · 최고 레벨`; }
+function lvHud() { const b = document.getElementById('chlv'); if (!b) return; const t = document.getElementById('chlvt'); if (t) t.textContent = `Lv.${tier}`; const bar = document.getElementById('chlvbar'); if (bar) bar.style.width = (lvProg() * 100).toFixed(1) + '%'; const N = LEVELS[tier]; b.title = N ? `${LEVELS[tier - 1].name} · 다음 레벨까지 ${(N.need - total).toLocaleString()} 달란트` : `${LEVELS[tier - 1].name} · 최고 레벨`; }
 export function openLevels() { const m = modal('p2lv', '⛪ 우리 예배당 레벨'), d = G().V?.current?.();
   m.querySelector('.body').innerHTML = `<p class="lvsum"><b>${esc(d ? d.name : '우리 동네')} 마실채플 Lv.${tier}</b> · 누적 헌금 ${total.toLocaleString()} 달란트${LEVELS[tier] ? ` · 다음 레벨까지 ${(LEVELS[tier].need - total).toLocaleString()}` : ' · 최고 레벨!'}<span class="lvbarbig"><i style="width:${(lvProg() * 100).toFixed(1)}%"></i></span><small>헌금은 무료 달란트로만 드려요 · 동네 모두의 헌금이 모여 레벨이 올라가요</small></p>
   <div class="lvlist">${LEVELS.map(L => `<div class="lvcard ${L.t === tier ? 'cur' : L.t > tier ? 'locked' : 'done'}"><div class="lvimg"><img src="assets/${L.img}" alt="Lv.${L.t}" loading="lazy">${L.t > tier ? '<span class="lock">🔒</span>' : ''}${L.t === tier ? '<span class="now">지금 여기</span>' : ''}</div>
@@ -156,12 +156,12 @@ function openCol() { const p = st(), m = modal('p2col', '🏅 수집 도감 · �
   G().openModal('#p2col'); }
 
 // ---------- leaderboard ----------
-async function openLead() { G().openModal('#church'); const d = G().V?.current?.(); $('#chname').textContent = d ? `${d.name} 예배당` : '우리 동네 예배당';
+async function openLead() { G().openModal('#church'); const d = G().V?.current?.(); $('#chname').textContent = d ? `${d.name} 예배당` : '우리 동네 예배당'; G().V?.index?.().then(I => { let e = $('#chregion'); if (!e) { e = document.createElement('p'); e.id = 'chregion'; e.className = 'mnote'; $('#chtier').before(e); } e.innerHTML = `📍 ${esc(regionOf(I, d?.cd) || '지역을 아직 고르지 않았어요')} <button id="chregbtn" class="mini">지역 바꾸기</button>`; $('#chregbtn').onclick = () => { G().closeModal(); $('#dongbtn')?.click(); }; }).catch(() => {});
   const nx = [0, 1000, 5000, 20000, 80000, 1e9][tier]; $('#chtier').innerHTML = `<b>Tier ${tier}</b> · 동네 달란트 ${TAL}${total.toLocaleString()}달란트`; $('#chbar').style.width = Math.min(100, total / nx * 100) + '%'; $('#chnext').textContent = tier < 5 ? `다음 단계까지 ${(nx - total).toLocaleString()}달란트` : '최고 단계예요!';
   document.querySelectorAll('.chg').forEach(b => { b.textContent = b.dataset.g + ' 달란트'; b.onclick = () => { G().closeModal(); openOffer(false); }; });
   let sc = 'dong', pe = 'week'; const run = async () => { const L = $('#lblist'), sb = G().net?.sb; L.innerHTML = '<li class="mnote">불러오는 중…</li>';
-    try { let rows; if (sc === 'church') rows = (await sb.rpc('church_rank', { p_period: pe })).data.map(r => [r.name + ' 예배당', r.total]); else rows = (await sb.rpc('leaderboard', { p_scope: sc, p_dong: d?.cd || '', p_period: pe })).data.map(r => [r.name, r.total]);
-      L.innerHTML = rows.length ? rows.map(([n, t], i) => `<li><b>${['🥇', '🥈', '🥉'][i] || i + 1}</b> ${esc(n)} <span>헌금 ${(+t).toLocaleString()}달란트</span></li>`).join('') : '<li class="mnote">아직 기록이 없어요 · 첫 헌금을 드려 보세요</li>'; }
+    try { let rows; if (sc === 'church') { const I = await G().V.index().catch(() => []); rows = (await sb.rpc('church_rank', { p_period: pe })).data.map(r => [r.name + ' 예배당', r.total, regionOf(I, r.dong)]); } else rows = (await sb.rpc('leaderboard', { p_scope: sc, p_dong: d?.cd || '', p_period: pe })).data.map(r => [r.name, r.total]);
+      L.innerHTML = rows.length ? rows.map(([n, t, rg], i) => `<li><b>${['🥇', '🥈', '🥉'][i] || i + 1}</b> <span class="lbn">${esc(n)}${rg !== undefined ? `<small class="lbrg">${esc(rg || '지역 정보 없음')}</small>` : ''}</span> <span>헌금 ${(+t).toLocaleString()}달란트</span></li>`).join('') : '<li class="mnote">아직 기록이 없어요 · 첫 헌금을 드려 보세요</li>'; }
     catch { L.innerHTML = '<li class="mnote">오프라인이에요</li>'; } };
   document.querySelectorAll('.lbt').forEach(b => b.onclick = () => { sc = b.dataset.s; document.querySelectorAll('.lbt').forEach(x => x.classList.toggle('on', x === b)); run(); });
   document.querySelectorAll('.lbp').forEach(b => b.onclick = () => { pe = b.dataset.p; document.querySelectorAll('.lbp').forEach(x => x.classList.toggle('on', x === b)); run(); });
@@ -214,17 +214,22 @@ const KEYS = { KeyI: ['🎒 가방', () => toggle('p2bag', openBag)], KeyC: ['�
   KeyM: ['🗺️ 마을 지도', () => toggle('map', () => G().openMap())], KeyJ: ['🌱 말씀 여정 · 임무', () => toggle('missions', () => G().V.openMissions())], KeyK: ['🏅 수집 도감 · 업적', () => toggle('p2col', openCol)],
   KeyV: ['📖 성경 읽기', () => toggle('p2bible', () => Reader.open())], KeyL: ['🏆 동네 예배당 성장 순위', () => toggle('church', openLead)], KeyP: ['📸 장면 담기', () => toggle('shotm', () => $('#btn-shot')?.click())], KeyO: ['⚙️ 설정', () => toggle('p2set', openSet)], KeyH: ['⌨️ 단축키 안내', () => toggle('p2help', openHelp)], KeyN: ['🧭 전국 지도', () => toggle('p2nat', openNation)], KeyG: ['💝 헌금하기', () => toggle('p2offer', () => openOffer(false))] };
 function openHelp() { const m = modal('p2help', '⌨️ 단축키'); m.querySelector('.body').innerHTML = `<div class="keys">${[['WASD/방향키', '이동'], ['Space / E', '대화 · 들어가기/나가기 · 앉기/일어나기 · 대사 넘기기(타이핑 중이면 완성)'], ['Shift', '점프'], ['Tab', '지도 열기/닫기'], ['←→ / WASD', '대화 선택지 고르기'], ['Enter', '채팅'], ['Esc', '닫기'], ['1 2 3', '이모트'], ...Object.entries(KEYS).map(([k, [l]]) => [k.slice(3), l])].map(([k, l]) => `<div><kbd>${k}</kbd><span>${l}</span></div>`).join('')}</div><p class="mnote">같은 키를 다시 누르면 닫혀요 · 배치 모드: R 회전 · Esc 취소</p>`; G().openModal('#p2help'); }
+function openAcct() { if (G().modal) G().closeModal(); modal('p2acct', '🔗 계정 연동'); G().openModal('#p2acct'); window.Acct?.open(); }
 function openSet() { const m = modal('p2set', '⚙️ 설정'), P = Aud.P(), ck = (id, k, l) => `<label class="setrow">${l} <input type="checkbox" data-pk="${k}" id="${id}" ${P[k] ? 'checked' : ''}></label>`, rg = (k, l) => `<label class="setrow">${l} <input type="range" data-pv="${k}" min="0" max="1" step=".05" value="${P[k]}"></label>`;
   m.querySelector('.body').innerHTML = `<h4 class="seth">🎵 소리</h4>${ck('p2bgm', 'bgm', '🎹 찬송 배경음악')}${rg('bgmVol', '배경음악 음량')}${ck('p2snd', 'sfx', '🔊 효과음')}${rg('sfxVol', '효과음 음량')}${ck('p2voice', 'voice', '🗣️ NPC 목소리')}
   <h4 class="seth">🔔 알림</h4>${ck('p2jt', 'njoin', '접속 알림 (이웃이 들어왔어요)')}${ck('p2don', 'ndon', '💝 헌금 알림')}${ck('p2lvl', 'nlvl', '⛪ 예배당 레벨업 알림')}
   <h4 class="seth">🛡️ 안전</h4><div class="setrow"><span>🙈 차단한 이웃 <b>${window.Safe?.list().length || 0}</b>명<small>차단하면 채팅·말풍선이 보이지 않아요</small></span><button id="p2unblk" class="warnbtn soft">모두 해제</button></div>
   <div class="setrow"><span>📜 이용약관 · 운영정책</span><button id="p2terms" class="warnbtn soft">보기</button></div>
-  <h4 class="seth">👤 계정</h4><div class="setrow danger"><span>🔓 로그아웃<small>이 기기의 세션·저장만 지워요 (손님 계정은 다시 찾을 수 없어요)</small></span><button id="p2logout" class="warnbtn soft">로그아웃</button></div>
+  <h4 class="seth">👤 계정</h4><div class="setrow"><span>🔗 계정 연동<small id="p2acst">손님으로 플레이 중 · 연동하면 어느 기기에서든 이어할 수 있어요</small></span><button id="p2acctbtn" class="warnbtn soft">계정 연동</button></div><div class="setrow danger"><span>🔓 로그아웃<small>이 기기의 세션·저장만 지워요 (손님 계정은 다시 찾을 수 없어요)</small></span><button id="p2logout" class="warnbtn soft">로그아웃</button></div>
   <div class="setrow danger"><span>🔁 처음부터 다시 시작<small>서버의 내 기록(기도·배치·여정·지갑 등)까지 모두 지워요</small></span><button id="p2reset" class="warnbtn">처음부터</button></div>`;
   m.querySelectorAll('[data-pk]').forEach(x => x.onchange = () => { Aud.setPref(x.dataset.pk, x.checked); if (x.dataset.pk === 'njoin') localStorage.setItem('p2_jt', x.checked ? '1' : '0'); if (x.dataset.pk === 'sfx') Aud.setMuted?.(false); });
   m.querySelectorAll('[data-pv]').forEach(x => x.oninput = () => Aud.setPref(x.dataset.pv, +x.value));
   $('#p2unblk').onclick = () => { window.Safe?.unblockAll(); G().toast('차단을 모두 해제했어요'); openSet(); }; $('#p2terms').onclick = () => window.Safe?.showTerms();
-  $('#p2logout').onclick = () => G().dialog('🔓 로그아웃', '정말 로그아웃할까요?\n손님 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요. (서버 기록은 남아요)', [['로그아웃', () => { window.__RESETTING = true; try { G().net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]]);
+  $("#p2acctbtn").onclick = () => openAcct();
+  window.Acct?.isLinked().then(l => { const e = $('#p2acst'); if (l && e) e.textContent = '연동됨 · 로그아웃해도 다시 로그인하면 돌아와요'; });
+  $('#p2logout').onclick = async () => { const out = ['로그아웃', () => { window.__RESETTING = true; try { G().net.leave(); } catch { } window.MaeulReset.logout(); }];
+    if (await window.Acct?.isLinked()) { window.Acct.backup(); return G().dialog('🔓 로그아웃', '로그아웃할까요?\n연동된 계정으로 다시 로그인하면 같은 예배당·캐릭터·지갑으로 돌아와요.', [out, ['취소', null]]); }
+    G().dialog('⚠️ 손님 계정 로그아웃', '지금은 손님 계정이에요.\n로그아웃하면 이 캐릭터·예배당·지갑으로 다시 돌아올 수 없어요.\n먼저 계정을 연동해 두는 걸 추천해요.', [['🔗 먼저 계정 연동', () => setTimeout(openAcct, 0)], ['그래도 로그아웃', out[1]], ['취소', null]]); };
   $('#p2reset').onclick = () => G().dialog('🔁 처음부터 다시 시작', '정말 처음부터 시작할까요?\n서버에 저장된 내 기록과 이 기기의 저장이 모두 지워지고 되돌릴 수 없어요.', [['모두 지우고 처음부터', () => { window.__RESETTING = true; try { G().net.leave(); } catch { } window.MaeulReset.full(); }], ['취소', null]]); G().openModal('#p2set'); }
 function wireKeys() { addEventListener('keydown', e => { const ae = document.activeElement, tg = ae && ae.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || ae?.isContentEditable || !S() || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
     if (e.code === 'KeyR' && S().mode === 'decor') { $('#dflip')?.click(); return; }
@@ -233,6 +238,9 @@ function wireKeys() { addEventListener('keydown', e => { const ae = document.act
   // desktop-only key hints on HUD buttons
   if (matchMedia('(hover:hover) and (pointer:fine)').matches) { const H = { 'btn-gacha': 'G', 'btn-inv': 'C', 'btn-decor': 'B', 'btn-church': 'L', 'btn-shot': 'P', 'minimap': 'Tab', 'mbadge': 'J', 'btn-p2bag': 'I', 'btn-p2col': 'K', 'btn-p2bible': 'V', 'btn-p2nat': 'N', 'btn-p2help': 'H', 'btn-act': 'Space', 'btn-jump': 'Shift' }; for (const [id, k] of Object.entries(H)) { const b = document.getElementById(id); if (b && !b.querySelector('.kh')) b.insertAdjacentHTML('beforeend', `<kbd class="kh">${k}</kbd>`); } } }
 
+// region label for a 행정동 code, e.g. 1144071000 → "서울 마포구 망원동" (from the bundled 통계청 index; no server field needed)
+const SIDO_S = { 서울특별시: '서울', 부산광역시: '부산', 대구광역시: '대구', 인천광역시: '인천', 광주광역시: '광주', 대전광역시: '대전', 울산광역시: '울산', 세종특별자치시: '세종', 경기도: '경기', 강원도: '강원', 강원특별자치도: '강원', 충청북도: '충북', 충청남도: '충남', 전라북도: '전북', 전북특별자치도: '전북', 전라남도: '전남', 경상북도: '경북', 경상남도: '경남', 제주특별자치도: '제주' };
+export function regionOf(I, cd) { const r = cd && (I || []).find(x => x.cd === cd); return r ? [SIDO_S[r.sido] || r.sido, r.sido === r.sgg ? '' : r.sgg, r.name].filter(Boolean).join(' ') : ''; }
 // ---------- nationwide map: 시·도 → 시·군·구 → 행정동 (vuski/admdongkor, lazy per level) ----------
 const NM = { lv: 0, sido: null, sgg: null, z: 1, x: 0, y: 0, cache: {} };
 async function geo(f) { return NM.cache[f] ||= await (await fetch('assets/geo/' + f)).json(); }
