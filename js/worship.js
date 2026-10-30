@@ -95,10 +95,10 @@ const SC = new Map(), SRC_H = 150;
 let tmpChar = null;
 function makeChar(av, char) { const g = G(), C = g.player.constructor, c = new C(g.player.sprites, char ? char[0] : 'player', char ? char[1] : 'basic', 0, 0, { name: '', cfg: g.cfg(), drawH: SRC_H });
   if (av) window.AV.apply(c, av); c.drawH = SRC_H; return c; }
-function sprite(av, face, char, emote, sit) { const key = (av || char.join('/')) + '|' + face + '|' + (emote || '') + (sit ? '|s' : ''); let e = SC.get(key); if (e && e.ok) return e;
+function sprite(av, face, char, emote, sit) { if (SC._v !== window.AV.ver) { SC.clear(); SC._v = window.AV.ver; crowdKey = null; } const key = (av || char.join('/')) + '|' + face + '|' + (emote || '') + (sit ? '|s' : ''); let e = SC.get(key); if (e && e.ok) return e;
   if (e && performance.now() - e.t < 400) return e.ok ? e : null; // retry not-yet-loaded avatars at most ~2.5×/s
   const c = makeChar(av, char); c.face = c.dface = c._lf = face; c.blendT = 1; c.speedNow = 0; c.t = 0; if (emote) { c.emote = emote; c.emoteT = .35; }
-  const p = c.pose(face); const ready = !av || !!window.AV.frame(c, p.key); const W = 130, H = 200, cv = e?.cv || document.createElement('canvas'); cv.width = W; cv.height = H;
+  const p = c.pose(face); const MIR = { E: 'W', SE: 'SW', NE: 'NW' }, ready = !av || (!!window.AV.frame(c, p.key) && (!window.AV.layeredSettled || window.AV.layeredSettled(c, MIR[face] || face))); const W = 130, H = 200, cv = e?.cv || document.createElement('canvas'); cv.width = W; cv.height = H;
   const x = cv.getContext('2d'); x.clearRect(0, 0, W, H); c.x = W / 2; c.y = H - 8; c.puffs = []; try { c._draw(x); } catch { }
   let top = c.headY != null ? (H - 8 - c.headY) : SRC_H * .95;
   if (sit) { // seated pose through the same feet anchor: torso drops onto the seat, legs fold (thighs foreshortened toward/away from camera)
@@ -316,10 +316,11 @@ function seatPass(c, dt, now, P, md, F) { const t = now / 1000, k = P.p.k, song 
   if (F) WD(-1, 1); else WD(NR - 1, 1);
   const recent = amenLog.filter(x => now - x < 1800); amenLog = recent; const pilA = pil.reduce((a, p) => a + (p && p.act === 'amen' ? 1 : 0), 0);
   if ((recent.length + pilA >= 8) && (!ripple || now - ripple.t0 > 2600)) { ripple = { t0: now, x: L.seats[me.seat]?.x || PUL.x, y: L.seats[me.seat]?.y || 700 }; try { window.Aud?.bell?.(); } catch { } } }
-function drawPew(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .46; i ? c.lineTo(x, yt) : c.moveTo(x, yt); }
+const PB = .27; // rear-view backrest height (was .46: hid seated torsos, only hair showed)
+function drawPew(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * PB; i ? c.lineTo(x, yt) : c.moveTo(x, yt); }
   for (let i = A.length - 1; i >= 0; i--) { const [x, y, h] = A[i]; c.lineTo(x, y - h * .02); } c.closePath(); c.fillStyle = '#b98a64'; c.fill(); c.strokeStyle = '#8f6446'; c.lineWidth = 2; c.stroke();
-  c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .46; i ? c.lineTo(x, yt) : c.moveTo(x, yt); } c.strokeStyle = '#e2bf98'; c.lineWidth = 3; c.stroke();
-  for (const E of [A[0], A[A.length - 1]]) { const [x, y, h] = E; c.fillStyle = '#9a6a4a'; rrect(c, x - 4, y - h * .52, 8, h * .52, 3); c.fill(); } } }
+  c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * PB; i ? c.lineTo(x, yt) : c.moveTo(x, yt); } c.strokeStyle = '#e2bf98'; c.lineWidth = 3; c.stroke();
+  for (const E of [A[0], A[A.length - 1]]) { const [x, y, h] = E; c.fillStyle = '#9a6a4a'; rrect(c, x - 4, y - h * (PB + .06), 8, h * (PB + .06), 3); c.fill(); } } }
 function drawPewF(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; const a = fp(A[0][0], A[0][1]), b = fp(A[A.length - 1][0], A[A.length - 1][1]), h = a.h, y = a.y;
   c.fillStyle = '#a87a56'; rrect(c, a.x, y - h * .62, b.x - a.x, h * .5, h * .08); c.fill(); c.fillStyle = '#e2bf98'; c.fillRect(a.x, y - h * .62, b.x - a.x, h * .05);
   c.fillStyle = '#8a5f42'; c.fillRect(a.x - 3, y - h * .66, 8, h * .62); c.fillRect(b.x - 5, y - h * .66, 8, h * .62); } }

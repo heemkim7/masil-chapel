@@ -185,7 +185,7 @@ export function headBox(p, W, top, bot) { const fh = bot - top, lim = top + Math
   let x0 = 1e9, x1 = -1; for (let y = top; y < neck; y++) { const [a, b] = rows[y - top]; if (a >= 0) { x0 = Math.min(x0, a); x1 = Math.max(x1, b); } }
   return { x0, x1, y0: top, y1: neck, cx: (x0 + x1) / 2 }; }
 function sat(p, i) { const mx = Math.max(p[i], p[i + 1], p[i + 2]), mn = Math.min(p[i], p[i + 1], p[i + 2]); return mx ? (mx - mn) / mx : 0; }
-function ready(a) { const hp = HAIRS[a.g][a.hs]?.[1]; if (hp && !img(`assets/cos/${hp}.png`)) return false; return SLOTS.every(s => !a[s] || a[s] === '-' || !COS[a[s]] || img(`assets/cos/${a[s]}.png`)); }
+function ready(a) { if (!rigDone) return false; const hp = HAIRS[a.g][a.hs]?.[1]; if (hp && !img(`assets/cos/${hp}.png`)) return false; return SLOTS.every(s => !a[s] || a[s] === '-' || !COS[a[s]] || img(`assets/cos/${a[s]}.png`)); }
 // public: used by Char._img
 export function frame(ch, key) { if (!ch.av) return null; if (key && key.startsWith('L:')) { const [d, f] = key.slice(2).split(':'); return f == null ? still(ch, d) : walkStill(ch, d, +f); } const k = ch.av + '|' + key; let c = cache.get(k); if (c) return c; const A = ch._avp || (ch._avp = parse(ch.av)); if (!ready(A)) return null; c = compose(A, key); if (c) { if (cache.size > 1600) cache.clear(); cache.set(k, c); } return c; }
 
@@ -201,6 +201,8 @@ export const shipOutfit = (g, o) => SHIP[g].outfits.includes(o) ? o : 'basic';
 const LP = 'assets/characters/layered/';
 function layerSrcs(a, d) { const ch = GENDER[a.g].char, of = OUTFITS[a.g].find(x => x[0] === shipOutfit(a.g, a.o)), hp = HAIRS[a.g][shipHair(a.g, a.hs)][1];
   return { base: `${LP}${ch}_base_${d}.png`, out: `${LP}${ch}_outfit_${of[2]}_${d}.png`, tint: of[3] ? `${LP}${ch}_outfit_${of[2]}_tint_${d}.png` : null, hair: `${LP}${ch}_hair_${hp || 'base'}_${d}.png`, oft: of[3] }; }
+// true once the layered stills for (avatar, dir) have finished loading – success OR failure – so caches never freeze the legacy fallback
+export function layeredSettled(ch, d = 'S') { if (!ch.av) return true; if (still(ch, d)) return true; d = LDIR[d] || 'S'; const A = ch._avp || (ch._avp = parse(ch.av)), L = layerSrcs(A, d); return [L.base, L.out, L.hair, L.tint].filter(Boolean).every(s => { img(s); return loaded[s].complete; }); }
 export function layeredReady(a, d = 'S') { const L = layerSrcs(a, d); return !!(img(L.base) && img(L.out) && img(L.hair) && (!L.tint || img(L.tint))); }
 // eye centres measured on the layered bases (tools: eyes.py) — [lx, ly, rx, ry, eyeW]; W shows one eye
 const EYE = { player: { S: [79.3, 135.2, 121.2, 135.4, 21], SW: [74.7, 132.3, 110, 131.9, 18], W: [74.2, 130.8, 74.2, 130.8, 12] },
@@ -290,11 +292,11 @@ export function walkStill(ch, d, f) { const st = still(ch, d); if (!st) return n
 export function preloadLayers(a) { for (const d of Object.keys(LDIR)) { const L = layerSrcs(a, d); img(L.base); img(L.out); img(L.hair); if (L.tint) img(L.tint); } }
 const SHEET_OK = { player: ['basic', 'mint', 'choir'], boy: ['basic', 'mint'] };
 export function apply(ch, code) { const a = parse(code); ch.av = encode(a); ch._avp = a; ch.char = GENDER[a.g].char; ch.outfit = SHEET_OK[ch.char]?.includes(OUTFITS[a.g].find(x => x[0] === a.o)[2]) ? OUTFITS[a.g].find(x => x[0] === a.o)[2] : 'basic'; ch.drawH = Math.round(150 * AGE[a.a].k); preloadLayers(a); }
-let RIG = null; export const rig = () => RIG;
-export function init(atlas) { ATLAS = atlas; fetch('assets/characters/rig.json').then(r => r.json()).then(j => { RIG = j; cache.clear(); }).catch(() => { }); for (const [k, s] of Object.entries(atlas.sheets || {})) if (/^(player|boy)\//.test(k)) img('assets/characters/' + s.img.replace('.png', '_mask.png')); Object.keys(HP).forEach(h => { img(`assets/cos/${h}.png`); img(`assets/cos/${h}_b.png`); }); }
+let RIG = null, rigDone = false; export const rig = () => RIG; // composites built before rig.json lands use a fallback head box → wrong hair/face layering; ready() waits for it
+export function init(atlas) { ATLAS = atlas; fetch('assets/characters/rig.json').then(r => r.json()).then(j => { RIG = j; }).catch(() => { }).finally(() => { rigDone = true; cache.clear(); lcache.clear(); wcache.clear(); AV.ver++; }); for (const [k, s] of Object.entries(atlas.sheets || {})) if (/^(player|boy)\//.test(k)) img('assets/characters/' + s.img.replace('.png', '_mask.png')); Object.keys(HP).forEach(h => { img(`assets/cos/${h}.png`); img(`assets/cos/${h}_b.png`); }); }
 export function preload(a) { preloadLayers(a); SLOTS.forEach(s => a[s] && a[s] !== '-' && img(`assets/cos/${a[s]}.png`)); }
 export function rollCos(atBox, owned) { const pool = Object.entries(COS).filter(([id]) => !owned.includes(id)); if (!pool.length) return null;
   const w = { 일반: 10, 희귀: atBox ? 6 : 3.5, 영웅: atBox ? 2.2 : 1, 전설: atBox ? .8 : .3 }; let r = Math.random() * pool.reduce((s, [, c]) => s + w[c.rar], 0);
   for (const [id, c] of pool) if ((r -= w[c.rar]) < 0) return { id, kind: 'cos', name: c.name, rar: c.rar, img: `cos/${id}.png` }; return null; }
-export const AV = { _cc: () => cache.clear(), GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor, still, walkStill, WALK_N, layeredReady, SHIP, LOCKED_OUTFITS, shipHair, shipOutfit, LAYER_PIVOT, layered: true };
+export const AV = { ver: 0, _cc: () => { cache.clear(); AV.ver++; }, GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor, still, walkStill, WALK_N, layeredReady, layeredSettled, SHIP, LOCKED_OUTFITS, shipHair, shipOutfit, LAYER_PIVOT, layered: true };
 window.AV = AV;
