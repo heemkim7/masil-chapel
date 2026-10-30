@@ -10,6 +10,7 @@ import { Interior } from './interior.js';
 import * as St from './state.js';
 import { Net } from './net.js';
 import { W } from './wallet.js';
+import './payments.js';
 import { C as Col } from './collect.js';
 import { Svc } from './service.js';
 import { V } from './v6.js';
