@@ -122,7 +122,7 @@ function reveal(it, v, dup, glass, atBox) { const m = modal('p2bless', '🌟 오
   const img = it.kind === 'cos' ? it.img : it.kind === 'decor' ? C().decor.find(d => d.id === it.id)?.img : C().acc[it.id]?.img;
   m.querySelector('.body').innerHTML = `<div class="vcard bless"><p>“${esc(v[0])}”</p><small>${esc(v[1])}</small></div>
    <div class="gift r${r.fx}" style="--rc:${r.c}"><img src="assets/${img}" alt=""><b>${esc(it.name)}</b><span>${it.rar}</span>${dup ? `<small>이미 있어서 ${C().gacha.dupRefund}달란트로 돌려받았어요</small>` : ''}</div>
-   ${glass ? `<p class="mnote">🪟 스테인드글라스 조각 획득 · ${esc(glass)}</p>` : ''}${atBox ? '<p class="mnote">⛪ 헌금함 보너스: 희귀 확률 UP</p>' : ''}<button class="big" id="p2bok">아멘 🙏</button>`;
+   ${glass ? `<p class="mnote">🪟 창문 빛 조각 획득 · ${esc(glass)}</p>` : ''}${atBox ? '<p class="mnote">⛪ 헌금함 보너스: 희귀 확률 UP</p>' : ''}<button class="big" id="p2bok">아멘 🙏</button>`;
   G().openModal('#p2bless'); $('#p2bok').onclick = () => G().closeModal(); sfx(r.fx >= 2 ? 'rare' : 'levelup'); if (r.fx >= 3) celebrate('✨ 전설 축복! ✨'); }
 function addGlass() { const p = st(); const open = GLASS.filter(w => (p.glass[w.id] || 0) < w.n); if (!open.length) return null; const w = open[Math.floor(Math.random() * open.length)]; p.glass[w.id] = (p.glass[w.id] || 0) + 1; if (p.glass[w.id] >= w.n) setTimeout(() => ach('glass_' + w.id, w.name + ' 완성 · 예배당 창에 빛나요'), 2800); return `${w.name} ${p.glass[w.id]}/${w.n}`; }
 
@@ -151,7 +151,7 @@ function openCol() { const p = st(), m = modal('p2col', '🏅 수집 도감 · �
   m.querySelector('.body').innerHTML = `<div class="colrow"><img src="assets/v7/ic_candle.webp"><div><b>빛조각 ${p.shard}/100</b><div class="bar"><i style="width:${Math.min(100, p.shard)}%"></i></div><small>${p.shard >= 100 ? '🏆 빛의 촛대 획득!' : '100개 모으면 빛의 촛대 트로피'}</small></div></div>
    <div class="colrow"><img src="assets/v7/ic_fruit.webp"><div><b>감사 열매 ${p.fruit}개</b><div class="basket"><i style="height:${Math.round(basket * 100)}%"></i></div><small>예배·임무·헌금으로 바구니가 채워져요 (30개마다 한 바구니)</small></div></div>
    <div class="colrow"><img src="assets/v7/ic_dove.webp"><div><b>출석 ${days}일</b><div class="badges">${BADGES.map(([n, l]) => `<span class="${days >= n ? 'on' : ''}">${l}<small>${n}일</small></span>`).join('')}</div></div></div>
-   <h4>🪟 스테인드글라스 도감 <small>(완성하면 예배당 창에 나타나요)</small></h4><div class="glassbook">${GLASS.map(w => { const n = p.glass[w.id] || 0; return `<div class="gw ${n >= w.n ? 'done' : ''}"><img src="assets/v7/ic_glass.webp" style="clip-path:inset(${100 - n / w.n * 100}% 0 0 0)"><b>${w.name}</b><small>${n}/${w.n}</small></div>`; }).join('')}</div>
+   <h4>🪟 창문 빛 조각 도감 <small>(완성하면 예배당 창에 나타나요)</small></h4><div class="glassbook">${GLASS.map(w => { const n = p.glass[w.id] || 0; return `<div class="gw ${n >= w.n ? 'done' : ''}"><img src="assets/v7/ic_glass.webp" style="clip-path:inset(${100 - n / w.n * 100}% 0 0 0)"><b>${w.name}</b><small>${n}/${w.n}</small></div>`; }).join('')}</div>
    <h4>업적</h4><div class="achl">${Object.entries(p.ach).map(([k, d]) => `<span>🏆 ${esc(k)} <small>${d}</small></span>`).join('') || '<small class="mnote">아직 없어요</small>'}</div>`;
   G().openModal('#p2col'); }
 

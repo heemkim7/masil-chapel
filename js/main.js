@@ -158,7 +158,7 @@ function goFloor(to) { const I = cfg.interior, from = inside.floor; inside.floor
   if (to === '1F') { const st = (I.stairs1 || []).find(s => s.to === from) || I.spawn; player.x = st.x - 70; player.y = st.y + 20; if (!inside.walkable(player.x, player.y)) { player.x = I.spawn.x; player.y = I.spawn.y; } }
   else { const f = inside.F(); player.x = f.spawn.x; player.y = f.spawn.y; }
   snapCam(); try { window.P2?.sfx?.('step'); } catch { } toast(`🪜 ${to === '1F' ? '1층 본당' : inside.F().name}(으)로 이동했어요`); }
-const SPOTMSG = { organ: '🎹 파이프 오르간이 웅장하게 울려요 (찬양 모드는 🎵 버튼)', choir: '🎶 성가대석이에요. 함께 찬양해요!', cafe: '☕ 따뜻한 차 한 잔 하며 이웃과 이야기해요', prayer: '🕯 조용히 기도하는 방이에요. 잠시 마음을 모아요' };
+const SPOTMSG = { organ: '🎹 찬양팀 키보드와 드럼이 준비돼 있어요 (찬양 모드는 🎵 버튼)', choir: '🎶 성가대석이에요. 함께 찬양해요!', cafe: '☕ 따뜻한 차 한 잔 하며 이웃과 이야기해요', prayer: '🕯 조용히 기도하는 방이에요. 잠시 마음을 모아요' };
 function spotAct(sp) { if (sp.t === 'choir' || sp.t === 'organ') { startWorship(); return; } if (sp.t === 'prayer') emote('pray'); toast(SPOTMSG[sp.t] || sp.label); }
 window.__goFloor = goFloor;
 const cur = () => scene === 'field' ? world : inside;
