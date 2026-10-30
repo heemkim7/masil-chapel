@@ -307,7 +307,7 @@ $('#dundo').onclick = () => { if (shOn()) { const m = SH.list.filter(p => p.mine
 $('#dgrid') && ($('#dgrid').onclick = () => { gridSnap = !gridSnap; localStorage.setItem('maeul_grid', gridSnap ? '1' : '0'); $('#dgrid').classList.toggle('on', gridSnap); toast(gridSnap ? '격자 맞춤 켜짐 (40px)' : '자유 배치'); });
 $('#dpick').onclick = () => { decorSel = null; renderDecor(); toast('놓인 아이템을 누르면 회수돼요'); };
 $('#ddone').onclick = () => { S.mode = null; document.body.classList.remove('decor'); decorSel = null; $('#decorbar').style.display = 'none'; ghost = null; };
-function decorObjects() { return placedList().map(p => { const d = cfg.decor.find(q => q.id === p.id), im = IMG[d.img]; return { y: p.y, draw: g => { const h = d.h, w = h * im.width / im.height;
+function decorObjects() { const PL = placedList(); if (scene === 'field' && world) world.extra = PL.map(p => { const d = cfg.decor.find(q => q.id === p.id); return d ? { x: p.x, y: p.y, r: Math.max(16, Math.min(70, d.h * .22)) } : null; }).filter(Boolean); return PL.map(p => { const d = cfg.decor.find(q => q.id === p.id), im = IMG[d.img]; return { y: p.y, draw: g => { const h = d.h, w = h * im.width / im.height;
   g.fillStyle = 'rgba(40,60,40,.2)'; g.beginPath(); g.ellipse(p.x, p.y, w * .4, 9, 0, 0, 7); g.fill(); g.save(); g.translate(p.x, p.y); if (p.flip) g.scale(-1, 1); g.drawImage(im, -w / 2, -h * .95, w, h); g.restore(); } }; }); }
 
 // ---------- board ----------
@@ -394,7 +394,7 @@ function update(dt) {
   if (scene === 'field') {
     for (const n of fieldNpcs) { n.update(dt); n.speedNow = 0; }
     for (const w of wanderers) { const A = w.ai; w.update(dt);
-      if (!A.tgt && (A.t -= dt) <= 0) A.tgt = world.randomPoint();
+      if (!A.tgt && (A.t -= dt) <= 0) A.tgt = w.pilgrim && Math.random() < .5 ? { x: cfg.chapel.door.x + (Math.random() - .5) * 160, y: cfg.chapel.door.y + 90 + Math.random() * 60 } : Math.random() < .75 ? world.pathPoint() : world.randomPoint();
       if (A.tgt) { const dx = A.tgt.x - w.x, dy = A.tgt.y - w.y, d = Math.hypot(dx, dy); if (d < 20) { A.tgt = null; A.t = 1 + Math.random() * 4; if (Math.random() < .3) w.doEmote('wave'); w.move(world, 0, 0, dt, 120, 8); } else { const ox = w.x, oy = w.y; w.move(world, dx / d, dy / d, dt, 120, 6); if (Math.hypot(w.x - ox, w.y - oy) < .01) A.tgt = null; } }
       else w.move(world, 0, 0, dt, 120, 8);
       if ((A.chat -= dt) <= 0) { A.chat = 5 + Math.random() * 8; const t = w.lines && Math.random() < .6 ? w.lines[Math.random() * w.lines.length | 0] : cfg.chats[Math.random() * cfg.chats.length | 0]; w.say(t); if (Math.hypot(w.x - player.x, w.y - player.y) < 900) chatLog(w.name, t); } }

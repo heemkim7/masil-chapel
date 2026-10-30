@@ -38,7 +38,10 @@ def run(p, mob):
     pg.evaluate('G.enterChapel(true)'); pg.wait_for_timeout(300)
     # pastor dialog via Space
     pg.evaluate("(()=>{const n=G.inNpcs().find(n=>n.id==='pastor'); if(n) G.tp(n.x+40,n.y+20)})()"); pg.wait_for_timeout(500)
-    pg.keyboard.press('Space'); pg.wait_for_timeout(120); R[t+'dlg_open'] = pg.evaluate('G.modal'); pg.screenshot(path=O+t+'dialog_typing.png')
+    pg.keyboard.press('Space');
+    try: pg.wait_for_function('!!G.modal', timeout=3000)
+    except Exception: pass
+    pg.wait_for_timeout(120); R[t+'dlg_open'] = pg.evaluate('G.modal'); pg.screenshot(path=O+t+'dialog_typing.png')
     pg.keyboard.press('Space'); pg.wait_for_timeout(150); R[t+'dlg_after1'] = pg.evaluate('G.modal'); pg.screenshot(path=O+t+'dialog_full.png')
     pg.keyboard.press('KeyE'); pg.wait_for_timeout(300); R[t+'dlg_after2'] = pg.evaluate('G.modal')
     pg.evaluate('G.closeModal()'); pg.focus('#chatin'); pg.keyboard.press('Space'); pg.keyboard.press('Tab'); R[t+'chat_keys_modal'] = pg.evaluate('G.modal'); pg.evaluate('document.activeElement.blur()')

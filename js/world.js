@@ -12,7 +12,12 @@ export class World {
     // ground footprints (boxes) for buildings; door is the only way in (interact near door)
     this.boxes = cfg.props.filter(p => p.r >= 100).map(p => { const im = IMG[p.img], w = p.h * im.width / im.height; return { x: p.x - w * .42, y: p.y - p.h * .42, w: w * .84, h: p.h * .42 - 8 }; });
     this.setChapel(1);
+    // v9: path sampler from the painted ground (beige paths/plaza) so wanderers stroll along roads, not across lawns
+    try { const im = IMG.island, pw = 300, ph = Math.round(300 * im.height / im.width), pc = document.createElement('canvas'); pc.width = pw; pc.height = ph; const px = pc.getContext('2d'); px.drawImage(im, 0, 0, pw, ph); const D = px.getImageData(0, 0, pw, ph).data; this.paths = [];
+      for (let yy = 0; yy < ph; yy++) for (let xx = 0; xx < pw; xx++) { const i = (yy * pw + xx) * 4, r = D[i], g = D[i + 1], b = D[i + 2]; if (r > 195 && b > 140 && g <= r + 4 && r >= b + 12) { const X = (xx + .5) / pw * this.W, Y = (yy + .5) / ph * this.H; if (this.walkable(X, Y)) this.paths.push(X, Y); } } } catch { this.paths = []; }
+    this.extra = [];
   }
+  pathPoint(rnd = Math.random) { const n = this.paths.length / 2; if (n < 20) return this.randomPoint(rnd); for (let i = 0; i < 30; i++) { const k = (rnd() * n | 0) * 2, x = this.paths[k], y = this.paths[k + 1]; if (this.walkable(x, y)) return { x, y }; } return this.randomPoint(rnd); }
   chapelArt(t) { const C = this.cfg.chapel; let a = C; for (const r of C.arts || []) if (t >= r.min) a = r; return a; }
   setChapel(t) { const C = this.cfg.chapel, a = this.chapelArt(t), im = IMG[a.img]; if (!im) return; const h = a.h, w = h * im.width / im.height, l = C.door.x - w * a.ax, top = C.door.y - h * a.ay;
     this.chapelBox = { x: l + w * .06, y: top + h * .55, w: w * .9, h: C.door.y - 14 - (top + h * .55) }; this.chTier = t; }
@@ -20,9 +25,11 @@ export class World {
     const mx = Math.floor(x / this.W * this.mw), my = Math.floor(y / this.H * this.mh);
     if (mx < 0 || my < 0 || mx >= this.mw || my >= this.mh) return false;
     if (this.md[(my * this.mw + mx) * 4] < 128) return false;
+    if (x < 90 || y < 90 || x > this.W - 90 || y > this.H - 90) return false; // v9: perimeter fence
     const B = this.chapelBox; if (B && x > B.x && x < B.x + B.w && y > B.y && y < B.y + B.h) return false;
     for (const b of this.boxes) if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h) return false;
     for (const c of this.circles) { const dx = x - c.x, dy = (y - c.y) * 1.6; if (dx * dx + dy * dy < c.r * c.r) return false; }
+    for (const c of this.extra || []) { const dx = x - c.x, dy = (y - c.y) * 1.8; if (dx * dx + dy * dy < c.r * c.r) return false; } // v9: placed decor footprints
     return true;
   }
   randomPoint(rnd = Math.random) {
@@ -45,7 +52,8 @@ export class Char {
     this.steer = Math.hypot(ix, iy) > 0.05; if (this.steer) { this.ang = Math.atan2(iy, ix); this.emote = null; }
     const nx = this.x + this.vx * dt, ny = this.y + this.vy * dt;
     let moved = 0;
-    if (world.walkable(nx, ny)) { moved = Math.hypot(nx - this.x, ny - this.y); this.x = nx; this.y = ny; }
+    const stuck = world.walkable && !world.walkable(this.x, this.y); // v9: never trap someone standing inside a new footprint
+    if (stuck || world.walkable(nx, ny)) { moved = Math.hypot(nx - this.x, ny - this.y); this.x = nx; this.y = ny; }
     else if (world.walkable(nx, this.y)) { moved = Math.abs(nx - this.x); this.x = nx; this.vy *= .5; }
     else if (world.walkable(this.x, ny)) { moved = Math.abs(ny - this.y); this.y = ny; this.vx *= .5; }
     else { this.vx = this.vy = 0; }
