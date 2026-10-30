@@ -26,7 +26,7 @@ export function start(mine, seed) {
 async function finish() { const r = rain; rain = null; r.cv.remove(); const g = G(); if (r.got > 0) { const d = await window.W?.earn?.('obi'); g?.toast?.(d && d.granted ? `🙌 ${r.got}개를 모아 달란트 +${d.granted}! 나눔의 기적이에요` : `🙌 ${r.got}개를 모았어요! (오늘 보상은 이미 받았어요)`); g?.refreshHud?.(); } }
 // gold pillars: churches with the biggest (free 달란트) offering totals rise as golden pillars on the map
 let tops = null, topsAt = 0;
-export async function churchTops() { if (tops && Date.now() - topsAt < 60e3) return tops; topsAt = Date.now(); try { const sb = G().net?.sb; const r = await sb.from('churches').select('dong,total').gt('total', 0).order('total', { ascending: false }).limit(300); tops = r.data || []; } catch { tops = tops || []; } return tops; }
+export async function churchTops() { if (tops && Date.now() - topsAt < 60e3) return tops; const sb = G()?.net?.sb; if (!sb) return tops || []; topsAt = Date.now(); try { const r = await sb.from('churches').select('dong,total').gt('total', 0).order('total', { ascending: false }).limit(300); if (r.error) { topsAt = 0; return tops || []; } tops = r.data || []; } catch { topsAt = 0; tops = tops || []; } return tops; }
 export function pillars(g, items, lv, T, bounds, total) { const T0 = tops || []; if (!T0.length) return; const max = Math.max(...T0.map(t => t.total)), t = performance.now() / 1000;
   for (const it of items) { const tot = lv === 2 ? (T0.find(x => x.dong === it.k)?.total || 0) : T0.filter(x => x.dong.startsWith(it.k)).reduce((a, x) => a + x.total, 0); if (!tot) continue; const b = bounds(it.r); if (!isFinite(b[0])) continue;
     const [px, py] = T((b[0] + b[1]) / 2, (b[2] + b[3]) / 2), h = 10 + 46 * Math.sqrt(tot / Math.max(max, lv === 2 ? max : tot)), w = 9;
