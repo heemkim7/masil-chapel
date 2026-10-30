@@ -70,3 +70,17 @@
   - the worship portrait layout
 - Shots: shots/ux/a_* (before), c_* (after).
 - Deploy: maeul-chapel-25d-k05salpzw (aliased to maeul-chapel-25d.vercel.app).
+
+## v14 worship hall: camera views, aisles, walking (deploy maeul-chapel-25d-hqi90e98t)
+- Pastor stands on a raised platform behind a lowered pulpit, so his upper body shows.
+- Camera button (top right, 44px, key C) cycles 뒤에서 → 앞에서 (front-facing congregation) → 목사님 close-up → 내 자리. The transitions are eased and the choice is saved (wh_view).
+- Pews are split into 4 blocks with a centre aisle and two side aisles. There are 120 seats and about 16% are left empty.
+- Walking:
+  - you walk in from the back door, down an aisle, then slide into the pew
+  - tapping an empty seat walks you there
+  - 나가기 or Esc walks you out first
+  - other players see all of this through the presence `w` flag and the 'out' message
+- World toasts are hidden while the hall is open; the hall has its own toast.
+- QA, unthrottled, 1366 and 390: 60fps, 120 seats, 30 simulated peers, 0 errors.
+- QA, 390 at dpr 3 with 4x CPU throttle: rear 43, front 56, pastor 41, seat 39 fps.
+- Shots: shots/ui/cam_v2_{1366,390}_{walkin,rear,front,pastor,seat,move}.png

@@ -63,16 +63,30 @@ function pilgrimAv(r) { const A = window.AV, g = r() < .52 ? 'f' : 'm', o = A.OU
   return [g, Math.floor(r() * 3.6), Math.floor(r() * 4), Math.floor(r() * A.HAIRS[g].length), Math.floor(r() * A.HAIRC.length), o, '-', '-', '-', '-'].join('.'); }
 
 // ---------------- seat layout: fanned elliptical pews around the pulpit with a centre aisle
+const AIS = [Math.PI / 2 + .62, Math.PI / 2, Math.PI / 2 - .62], AW = [30, 36, 30]; // side, centre, side aisles (angle, half-width px)
 function layout() { const seats = [], rows = []; const cx = PUL.x, cy = 300;
-  for (let r = 0; r < 6; r++) { const rx = 520 + r * 118, ry = rx * .5, row = { r, pts: [] };
-    const yb = cy + ry, h = drawHAt(yb), sp = h * .5; let th = Math.PI / 2, list = [];
-    for (const dir of [-1, 1]) { let a = Math.PI / 2 + dir * (h * .33) / rx;
-      while (true) { const x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry; if (y < 520 || x < 26 || x > BW - 26) break; list.push({ x, y, a }); a += dir * sp / Math.hypot(rx * Math.sin(a), ry * Math.cos(a)); } }
-    list.sort((p, q) => p.x - q.x); for (const p of list) { const s = { i: seats.length, r, x: p.x, y: p.y, h: drawHAt(p.y) }; const ang = Math.atan2(PUL.y - 60 - s.y, PUL.x - s.x);
-      s.face = facing(ang); seats.push(s); row.pts.push(s); }
-    for (let a = 0.2; a <= Math.PI - 0.2; a += 0.02) { const x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry; if (y >= 505) row.arc = row.arc || [], row.arc.push([x, y, drawHAt(y)]); }
-    rows.push(row); }
+  for (let r = 0; r < 7; r++) { const rx = 506 + r * 102, ry = rx * .5, row = { r, rx, pts: [], arcs: [] }; const yb = cy + ry, h = drawHAt(yb), sp = h * .485;
+    // sections in angle space between aisles (left outer, left inner, right inner, right outer)
+    const g = k => AW[k] / rx, secs = [[AIS[0] + g(0), Math.PI], [AIS[1] + g(1), AIS[0] - g(0)], [AIS[2] + g(2), AIS[1] - g(1)], [0, AIS[2] - g(2)]];
+    secs.forEach(([a0, a1], si) => { const step = a => sp / Math.hypot(rx * Math.sin(a), ry * Math.cos(a)); const list = []; let a = a0 + step(a0) * .5;
+      while (a < a1 - step(a) * .45) { const x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry; if (y >= 520 && x > 26 && x < BW - 26) list.push({ x, y, a }); a += step(a); }
+      if (!list.length) return; const arc = []; for (let b = Math.max(a0, list[0].a - step(list[0].a) * .5); b <= Math.min(a1, list[list.length - 1].a + step(list[list.length - 1].a) * .5) + 1e-6; b += .012) { const x = cx + Math.cos(b) * rx, y = cy + Math.sin(b) * ry; if (y >= 505) arc.push([x, y, drawHAt(y)]); } row.arcs.push(arc);
+      const ai = si === 0 ? 0 : si === 3 ? 2 : null; for (const p of list) { const s = { i: 0, r, rx, sec: si, x: p.x, y: p.y, a: p.a, h: drawHAt(p.y) }; const ang = Math.atan2(PUL.y - 60 - s.y, PUL.x - s.x); s.face = facing(ang);
+        s.ais = ai != null ? ai : si === 1 ? (Math.abs(p.a - AIS[0]) < Math.abs(p.a - AIS[1]) ? 0 : 1) : (Math.abs(p.a - AIS[2]) < Math.abs(p.a - AIS[1]) ? 2 : 1); row.pts.push(s); } });
+    row.pts.sort((p, q) => p.x - q.x); for (const s of row.pts) { s.i = seats.length; seats.push(s); } rows.push(row); }
   return { seats, rows }; }
+// ---------------- walking (door → aisle → slide into the pew; reversed on leave)
+const DOOR = [808, 930], aisleP = (k, R) => [PUL.x + Math.cos(AIS[k]) * R, 300 + Math.sin(AIS[k]) * R * .5], HEADR = 506 + 102 * 6.6;
+function arcPts(R, a0, a1) { const o = [], n = Math.max(1, Math.ceil(Math.abs(a1 - a0) / .03)); for (let i = 1; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; o.push([PUL.x + Math.cos(a) * R, 300 + Math.sin(a) * R * .5]); } return o; }
+function pathIn(st) { const k = st.ais; return [DOOR, [aisleP(k, HEADR)[0], DOOR[1] - 26], aisleP(k, HEADR), aisleP(k, st.rx + 4), ...arcPts(st.rx + 4, AIS[k], st.a), [st.x, st.y]]; }
+function pathOut(st) { return pathIn(st).reverse(); }
+function pathMove(a, b) { if (a.ais === b.ais) { const k = a.ais; return [[a.x, a.y], ...arcPts(a.rx + 4, a.a, AIS[k]), aisleP(k, b.rx + 4), ...arcPts(b.rx + 4, AIS[k], b.a), [b.x, b.y]]; }
+  const o = pathOut(a); o.pop(); o.pop(); return [...o, ...pathIn(b).slice(2)]; }
+function walker(pts, av, done, sp = 300) { return { pts, i: 0, x: pts[0][0], y: pts[0][1], av, done, sp, face: 'N', t: 0 }; }
+function stepWalk(w, dt) { let d = w.sp * dt; w.t += dt; while (d > 0 && w.i < w.pts.length - 1) { const [tx, ty] = w.pts[w.i + 1], dx = tx - w.x, dy = ty - w.y, L2 = Math.hypot(dx, dy);
+    if (L2 > 1e-3) w.face = dirOf(dx, dy); if (L2 <= d) { w.x = tx; w.y = ty; w.i++; d -= L2; } else { w.x += dx / L2 * d; w.y += dy / L2 * d; d = 0; } }
+  if (w.i >= w.pts.length - 1) { w.end = true; w.done?.(); } }
+function dirOf(dx, dy) { return ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'][((Math.round(Math.atan2(dy * 2, dx) / (Math.PI / 4)) % 8) + 8) % 8]; }
 function drawHAt(y) { return 82 + Math.max(0, y - 540) / 300 * 70; }
 function facing(a) { const d = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'][((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8]; return d === 'S' || d === 'SE' || d === 'SW' ? 'N' : d; }
 
@@ -94,6 +108,7 @@ let L, pil = [], me = { seat: -1, st: 'sit', act: null, actT: 0, hands: false },
 let mode = 'service', weather = 'auto', subsOn = true, fps = 60, fpsN = 0, lastSend = 0, lastPres = 0, lastAct = 0, enterT = 0, amenLog = [], audio = null, lastPh = -1, simN = 0;
 const ACT_DUR = { amen: 1.3, wave: 1.6 };
 
+let wtT = 0; function wt(t) { const d = $('#wh-toast'); if (!d) return; d.textContent = t; d.classList.add('show'); clearTimeout(wtT); wtT = setTimeout(() => d.classList.remove('show'), 2600); }
 function weatherNow() { if (weather !== 'auto') return weather; const k = kstNow(), h = k.getUTCHours() + k.getUTCMinutes() / 60;
   const day = Math.floor((Date.now() + KST) / 864e5), r = rnd(day * 7 + 3)(), mo = k.getUTCMonth();
   const wet = r < .22 ? 'rain' : (r < .34 && (mo >= 10 || mo <= 2)) ? 'snow' : null;
@@ -104,7 +119,8 @@ function ensureDom() { if (el) return;
   el = document.createElement('div'); el.id = 'wh'; el.innerHTML = `
   <canvas id="whc"></canvas>
   <div class="wh-top"><div class="wh-title"><b id="wh-name">본당</b><span id="wh-ph"></span><small id="wh-next"></small></div>
-    <div class="wh-tbtns"><button id="wh-info" aria-label="교회 안내">안내</button><button id="wh-subs" aria-pressed="true" aria-label="자막 켜기/끄기">자막</button><button id="wh-exit" aria-label="예배당 나가기">나가기</button></div></div>
+    <div class="wh-tbtns"><button id="wh-cam" aria-label="카메라 시점 바꾸기 (C)" title="시점 바꾸기 (C)"><i class="wh-camic"></i><span>뒤에서</span></button><button id="wh-info" aria-label="교회 안내">안내</button><button id="wh-subs" aria-pressed="true" aria-label="자막 켜기/끄기">자막</button><button id="wh-exit" aria-label="예배당 나가기">나가기</button></div></div>
+  <div class="wh-toast" id="wh-toast" role="status" aria-live="polite"></div>
   <div class="wh-sub" id="wh-sub"><small id="wh-who"></small><p id="wh-line"></p></div>
   <div class="wh-bar"><button id="wh-pray" data-a="pray"><i></i><span>기도</span></button><button id="wh-sing" data-a="sing"><i></i><span>찬양</span></button><button id="wh-amen" data-a="amen"><i></i><span>아멘</span></button></div>
   <div class="wh-sheet" id="wh-sheet" role="dialog" aria-modal="true"><div class="wh-panel"><div class="wh-tabs" id="wh-tabs"></div><div class="wh-body" id="wh-body"></div><button class="wh-x" id="wh-x" aria-label="닫기">닫기</button></div></div>`;
@@ -112,14 +128,14 @@ function ensureDom() { if (el) return;
   wl = document.createElement('canvas'); wl.width = 400; wl.height = 225; wctx = wl.getContext('2d');
   bg = new Image(); bg.src = 'assets/worship/hall.webp'; mask = new Image(); mask.src = 'assets/worship/winmask.png';
   bg.onload = () => { bgT = null; }; mask.onload = () => { bgT = null; };
-  $('#wh-exit').onclick = () => close(); $('#wh-subs').onclick = e => { subsOn = !subsOn; e.currentTarget.setAttribute('aria-pressed', subsOn); $('#wh-sub').classList.toggle('off', !subsOn); };
+  $('#wh-exit').onclick = () => leave(); $('#wh-cam').onclick = () => cycleView(); $('#wh-subs').onclick = e => { subsOn = !subsOn; e.currentTarget.setAttribute('aria-pressed', subsOn); $('#wh-sub').classList.toggle('off', !subsOn); };
   $('#wh-info').onclick = () => sheet('time'); $('#wh-x').onclick = () => sheet(null); $('#wh-sheet').onclick = e => { if (e.target.id === 'wh-sheet') sheet(null); };
   el.querySelectorAll('.wh-bar button').forEach(b => b.onclick = () => act(b.dataset.a));
   let drag = null; cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, px: ox, moved: 0 }; });
-  addEventListener('pointermove', e => { if (!drag || !open) return; const dx = e.clientX - drag.x; drag.moved = Math.max(drag.moved, Math.abs(dx)); if (BW * s > vw + 2 && drag.moved > 6) { panX = drag.px + dx; } });
+  addEventListener('pointermove', e => { if (!drag || !open) return; const dx = e.clientX - drag.x; drag.moved = Math.max(drag.moved, Math.abs(dx)); if (BW * s > vw + 2 && drag.moved > 6 && view === 'rear') { panX = drag.px + dx; } });
   addEventListener('pointerup', e => { if (!drag || !open) return; const d = drag; drag = null; if (d.moved < 8 && e.target === cv) tap(e.clientX, e.clientY); });
   addEventListener('keydown', e => { if (!open) return; if (/INPUT|TEXTAREA/.test(document.activeElement?.tagName)) return; e.stopImmediatePropagation();
-    if (e.key === 'Escape') { $('#wh-sheet').classList.contains('show') ? sheet(null) : close(); } else if (e.key === '1') act('pray'); else if (e.key === '2') act('sing'); else if (e.key === '3' || e.key === ' ') { e.preventDefault(); act('amen'); } }, true);
+    if (e.key === 'Escape') { $('#wh-sheet').classList.contains('show') ? sheet(null) : leave(); } else if (e.key === 'c' || e.key === 'C' || e.key === 'ㅊ') cycleView(); else if (e.key === '1') act('pray'); else if (e.key === '2') act('sing'); else if (e.key === '3' || e.key === ' ') { e.preventDefault(); act('amen'); } }, true);
   addEventListener('resize', () => open && resize());
 }
 function resize() { vw = innerWidth; vh = innerHeight; const coarse = matchMedia('(pointer:coarse)').matches; dpr = lowQ ? 1 : Math.min(devicePixelRatio || 1, coarse ? 1.5 : 2);
@@ -130,30 +146,32 @@ function resize() { vw = innerWidth; vh = innerHeight; const coarse = matchMedia
 // ---------------- open / close
 export function enter(opt = {}) { const g = G(); if (!g || !g.S) return; ensureDom(); mode = opt.mode || (kstNow().getUTCHours() >= 4 && kstNow().getUTCHours() < 6 ? 'dawn' : 'service'); weather = opt.weather || 'auto';
   if (!L) L = layout(); buildPilgrims(); pickMySeat(); buildStaff(); open = true; window.__whOpen = true; el.style.display = 'block'; document.body.classList.add('wh-open'); resize(); bgT = null; enterT = performance.now(); lastPh = -1;
-  ripple = null; react = null; fx = []; me.st = 'sit'; me.act = null; me.hands = false; startAmbience(); sendPres(true); lastT = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
-  $('#wh-name').textContent = mode === 'dawn' ? '새벽기도 · 본당' : '본당 예배'; if (!localStorage.getItem('wh_seen')) { localStorage.setItem('wh_seen', '1'); setTimeout(() => g.toast('안내위원: 환영해요! 아래 기도 · 찬양 · 아멘으로 함께 예배해요'), 600); }
+  ripple = null; react = null; fx = []; me.walk = opt.instant ? null : walker(pathIn(L.seats[me.seat]), g.player.av, () => sendPres(true), 340); setView(view); camU = 1; me.st = 'sit'; me.act = null; me.hands = false; startAmbience(); sendPres(true); lastT = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+  $('#wh-name').textContent = mode === 'dawn' ? '새벽기도 · 본당' : '본당 예배'; if (!localStorage.getItem('wh_seen')) { localStorage.setItem('wh_seen', '1'); setTimeout(() => wt('안내위원: 환영해요! 아래 기도 · 찬양 · 아멘으로 함께 예배해요'), 600); }
   try { window.Aud?.stopHymn?.(); } catch { } }
+export function leave() { if (!open) return; if (me.leaving) return close(); const st = L.seats[me.seat]; me.leaving = true; G()?.net?.send('wh', { k: 'out' }); me.walk = walker(st ? pathOut(st) : [DOOR, DOOR], G().player.av, () => { me.leaving = false; close(); }, 520); setTimeout(() => { if (me.leaving) { me.leaving = false; close(); } }, 4500); }
 export function close() { if (!open) return; open = false; window.__whOpen = false; el.style.display = 'none'; document.body.classList.remove('wh-open'); cancelAnimationFrame(raf); stopAmbience(); G()?.net?.send('wh', { k: 'bye' }); sheet(null); }
 
 function buildPilgrims() { const r = rnd(hash('pilgrims' + (mode === 'dawn' ? 'd' : ''))); const n = L.seats.length; pil = [];
-  const dens = mode === 'dawn' ? .38 : 1; for (let i = 0; i < n; i++) { const on = r() < dens; pil.push(on ? { av: pilgrimAv(r), name: '순례자 ' + PN[Math.floor(r() * PN.length)], ph: r() * 6.28, sing: r(), pray: r(), echo: r() } : null); } }
+  const dens = mode === 'dawn' ? .38 : .84; for (let i = 0; i < n; i++) { const on = r() < dens; pil.push(on ? { av: pilgrimAv(r), name: '순례자 ' + PN[Math.floor(r() * PN.length)], ph: r() * 6.28, sing: r(), pray: r(), echo: r() } : null); } }
 function pickMySeat() { const saved = +localStorage.getItem('wh_seat'); const taken = new Set([...peers.values()].map(p => p.seat));
-  if (L.seats[saved] && !taken.has(saved)) { me.seat = saved; return; }
-  const c = L.seats.filter(x => x.r === 3 && !taken.has(x.i)).sort((a, b) => Math.abs(a.x - PUL.x) - Math.abs(b.x - PUL.x)); me.seat = (c[1] || c[0] || L.seats[0]).i; localStorage.setItem('wh_seat', me.seat); }
-function buildStaff() { const pos = { senior: [PUL.x, 436, 'S', 168], assoc: [640, 470, 'SE', 112], evang: [1180, 470, 'SW', 108], praise: [1010, 430, 'S', 112], choir: [712, 452, 'W', 104], usher: [130, 800, 'NE', 150] };
+  if (L.seats[saved] && !taken.has(saved) && !pil[saved]) { me.seat = saved; return; }
+  const c = L.seats.filter(x => x.r === 3 && !taken.has(x.i) && !pil[x.i]).sort((a, b) => Math.abs(a.x - PUL.x) - Math.abs(b.x - PUL.x)); me.seat = (c[1] || c[0] || L.seats[0]).i; localStorage.setItem('wh_seat', me.seat); }
+function buildStaff() { const pos = { senior: [PUL.x, 404, 'S', 168], assoc: [640, 470, 'SE', 112], evang: [1180, 470, 'SW', 108], praise: [1010, 430, 'S', 112], choir: [712, 452, 'W', 104], usher: [130, 800, 'NE', 150] };
   for (const st of STAFF) { const P = pos[st.id]; if (!P) continue; const c = makeChar(st.av, st.char); c.x = P[0]; c.y = P[1]; c.drawH = P[3]; c.face = c.dface = c._lf = P[2]; c.blendT = 1; c.speedNow = 0; staffC[st.id] = { c, st, base: P }; }
   staffC.choirs = [0, 1, 2, 3, 4].map(i => ({ x: 498 + i * 40, y: 432, av: pilgrimAv(rnd(900 + i)) })); }
 
 // ---------------- network (throttled presence + one-shot actions)
-function sendPres(force) { const g = G(), now = performance.now(); if (!force && now - lastPres < 5000) return; lastPres = now; g.net?.send('wh', { k: 'p', s: me.seat, n: g.S.name, av: g.player.av, st: me.st, hd: me.hands ? 1 : 0, md: mode }); }
-function onNet(p) { if (!p || !p.id) return; const Sf = window.Safe; if (p.k === 'bye') { peers.delete(p.id); return; }
+function sendPres(force) { const g = G(), now = performance.now(); if (!force && now - lastPres < 5000) return; lastPres = now; g.net?.send('wh', { k: 'p', w: me.walk ? 1 : 0, s: me.seat, n: g.S.name, av: g.player.av, st: me.st, hd: me.hands ? 1 : 0, md: mode }); }
+function onNet(p) { if (!p || !p.id) return; const Sf = window.Safe; if (p.k === 'bye') { const q0 = peers.get(p.id); if (q0 && !q0.walk && L?.seats[q0.seat]) { q0.walk = walker(pathOut(L.seats[q0.seat]), q0.av, () => peers.delete(p.id), 520); q0.seen = performance.now(); q0.gone = 1; } else peers.delete(p.id); return; }
+  if (p.k === 'out') { const q0 = peers.get(p.id); if (q0 && L?.seats[q0.seat]) { q0.walk = walker(pathOut(L.seats[q0.seat]), q0.av, () => peers.delete(p.id), 520); q0.gone = 1; } return; }
   if (Sf?.isBlocked?.(p.id, p.n)) return; let q = peers.get(p.id);
-  if (p.k === 'p') { const seat = Math.max(0, Math.min((L?.seats.length || 1) - 1, p.s | 0)); q = q || { id: p.id }; Object.assign(q, { seat, name: Sf ? Sf.clean(String(p.n || '이웃').slice(0, 12)) : String(p.n || '이웃').slice(0, 12), av: String(p.av || ''), st: p.st === 'pray' || p.st === 'sing' ? p.st : 'sit', hands: !!p.hd, seen: performance.now() }); peers.set(p.id, q);
+  if (p.k === 'p') { const seat = Math.max(0, Math.min((L?.seats.length || 1) - 1, p.s | 0)); const isNew = !q, prevSeat = q?.seat; q = q || { id: p.id }; Object.assign(q, { seat, name: Sf ? Sf.clean(String(p.n || '이웃').slice(0, 12)) : String(p.n || '이웃').slice(0, 12), av: String(p.av || ''), st: p.st === 'pray' || p.st === 'sing' ? p.st : 'sit', hands: !!p.hd, seen: performance.now() }); peers.set(p.id, q); if (L && open && !q.gone) { if (isNew && p.w) q.walk = walker(pathIn(L.seats[seat]), q.av, null, 340); else if (!isNew && prevSeat !== seat && L.seats[prevSeat]) q.walk = walker(pathMove(L.seats[prevSeat], L.seats[seat]), q.av, null, 340); }
     if (open && seat === me.seat && p.id < G().net.id) { pickMySeatAvoid(); } return; }
   if (!q) return; q.seen = performance.now();
   if (p.k === 'a' && ['amen', 'wave', 'cry'].includes(p.a)) { q.act = p.a; q.actT = 0; if (p.a === 'amen') { amenLog.push(performance.now()); echoAmen(L.seats[q.seat]); } }
   if (p.k === 'st') { q.st = p.st === 'pray' || p.st === 'sing' ? p.st : 'sit'; q.hands = !!p.hd; }
-  if (p.k === 'g' && p.to === G().net.id && open) { G().toast(`${q.name}님이 반갑게 인사했어요`); q.act = 'wave'; q.actT = 0; } }
+  if (p.k === 'g' && p.to === G().net.id && open) { wt(`${q.name}님이 반갑게 인사했어요`); q.act = 'wave'; q.actT = 0; } }
 function pickMySeatAvoid() { localStorage.removeItem('wh_seat'); pickMySeat(); sendPres(true); }
 
 // ---------------- actions (기도 / 찬양 / 아멘)
@@ -173,13 +191,14 @@ function syncBar() { const ph = phaseAt().p; const P = $('#wh-pray'), Sg = $('#w
   P.classList.toggle('hint', (ph.k === 'pray' || ph.k === 'cry' || ph.k === 'bless') && me.st !== 'pray'); Sg.classList.toggle('hint', ph.k === 'song' && me.st !== 'sing'); }
 
 // ---------------- tap → name tag (+ greet / report for real users)
-function tap(cx, cy) { const x = (cx - ox) / s, y = (cy - oy) / s; let best = null, bd = 1e9;
+function tap(cx, cy) { if (!curT) return; const x = (cx - curT.x) / curT.s, y = (cy - curT.y) / curT.s; let best = null, bd = 1e9;
   for (const st of L.seats) { const top = st.y - st.h * .95, d = Math.hypot(st.x - x, (st.y - st.h * .5) - y); if (y > top - 10 && y < st.y + 6 && Math.abs(st.x - x) < st.h * .32 && d < bd) { bd = d; best = st; } }
   for (const k of Object.keys(staffC)) { const o = staffC[k]; if (!o.c) continue; const c = o.c; if (Math.abs(c.x - x) < c.drawH * .3 && y < c.y && y > c.y - c.drawH) { tagShow = { x: c.x, y: c.y - c.drawH * 1.02, name: `${o.st.role} ${o.st.name}`, t: 3.2 }; return; } }
   if (!best) return; const q = seatPeer(best.i), mine = best.i === me.seat, p = pil[best.i];
+  if (!q && !mine && !p && !me.walk) { const from = L.seats[me.seat]; me.seat = best.i; localStorage.setItem('wh_seat', best.i); me.walk = walker(pathMove(from, best), G().player.av, () => sendPres(true), 340); sendPres(true); wt('빈자리로 이동해요'); return; }
   const name = mine ? G().S.name + ' (나)' : q ? q.name : p ? p.name : null; if (!name) return; tagShow = { x: best.x, y: best.y - best.h * 1.02, name, t: 3.2, seat: best.i };
   if (q) personCard(q); }
-function personCard(q) { const g = G(); g.dialog?.(q.name, '같은 예배당에 앉아 있는 이웃이에요.', [['인사하기', () => { g.net?.send('wh', { k: 'g', to: q.id, n: g.S.name }); g.toast(`${q.name}님에게 인사했어요`); me.act = 'wave'; me.actT = 0; }], ['신고 · 차단', () => window.Safe?.menu?.(q.id, q.name, '')], ['닫기', () => { }]]); }
+function personCard(q) { const g = G(); g.dialog?.(q.name, '같은 예배당에 앉아 있는 이웃이에요.', [['인사하기', () => { g.net?.send('wh', { k: 'g', to: q.id, n: g.S.name }); wt(`${q.name}님에게 인사했어요`); me.act = 'wave'; me.actT = 0; }], ['신고 · 차단', () => window.Safe?.menu?.(q.id, q.name, '')], ['닫기', () => { }]]); }
 
 // ---------------- render
 function frame(now) { if (!open) return; raf = requestAnimationFrame(frame); const dt = Math.min(.05, (now - lastT) / 1000); lastT = now; fps = fps * .95 + (1 / Math.max(dt, 1e-3)) * .05; fpsN++;
@@ -187,9 +206,13 @@ function frame(now) { if (!open) return; raf = requestAnimationFrame(frame); con
   if (now - enterT > 120e3 && !enter.done) attend();
   if (!lowQ && fpsN % 90 === 0 && now - enterT > 2500 && fps < 48 && dpr > 1) { lowQ = true; resize(); }
   ox = panX == null ? Math.min(0, Math.max(vw - BW * s, vw / 2 - PUL.x * s)) : Math.min(0, Math.max(vw - BW * s, panX)); if (BW * s <= vw) ox = (vw - BW * s) / 2;
-  const c = ctx; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.fillStyle = '#efe3d6'; c.fillRect(0, 0, vw, vh); if (oy + BH * s < vh) { const gr = c.createLinearGradient(0, oy + BH * s, 0, vh); gr.addColorStop(0, '#c9a6d4'); gr.addColorStop(1, '#b896c8'); c.fillStyle = gr; c.fillRect(0, oy + BH * s - 2, vw, vh); }
-  c.setTransform(dpr * s, 0, 0, dpr * s, dpr * ox, dpr * oy);
-  drawBg(c, now); drawStage(c, dt, P); drawSeats(c, dt, now, P); drawFx(c, dt); drawTag(c, dt);
+  tickWalkers(dt); camStep(dt); const c = ctx; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.fillStyle = '#efe3d6'; c.fillRect(0, 0, vw, vh);
+  if (fr < 1) { if (cam.z < 1.02 && oy + BH * s < vh) { const gr = c.createLinearGradient(0, oy + BH * s, 0, vh); gr.addColorStop(0, '#c9a6d4'); gr.addColorStop(1, '#b896c8'); c.fillStyle = gr; c.fillRect(0, oy + BH * s - 2, vw, vh); }
+    const T = camT(); curT = T; c.setTransform(dpr * T.s, 0, 0, dpr * T.s, dpr * T.x, dpr * T.y);
+    drawBg(c, now); drawStage(c, dt, P); drawSeats(c, dt, now, P, false); drawFx(c, dt); drawTag(c, dt); }
+  if (fr > 0) { const e = ease(fr), sc = s * (1.12 - .12 * e), fx0 = (vw - BW * sc) / 2, fy0 = vh > vw * 1.2 ? vh - BH * sc - 150 : (vh - BH * sc) / 2 + 10;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0); c.globalAlpha = e; c.fillStyle = '#e9d2bf'; c.fillRect(0, 0, vw, vh); c.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * fx0, dpr * fy0);
+    drawFront(c, now); drawSeats(c, fr < 1 ? 0 : dt, now, P, true); c.globalAlpha = 1; if (fr >= 1) curT = null; }
   c.setTransform(dpr, 0, 0, dpr, 0, 0); drawReact(c, dt); hudText(P); }
 function drawBg(c, now) { if (!bg.complete || !bg.naturalWidth) return; const w = weatherNow();
   if (!bgT || bgT.w !== w) { bgT = { w, cv: document.createElement('canvas') }; bgT.cv.width = BW; bgT.cv.height = BH; const x = bgT.cv.getContext('2d'); x.drawImage(bg, 0, 0, BW, BH);
@@ -214,7 +237,7 @@ function drawStage(c, dt, P) { const k = P.p.k, sc = staffC; const t = performan
   for (const id of ['choir', 'assoc', 'evang', 'praise', 'senior', 'usher']) { const o = sc[id]; if (!o) continue; const ch = o.c;
     const lead = P.p.who === id; ch.emote = (id === 'senior' && (k === 'pray' || k === 'cry')) || (id === 'assoc' && k === 'pray') ? 'pray' : null; if (ch.emote) ch.emoteT = .2;
     ch.update(dt); ch.emote = ch.emote; ch._draw(c);
-    if (id === 'senior') { if (pulImg) c.drawImage(pulImg, PULCROP[0], PULCROP[1]); if (k === 'bless') arms(c, ch.x, ch.headY ?? (ch.y - ch.drawH), ch.drawH, 1); }
+    if (id === 'senior') { if (pulImg) { c.drawImage(pulImg, 0, 34, PULCROP[2], PULCROP[3] - 34, PULCROP[0], PULCROP[1] + 34, PULCROP[2], PULCROP[3] - 34); c.fillStyle = '#8a5a3c'; rrect(c, PULCROP[0] - 4, PULCROP[1] + 30, PULCROP[2] + 8, 9, 4); c.fill(); } if (k === 'bless') arms(c, ch.x, ch.headY ?? (ch.y - ch.drawH), ch.drawH, 1); }
     if (id === 'choir' && k === 'song') { const a = Math.sin(t * 4) * .5; c.strokeStyle = '#6b5a8a'; c.lineWidth = 3; c.beginPath(); c.moveTo(ch.x - 14, ch.y - ch.drawH * .62); c.lineTo(ch.x - 30, ch.y - ch.drawH * (.78 + a * .1)); c.stroke(); }
     if (lead || id === 'senior' || id === 'usher') label(c, ch.x, (ch.headY ?? ch.y - ch.drawH) - 10, o.st.role, lead ? '#ffe38a' : '#fff', id === 'senior' ? 17 : 14); } }
 function arms(c, x, top, h, k) { c.save(); c.strokeStyle = '#f3cdb7'; c.lineCap = 'round'; c.lineWidth = Math.max(2.5, h * .055); const sy = top + h * .36, up = top - h * .06 * k;
@@ -222,21 +245,54 @@ function arms(c, x, top, h, k) { c.save(); c.strokeStyle = '#f3cdb7'; c.lineCap 
   c.fillStyle = '#f7d9c6'; c.beginPath(); c.arc(x - h * .24, up, h * .045, 0, 7); c.arc(x + h * .24, up, h * .045, 0, 7); c.fill(); c.restore(); }
 function label(c, x, y, t, col, fs = 14) { c.font = `700 ${fs}px Pretendard, sans-serif`; c.textAlign = 'center'; const w = c.measureText(t).width + fs; c.fillStyle = 'rgba(50,40,80,.62)'; rrect(c, x - w / 2, y - fs * .85, w, fs * 1.6, fs * .8); c.fill(); c.fillStyle = col; c.fillText(t, x, y + fs * .32); }
 function rrect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+// front view: map hall coords (elliptic row radius) to a straight-on view from the pulpit
+function fp(x, y) { const R = Math.hypot(x - PUL.x, (y - 300) * 2), r = (R - 506) / 102, k = 1.55 - r * .13; return { x: 800 + (x - PUL.x) * k, y: 900 - r * 66, h: 168 - r * 14, face: 'S' }; }
+// ---------------- camera views (뒤에서 / 앞에서 / 목사님 / 내 자리), eased, remembered
+const VIEWS = ['rear', 'front', 'pastor', 'seat'], VNAME = { rear: '뒤에서', front: '앞에서', pastor: '목사님', seat: '내 자리' };
+let view = VIEWS.includes(localStorage.getItem('wh_view')) ? localStorage.getItem('wh_view') : 'rear', cam = { x: 0, y: 0, z: 1 }, camFrom = null, camU = 1, fr = view === 'front' ? 1 : 0, curT = null;
+const ease = u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+function camGoal(v) { // world focus point + zoom over the base fit
+  if (v === 'pastor') return { x: PUL.x, y: 318, z: Math.max(2.2, Math.min(3.4, (vh * .5) / (s * 190))) };
+  if (v === 'seat') { const st = L?.seats[me.seat] || { x: PUL.x, y: 760 }; return { x: st.x + (PUL.x - st.x) * .55, y: st.y + (330 - st.y) * .55, z: Math.max(1.7, Math.min(2.4, (vh * .62) / (s * Math.max(160, st.y - 300)))) }; }
+  return { x: null, y: null, z: 1 }; }
+function rearFocus() { return { x: (vw / 2 - ox) / s, y: ((vh > vw * 1.2 ? vh * .42 : vh * .48) - oy) / s, z: 1 }; }
+function camT() { const g = cam; if (g.x == null) return { s, x: ox, y: oy };
+  const S2 = s * g.z, tx = vw / 2 - g.x * S2, ty = (vh > vw * 1.2 ? vh * .42 : vh * .48) - g.y * S2; const lim = g.z > 1.01; return { s: S2, x: lim ? Math.min(0, Math.max(vw - BW * S2, tx)) : tx, y: lim ? Math.min(0, Math.max(vh - BH * S2, ty)) : ty }; }
+function camStep(dt) { const gv = view === 'front' ? 'rear' : view; let goal = camGoal(gv); if (goal.x == null) goal = rearFocus();
+  if (camU < 1) { camU = Math.min(1, camU + dt / .7); const e = ease(camU), a = camFrom; cam = { x: a.x + (goal.x - a.x) * e, y: a.y + (goal.y - a.y) * e, z: a.z + (goal.z - a.z) * e }; }
+  else cam = gv === 'rear' ? { x: null, y: null, z: 1 } : goal;
+  const tf = view === 'front' ? 1 : 0; if (fr !== tf) fr = tf > fr ? Math.min(1, fr + dt / .6) : Math.max(0, fr - dt / .6); }
+function setView(v) { if (!VIEWS.includes(v)) return; camFrom = cam.x == null ? rearFocus() : { ...cam }; camU = 0; view = v; localStorage.setItem('wh_view', v); crowdKey = '';
+  const b = $('#wh-cam'); if (b) { b.querySelector('span').textContent = VNAME[v]; b.setAttribute('aria-label', '카메라 시점 바꾸기, 지금: ' + VNAME[v] + ' (C)'); } }
+function cycleView() { setView(VIEWS[(VIEWS.indexOf(view) + 1) % VIEWS.length]); wt('시점: ' + VNAME[view]); }
+let frontBg = null;
+function drawFront(c, now) { const w = weatherNow(), T = TINT[w]; if (!frontBg || frontBg.w !== w) { const cv2 = document.createElement('canvas'); cv2.width = BW; cv2.height = BH; const x = cv2.getContext('2d');
+    let g = x.createLinearGradient(0, 0, 0, 470); g.addColorStop(0, '#f4e2d2'); g.addColorStop(1, '#ead0bb'); x.fillStyle = g; x.fillRect(0, 0, BW, 470);
+    x.fillStyle = '#e2c2a8'; x.fillRect(0, 0, BW, 46); for (let i = 0; i < 9; i++) { x.fillStyle = 'rgba(255,248,232,.9)'; x.beginPath(); x.ellipse(110 + i * 172, 30, 26, 9, 0, 0, 7); x.fill(); }
+    const sky = { day: ['#bfe3ff', '#fff4dc'], dawn: ['#3a4f9a', '#f4b3a0'], sunset: ['#ff9f7a', '#ffd7a0'], night: ['#1c2350', '#3a3f78'], rainnight: ['#22304f', '#46587a'], rain: ['#8a9ab4', '#c3cedd'], snow: ['#cfd9ef', '#f4f6fb'] }[w] || ['#bfe3ff', '#fff4dc'];
+    for (let i = 0; i < 6; i++) { const wx = 150 + i * 250 - (i >= 3 ? -40 : 40), wy = 96, ww = 110, wh = 210; if (i === 2 || i === 3) continue; g = x.createLinearGradient(0, wy, 0, wy + wh); g.addColorStop(0, sky[0]); g.addColorStop(1, sky[1]); x.fillStyle = '#fff6ea'; rrect(x, wx - 8, wy - 8, ww + 16, wh + 16, 55); x.fill(); x.fillStyle = g; rrect(x, wx, wy, ww, wh, 50); x.fill(); x.strokeStyle = 'rgba(255,255,255,.8)'; x.lineWidth = 4; x.beginPath(); x.moveTo(wx + ww / 2, wy); x.lineTo(wx + ww / 2, wy + wh); x.moveTo(wx, wy + wh * .45); x.lineTo(wx + ww, wy + wh * .45); x.stroke(); }
+    x.fillStyle = '#b98a64'; rrect(x, 690, 150, 220, 320, 20); x.fill(); x.fillStyle = '#d7ab82'; rrect(x, 704, 164, 92, 306, 12); x.fill(); rrect(x, 804, 164, 92, 306, 12); x.fill(); x.fillStyle = '#f7d77a'; x.beginPath(); x.arc(784, 330, 6, 0, 7); x.arc(816, 330, 6, 0, 7); x.fill();
+    x.fillStyle = '#fff7ea'; x.font = '700 22px Pretendard, sans-serif'; x.textAlign = 'center'; x.fillText('마실채플 본당', 800, 128);
+    g = x.createLinearGradient(0, 440, 0, BH); g.addColorStop(0, '#c9967a'); g.addColorStop(1, '#a8705a'); x.fillStyle = g; x.fillRect(0, 440, BW, BH - 440);
+    x.fillStyle = 'rgba(180,70,80,.35)'; for (const k of [-1, 0, 1]) { const ax = 800 + k * 560; x.beginPath(); x.moveTo(ax - 18 - Math.abs(k) * 4, 440); x.lineTo(ax + 18 + Math.abs(k) * 4, 440); x.lineTo(ax + k * 360 + 70, BH); x.lineTo(ax + k * 360 - 70, BH); x.closePath(); x.fill(); }
+    if (T) { x.globalCompositeOperation = 'multiply'; x.globalAlpha = T[3] * 2; x.fillStyle = T[0]; x.fillRect(0, 0, BW, BH); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; }
+    frontBg = { w, cv: cv2 }; } c.drawImage(frontBg.cv, 0, 0); }
 let crowdCv = null, crowdKey = '', spriteN = 0;
-function drawSeats(c, dt, now, P) { if (!lowQ) return seatPass(c, dt, now, P, 0);
-  const occ = [...peers.values()].map(q => q.seat).join(','), key = P.p.k + '|' + (P.p.hands && P.t > 8) + '|' + me.seat + '|' + occ + '|' + spriteN + '|' + s;
-  if (key !== crowdKey) { crowdKey = key; crowdCv = crowdCv || document.createElement('canvas'); const k2 = s * dpr; crowdCv.width = Math.ceil(BW * k2); crowdCv.height = Math.ceil(BH * k2); const x = crowdCv.getContext('2d'); x.setTransform(k2, 0, 0, k2, 0, 0); seatPass(x, 0, now, P, 1); }
-  c.drawImage(crowdCv, 0, 0, BW, BH); seatPass(c, dt, now, P, 2); }
-function seatPass(c, dt, now, P, md) { const t = now / 1000, k = P.p.k, song = k === 'song', prayK = k === 'pray' || k === 'cry' || k === 'bless';
+function drawSeats(c, dt, now, P, F) { if (!lowQ || (F && fr < 1 && fr > 0)) return seatPass(c, dt, now, P, 0, F);
+  const occ = [...peers.values()].map(q => q.seat + (q.walk ? 'w' : '')).join(',') + (me.walk ? 'W' : '') + view, key = P.p.k + '|' + (P.p.hands && P.t > 8) + '|' + me.seat + '|' + occ + '|' + spriteN + '|' + s + '|' + Math.round((F ? 1 : cam.z) * 4);
+  if (key !== crowdKey) { crowdKey = key; crowdCv = crowdCv || document.createElement('canvas'); const k2 = s * dpr * (F ? 1 : Math.min(1.4, cam.z)); crowdCv.width = Math.ceil(BW * k2); crowdCv.height = Math.ceil(BH * k2); const x = crowdCv.getContext('2d'); x.setTransform(k2, 0, 0, k2, 0, 0); seatPass(x, 0, now, P, 1, F); }
+  c.drawImage(crowdCv, 0, 0, BW, BH); seatPass(c, dt, now, P, 2, F); }
+function seatPass(c, dt, now, P, md, F) { const t = now / 1000, k = P.p.k, song = k === 'song', prayK = k === 'pray' || k === 'cry' || k === 'bless';
   const occ = new Map(); for (const q of peers.values()) occ.set(q.seat, q);
-  for (const row of L.rows) { const far = row.r <= 1; // LOD: far rows skip per-seat breathing/sway transforms
+  const rows = F ? [...L.rows].reverse() : L.rows;
+  for (const row of rows) { const far = !F && row.r <= 1; if (F && md !== 2) drawPewF(c, row); // LOD: far rows skip per-seat breathing/sway transforms
     for (const st of row.pts) { const mine = st.i === me.seat, q = mine ? null : occ.get(st.i), p = q ? null : pil[st.i];
-      if (!mine && !q && !p) continue; const stat = !!p && !p.act && !(p.amenAt && now >= p.amenAt); if ((md === 1 && !stat) || (md === 2 && stat)) continue; if (md === 1) dt = 0; const av = mine ? G().player.av : q ? q.av : p.av; let state = mine ? me.st : q ? q.st : null, hands = mine ? me.hands : q ? q.hands : false;
+      if (!mine && !q && !p) continue; if ((mine && me.walk) || (q && q.walk)) continue; const S2 = F ? { ...fp(st.x, st.y), i: st.i } : st; const stat = !!p && !p.act && !(p.amenAt && now >= p.amenAt); if ((md === 1 && !stat) || (md === 2 && stat)) continue; if (md === 1) dt = 0; const av = mine ? G().player.av : q ? q.av : p.av; let state = mine ? me.st : q ? q.st : null, hands = mine ? me.hands : q ? q.hands : false;
       if (p) { state = prayK ? (p.pray < .85 ? 'pray' : 'sit') : song ? (p.sing < .72 ? 'sing' : 'sit') : 'sit'; hands = song && P.p.hands && p.sing < .4 && P.t > 8; }
       let actN = mine ? me.act : q ? q.act : null, actT = mine ? me.actT : q ? q.actT : 0;
       if (p && p.amenAt && now >= p.amenAt) { p.act = 'amen'; p.actT = 0; p.amenAt = 0; } if (p && p.act) { p.actT += dt; actN = p.act; actT = p.actT; if (p.actT > 1.3) p.act = null; }
       if (mine && me.act) { me.actT += dt; if (me.actT > (ACT_DUR[me.act] || 1.4)) me.act = null; } if (q && q.act) { q.actT += dt; if (q.actT > 1.4) q.act = null; }
-      const e = sprite(av, st.face); if (!e) continue; const f = st.h / SRC_H; let dx = 0, dy = 0;
+      const e = sprite(av, S2.face); if (!e) continue; const st0 = st; { const st = S2; const f = st.h / SRC_H; let dx = 0, dy = 0;
       if (!far && md !== 1) { dy = Math.sin(t * 2.2 + st.i) * .5; if (state === 'sing') dx = Math.sin(t * 2.4 + st.i * .7) * 1.6; }
       if (state === 'pray') dy += st.h * .05; if (actN === 'amen') dy -= Math.sin(Math.min(1, actT / .45) * Math.PI) * st.h * .09; if (actN === 'cry') dx += Math.sin(t * 22) * 1.2;
       c.drawImage(e.cv, st.x - e.ax * f + dx, st.y - e.ay * f + dy, e.cv.width * f, e.cv.height * f);
@@ -246,14 +302,25 @@ function seatPass(c, dt, now, P, md) { const t = now / 1000, k = P.p.k, song = k
       if (actN === 'amen' && actT < 1.2) { const fs = Math.max(11, Math.round(st.h * .15)); label(c, st.x, top - st.h * .16, '아멘', '#ffe9a8', fs); }
       if (actN === 'wave' && actT < 1.6) arms(c, st.x, top, st.h, .6 + Math.sin(actT * 14) * .3);
       if (mine) { c.fillStyle = '#ffd25a'; c.beginPath(); const yy = top - st.h * .1 + Math.sin(t * 3) * 2; c.moveTo(st.x - 7, yy - 10); c.lineTo(st.x + 7, yy - 10); c.lineTo(st.x, yy - 1); c.closePath(); c.fill(); }
-      if (q && !mine) { c.fillStyle = '#ff9ec7'; c.beginPath(); c.arc(st.x, top - st.h * .08, 3.2, 0, 7); c.fill(); } }
-    drawPew(c, row); }
+      if (q && !mine) { c.fillStyle = '#ff9ec7'; c.beginPath(); c.arc(st.x, top - st.h * .08, 3.2, 0, 7); c.fill(); } } }
+    if (!F && md !== 2) drawPew(c, row); }
+  if (md !== 1) drawWalkers(c, dt, F);
   const recent = amenLog.filter(x => now - x < 1800); amenLog = recent; const pilA = pil.reduce((a, p) => a + (p && p.act === 'amen' ? 1 : 0), 0);
   if ((recent.length + pilA >= 8) && (!ripple || now - ripple.t0 > 2600)) { ripple = { t0: now, x: L.seats[me.seat]?.x || PUL.x, y: L.seats[me.seat]?.y || 700 }; window.Aud?.sfx?.('amen'); } }
-function drawPew(c, row) { if (!row.arc) return; const A = row.arc; c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .36; i ? c.lineTo(x, yt) : c.moveTo(x, yt); }
-  for (let i = A.length - 1; i >= 0; i--) { const [x, y, h] = A[i]; c.lineTo(x, y - h * .02); } c.closePath(); c.fillStyle = '#b98a64'; c.fill();
+function drawPew(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .36; i ? c.lineTo(x, yt) : c.moveTo(x, yt); }
+  for (let i = A.length - 1; i >= 0; i--) { const [x, y, h] = A[i]; c.lineTo(x, y - h * .02); } c.closePath(); c.fillStyle = '#b98a64'; c.fill(); c.strokeStyle = '#8f6446'; c.lineWidth = 2; c.stroke();
   c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; const yt = y - h * .36; i ? c.lineTo(x, yt) : c.moveTo(x, yt); } c.strokeStyle = '#e2bf98'; c.lineWidth = 3; c.stroke();
-  c.beginPath(); for (let i = 0; i < A.length; i++) { const [x, y, h] = A[i]; i ? c.lineTo(x, y - h * .12) : c.moveTo(x, y - h * .12); } c.strokeStyle = 'rgba(120,80,60,.35)'; c.lineWidth = 2; c.stroke(); }
+  for (const E of [A[0], A[A.length - 1]]) { const [x, y, h] = E; c.fillStyle = '#9a6a4a'; rrect(c, x - 4, y - h * .42, 8, h * .42, 3); c.fill(); } } }
+function drawPewF(c, row) { for (const A of row.arcs) { if (A.length < 2) continue; const a = fp(A[0][0], A[0][1]), b = fp(A[A.length - 1][0], A[A.length - 1][1]), h = a.h, y = a.y;
+  c.fillStyle = '#a87a56'; rrect(c, a.x, y - h * .62, b.x - a.x, h * .5, h * .08); c.fill(); c.fillStyle = '#e2bf98'; c.fillRect(a.x, y - h * .62, b.x - a.x, h * .05);
+  c.fillStyle = '#8a5f42'; c.fillRect(a.x - 3, y - h * .66, 8, h * .62); c.fillRect(b.x - 5, y - h * .66, 8, h * .62); } }
+function drawWalkers(c, dt, F) { const W = []; if (me.walk) W.push([me.walk, 1]); for (const q of peers.values()) if (q.walk) W.push([q.walk, 0]);
+  W.sort((a, b) => F ? b[0].y - a[0].y : a[0].y - b[0].y); const t = performance.now() / 1000;
+  for (const [w, mine] of W) { if (!F || true) { /* step once per frame (rear pass) */ } const P2 = F ? fp(w.x, w.y) : { x: w.x, y: w.y, h: drawHAt(w.y) * 1.08 }; const face = F ? flipF(w.face) : w.face;
+    const e = sprite(w.av, face); if (!e) continue; const f = P2.h / SRC_H, dy = -Math.abs(Math.sin(w.t * 9)) * P2.h * .04; c.drawImage(e.cv, P2.x - e.ax * f, P2.y - e.ay * f + dy, e.cv.width * f, e.cv.height * f);
+    if (mine) { const top = P2.y - e.top * f + dy; c.fillStyle = '#ffd25a'; c.beginPath(); c.moveTo(P2.x - 7, top - 18); c.lineTo(P2.x + 7, top - 18); c.lineTo(P2.x, top - 9); c.closePath(); c.fill(); } } }
+function flipF(d) { return { N: 'S', S: 'N', E: 'W', W: 'E', NE: 'SW', NW: 'SE', SE: 'NW', SW: 'NE' }[d] || 'S'; }
+function tickWalkers(dt) { if (me.walk) { stepWalk(me.walk, dt); if (me.walk?.end) me.walk = null; } for (const q of peers.values()) if (q.walk) { stepWalk(q.walk, dt); if (q.walk?.end) q.walk = null; } }
 function drawFx(c, dt) { if (!ripple) return; const u = (performance.now() - ripple.t0) / 1600; if (u > 1) { ripple = null; return; }
   c.save(); c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 3; i++) { const v = u - i * .12; if (v <= 0) continue; c.strokeStyle = `rgba(255,214,120,${.42 * (1 - v)})`; c.lineWidth = 16 * (1 - v) + 2; c.beginPath(); c.ellipse(ripple.x, ripple.y - 40, 60 + v * 900, (60 + v * 900) * .46, 0, 0, 7); c.stroke(); }
   c.restore(); c.font = '800 54px Pretendard, sans-serif'; c.textAlign = 'center'; c.fillStyle = `rgba(255,236,170,${Math.sin(u * Math.PI)})`; c.strokeStyle = `rgba(90,60,120,${.6 * Math.sin(u * Math.PI)})`; c.lineWidth = 6; c.strokeText('아멘!', PUL.x, 250); c.fillText('아멘!', PUL.x, 250); }
@@ -270,7 +337,7 @@ function drawReact(c, dt) { if (!react) return; react.t += dt; const u = react.t
 let subKey = '';
 function onPhase(P) { const g = G(), p = P.p; if (lastPh >= 0) { if (p.k === 'song') { try { window.Aud?.music?.(p.song ? 'joy' : 'old100'); } catch { } } else { try { window.Aud?.stopHymn?.(); window.Aud?.el?.pause?.(); } catch { } } }
   if (p.k !== 'song' && me.st === 'sing') me.st = 'sit'; if (p.k !== 'song') me.hands = false; syncBar();
-  if (p.k === 'news' && !localStorage.getItem('wh_newbie')) { localStorage.setItem('wh_newbie', '1'); setTimeout(() => { if (open) { g.toast(`새가족 ${g.S.name}님, 환영합니다!`); reaction('아멘'); echoAmen(L.seats[me.seat], true); } }, 3500); } }
+  if (p.k === 'news' && !localStorage.getItem('wh_newbie')) { localStorage.setItem('wh_newbie', '1'); setTimeout(() => { if (open) { wt(`새가족 ${g.S.name}님, 환영합니다!`); reaction('아멘'); echoAmen(L.seats[me.seat], true); } }, 3500); } }
 function hudText(P) { const p = P.p, occ = occurrences(), live = occ.find(o => o.live), nx = occ.find(o => !o.live);
   const key = `${P.i}|${Math.floor(P.t / 2)}|${live?.e.id}|${Math.floor(Date.now() / 30e3)}`; if (key === subKey) return; subKey = key;
   $('#wh-ph').textContent = `${p.n} · ${P.i + 1}/${PH.length}`;
@@ -285,14 +352,14 @@ function hudText(P) { const p = P.p, occ = occurrences(), live = occ.find(o => o
 // ---------------- attendance streak (free 달란트 only)
 async function attend() { enter.done = true; const k = kstNow(), day = `${k.getUTCFullYear()}-${k.getUTCMonth() + 1}-${k.getUTCDate()}`; const a = JSON.parse(localStorage.getItem('wh_att') || '[]');
   if (a.includes(day)) return; a.push(day); localStorage.setItem('wh_att', JSON.stringify(a.slice(-60))); const d = await window.W?.earn?.('service').catch(() => null);
-  G().toast(`예배 출석 ${streak()}일째${d && d.granted ? ` · 달란트 +${d.granted}` : ''}`); G().refreshHud?.(); }
+  wt(`예배 출석 ${streak()}일째${d && d.granted ? ` · 달란트 +${d.granted}` : ''}`); G().refreshHud?.(); }
 export function streak() { const a = new Set(JSON.parse(localStorage.getItem('wh_att') || '[]')); let n = 0; for (let i = 0; i < 60; i++) { const k = kstNow(Date.now() - i * 864e5), d = `${k.getUTCFullYear()}-${k.getUTCMonth() + 1}-${k.getUTCDate()}`; if (a.has(d)) n++; else if (i > 0) break; } return n; }
 
 // ---------------- reminders (in-game toast; optional browser Notification)
 let ntLast = 0; const notified = new Set();
 function notifyList() { try { return JSON.parse(localStorage.getItem('wh_notify') || '[]'); } catch { return []; } }
 function tickNotify() { const now = Date.now(); if (now - ntLast < 20e3) return; ntLast = now; const on = notifyList(); if (!on.length) return;
-  for (const o of occurrences(now)) { if (!on.includes(o.e.id)) continue; for (const [lead, msg] of [[10, '10분 뒤 시작해요'], [0, '지금 시작해요']]) { const at = o.st - lead * 60e3, id = o.e.id + o.st + lead; if (now >= at && now - at < 90e3 && !notified.has(id)) { notified.add(id); const t = `${o.e.name} · ${msg}`; G()?.toast?.(t); try { if (Notification?.permission === 'granted' && document.hidden) new Notification('마실채플', { body: t, icon: 'assets/icon-192.png' }); } catch { } } } } }
+  for (const o of occurrences(now)) { if (!on.includes(o.e.id)) continue; for (const [lead, msg] of [[10, '10분 뒤 시작해요'], [0, '지금 시작해요']]) { const at = o.st - lead * 60e3, id = o.e.id + o.st + lead; if (now >= at && now - at < 90e3 && !notified.has(id)) { notified.add(id); const t = `${o.e.name} · ${msg}`; wt(t); try { if (Notification?.permission === 'granted' && document.hidden) new Notification('마실채플', { body: t, icon: 'assets/icon-192.png' }); } catch { } } } } }
 setInterval(() => { if (!open && window.G?.S) tickNotify(); }, 30e3);
 
 // ---------------- 안내 sheet: 시간표 / 섬기는 사람들 / 프로그램 / 공동체 / 쉼터
@@ -317,7 +384,7 @@ function bindTab(t, B) { const g = G();
   B.querySelectorAll('[data-n]').forEach(b => b.onclick = async () => { const id = b.dataset.n; let on = notifyList(); on = on.includes(id) ? on.filter(x => x !== id) : [...on, id]; localStorage.setItem('wh_notify', JSON.stringify(on));
     if (on.includes(id) && window.Notification && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch { } } sheet('time'); });
   B.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { sheet(null); const m = b.dataset.go; close(); enter({ mode: m }); });
-  B.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const q = peers.get(b.dataset.g); if (!q) return; g.net?.send('wh', { k: 'g', to: q.id, n: g.S.name }); g.toast(`${q.name}님에게 인사했어요`); b.disabled = true; });
+  B.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const q = peers.get(b.dataset.g); if (!q) return; g.net?.send('wh', { k: 'g', to: q.id, n: g.S.name }); wt(`${q.name}님에게 인사했어요`); b.disabled = true; });
   B.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { const q = peers.get(b.dataset.r); q && window.Safe?.menu?.(q.id, q.name, ''); });
   B.querySelectorAll('[data-p]').forEach(b => b.onclick = () => program(b.dataset.p));
   B.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { sheet(null); spot(b.dataset.s); });
@@ -332,7 +399,7 @@ function newbieStep() { const v = JSON.parse(localStorage.getItem('wh_att') || '
 function yearEvents() { const now = Date.now(), y = kstNow().getUTCFullYear(); const E = [['추수감사주일', Date.UTC(2026, 10, 15)], ['성탄 예배', Date.UTC(y, 11, 25)], ['송구영신 예배', Date.UTC(y, 11, 31, 22)], ['특별새벽기도', Date.UTC(2027, 0, 4)], ['부활절 예배', Date.UTC(2027, 2, 28)], ['맥추감사주일', Date.UTC(2027, 6, 4)], ['여름성경학교 · 수련회', Date.UTC(2027, 6, 26)]];
   return E.map(([n, t]) => [n, Math.ceil((t - KST - now) / 864e5)]).filter(x => x[1] >= 0).sort((a, b) => a[1] - b[1]); }
 function program(k) { const g = G();
-  if (k === 'praise') { sheet(null); const P = phaseAt(); g.toast(P.p.k === 'song' ? '지금 찬양 순서예요. 찬양 버튼을 눌러 함께 불러요' : `다음 찬양까지 ${Math.ceil(untilSong())}초`); return; }
+  if (k === 'praise') { sheet(null); const P = phaseAt(); wt(P.p.k === 'song' ? '지금 찬양 순서예요. 찬양 버튼을 눌러 함께 불러요' : `다음 찬양까지 ${Math.ceil(untilSong())}초`); return; }
   if (k === 'bible') { close(); (window.P2?.openBible || g.openVerse || (() => $('#btn-p2bible')?.click() || $('#btn-verse')?.click()))(); return; }
   const T = { cell: [`${myCell()} 셀모임`, '매주 금요일 21:00, 셀리더 서나눔과 함께 근황 나눔 → 말씀 한 구절 → 서로를 위한 기도 순서로 진행해요. 공동체 탭의 중보기도도 함께 기억해요.'],
     newbie: ['새가족 환영', `등록 → 환영 인사 → 4주 새가족반 → 셀 배정 순서예요. 지금: ${newbieStep()}. 본당 예배에 2분 이상 함께하면 한 주 출석으로 기록돼요.`],
@@ -373,7 +440,7 @@ function startAmbience() { const A = window.Aud; if (!A?.ctx || A.muted) return;
 function stopAmbience() { if (!audio) return; try { const c = window.Aud.ctx; audio.g.gain.setTargetAtTime(0, c.currentTime, .3); const a = audio; setTimeout(() => { try { a.src.stop(); a.s2?.stop(); } catch { } }, 900); } catch { } audio = null; }
 
 // ---------------- QA hooks: simulated clients + fps
-export const WH = { enter, close, get open() { return open; }, get fps() { return fps; }, seats: () => L?.seats.length || 0, get peers() { return peers; }, phaseAt, occurrences, setWeather: w => { weather = w; bgT = null; }, act, sheet, spot,
+export const WH = { enter, close, leave, setView, cycleView, get view() { return view; }, get fr() { return fr; }, tapSeat: i => { const st = L.seats[i]; if (st) { const T = curT || { s, x: ox, y: oy }; tap(st.x * T.s + T.x, (st.y - st.h * .5) * T.s + T.y); } }, emptySeats: () => L.seats.filter(x => !pil[x.i] && x.i !== me.seat && !seatPeer(x.i)).map(x => x.i), get walking() { return !!me.walk; }, get open() { return open; }, get fps() { return fps; }, seats: () => L?.seats.length || 0, get peers() { return peers; }, phaseAt, occurrences, setWeather: w => { weather = w; bgT = null; }, act, sheet, spot,
   simulate(n = 20) { for (let i = 0; i < n; i++) { const id = 'sim' + (simN++); onNet({ id, k: 'p', s: (hash(id) % (L?.seats.length || 100)), n: '테스트' + i, av: pilgrimAv(rnd(hash(id))), st: i % 3 ? 'sing' : 'pray', hd: i % 2 }); }
     clearInterval(WH._sim); WH._sim = setInterval(() => { for (const [id] of peers) if (id.startsWith('sim')) { if (Math.random() < .08) onNet({ id, k: 'a', a: 'amen' }); else onNet({ id, k: 'p', s: peers.get(id).seat, n: peers.get(id).name, av: peers.get(id).av, st: peers.get(id).st, hd: 0 }); } }, 1000); },
   onNet, get me() { return me; } };

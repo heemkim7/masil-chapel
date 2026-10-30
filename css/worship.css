@@ -63,3 +63,11 @@
 #whspot .wh-bar button{min-width:92px}
 @media (max-width:560px){#whspot .wh-bar{gap:6px}#whspot .wh-bar button{font-size:13px;padding:0 4px}}
 #whspot .wh-bar{width:auto;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));transform:none;justify-content:center}
+/* v14 camera switch + hall-local toast (world toasts never cover the hall) */
+body.wh-open #toast,body.wh-open #jtoasts{display:none!important}
+#wh-cam{display:inline-flex;align-items:center;gap:6px}
+.wh-camic{width:18px;height:14px;border:2px solid currentColor;border-radius:4px;position:relative;display:inline-block}
+.wh-camic::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:currentColor}
+.wh-toast{position:absolute;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translate(-50%,-12px);background:rgba(74,63,102,.92);color:#fff;padding:9px 16px;border-radius:18px;font:600 14px Pretendard,system-ui,sans-serif;opacity:0;transition:.3s;pointer-events:none;max-width:min(560px,86vw);text-align:center;word-break:keep-all;z-index:5}
+.wh-toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:560px){#wh-cam span{display:none}#wh-cam{padding:0 12px}.wh-toast{top:calc(112px + env(safe-area-inset-top))}}
