@@ -358,3 +358,7 @@ body.inchapel .cl.npc{display:none}
 .gp-card{background:#fff;border-radius:22px;padding:20px;width:min(340px,88vw);display:flex;flex-direction:column;gap:12px;text-align:center;font-family:Pretendard,sans-serif;color:#4a2b78;box-shadow:0 10px 30px rgba(0,0,0,.2)}
 .gp-card b{font-size:18px}.gp-g,.gp-h{display:flex;gap:8px}.gp-g button,.gp-h button{flex:1;border:2px solid #e3d6fb;background:#f7f2ff;border-radius:14px;font:800 16px Pretendard,sans-serif;color:#4a2b78;min-height:56px}.gp-h button{min-height:42px;font-size:14px}
 .gp-card button.on{background:#8a5cd6;border-color:#8a5cd6;color:#fff}.gp-card small{color:#7a6a96}.gp-go{border:0;border-radius:16px;min-height:52px;background:#ffd76a;font:900 17px Pretendard,sans-serif;color:#4a2b78}
+#eulam .panel{position:relative}.eulax{position:absolute;right:10px;top:10px;width:36px;height:36px;border:0;border-radius:50%;background:#f1e8ff;color:#4a2b78;font:800 16px sans-serif}
+@media (max-width:760px){body.inchapel #toast{top:calc(252px + env(safe-area-inset-top))}}
+#eulam{pointer-events:none;background:rgba(40,20,70,.18)!important}#eulam .panel{pointer-events:auto}
+@media (max-width:760px){#eulam{align-items:flex-start!important;padding-top:calc(64px + env(safe-area-inset-top))}#eulam .panel{max-height:58vh;overflow:auto}}

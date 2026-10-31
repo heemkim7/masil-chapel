@@ -199,14 +199,14 @@ function openChPlan() { cpTab = '1F'; cpRender(); const P = $('#chplan'); const 
 let cpPending = false;
 function nearest() {
   let best = null, bd = 140;
-  for (const n of npcList()) { const d = Math.hypot(n.x - player.x, n.y - player.y); if (d < bd) { bd = d; best = { type: 'npc', n }; } }
+  for (const n of npcList()) { const d = Math.hypot(n.x - player.x, n.y - player.y); if (d < (n.sit ? Math.min(bd, 70) : bd)) { bd = d; best = { type: 'npc', n }; } }
   if (scene === 'field') { const D = cfg.chapel.door; if (Math.hypot(D.x - player.x, (D.y - player.y) * .85) < 175) best = { type: 'door' }; for (const sh of cfg.shops || []) if (Math.hypot(sh.door.x - player.x, sh.door.y - player.y) < 120) best = { type: 'shop', s: sh }; }
   else { const I = cfg.interior, chk = (p, type, r = 130) => { if (Math.hypot(p.x - player.x, p.y - player.y) < r) best = { type }; };
     if (!inside.on1) { for (const sp of inside.spots()) if (Math.hypot(sp.x - player.x, sp.y - player.y) < 140) best = { type: 'spot', sp }; for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 110) best = { type: 'stairs', st }; return best; }
     { let bz = 1e9; for (const [p, type, r] of [[I.offering, 'offering', 80], [I.board, 'board', 80], [I.door, 'exit', 110]]) { const d = Math.hypot(p.x - player.x, p.y - player.y); if (d < r && d < bz) { bz = d; best = { type }; } } } // nearest object only; zones never overlap
     for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 100) best = { type: 'stairs', st };
     I.pews.forEach((p, i) => { const r = inside.pewRect(i); if (Math.abs(player.x - r.cx) < (inside.td ? r.w / 2 + 10 : 58) && Math.abs(player.y - r.cy) < 60 && !best) best = { type: 'pew', i }; });
-    if (!best || best.type === 'pew') for (const n of inNpcs) if (!(best && best.type === 'pew' && n.sit) && Math.hypot(n.x - player.x, n.y - player.y) < 140) best = { type: 'npc', n }; }
+    if (!best || best.type === 'pew') for (const n of inNpcs) if (!(best && best.type === 'pew' && n.sit) && Math.hypot(n.x - player.x, n.y - player.y) < (n.sit ? 70 : 140)) best = { type: 'npc', n }; }
   if (scene === 'field' && window.P2?.signPos) { const sp = P2.signPos(); if (Math.hypot(sp.x - player.x, sp.y + 20 - player.y) < 120) best = { type: 'sign' }; }
   if (!best && scene === 'field') { let wd = 110; for (const w of wanderers) { const d = Math.hypot(w.x - player.x, w.y - player.y); if (d < wd) { wd = d; best = { type: 'npc', n: w }; } } }
   return best;

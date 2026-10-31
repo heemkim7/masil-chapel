@@ -28,14 +28,14 @@ export const Safe = {
     btns.forEach(b => b.addEventListener('click', e => { if (!chk.checked) { e.stopImmediatePropagation(); e.preventDefault(); w.classList.add('shake'); setTimeout(() => w.classList.remove('shake'), 500); } else this.accept(); }, true));
     chk.onchange = sync; sync(); w.querySelector('#eulalink').onclick = e => { e.preventDefault(); this.showTerms(); }; },
   showTerms(onOk) { let m = document.getElementById('eulam'); if (!m) { m = document.createElement('div'); m.id = 'eulam'; m.className = 'eulam'; document.body.append(m); }
-    m.innerHTML = `<div class="panel"><h2>📜 마실채플 이용약관 · 운영정책</h2><div class="terms">
+    m.innerHTML = `<div class="panel"><button class="eulax" aria-label="닫기">✕</button><h2>📜 마실채플 이용약관 · 운영정책</h2><div class="terms">
     <p>1. 마실채플은 누구나 무료로 즐기는 동네 예배당 놀이터예요. 만 14세 미만은 보호자 동의 후 이용해 주세요.</p>
     <p>2. 욕설·비하·혐오·성적인 말, 광고·링크·전화번호 등 개인정보 공유는 금지돼요. 자동으로 가려지고 반복되면 이용이 제한돼요.</p>
     <p>3. 불편한 이웃은 채팅 옆 🚩 버튼으로 신고하거나 차단할 수 있어요. 신고 3회 이상 콘텐츠는 모두에게 숨겨져요.</p>
     <p>4. 헌금·달란트는 게임 속 재화로만 쓰이며 실제 돈으로 사고팔거나 다른 사람에게 보낼 수 없어요.</p>
     <p>5. 설정 › '처음부터 다시 시작'으로 내 기록을 모두 지울 수 있어요.</p></div>
     <label class="eula"><input type="checkbox" id="eulam_c" ${this.accepted() ? 'checked' : ''}> 위 내용에 동의해요</label><button class="big" id="eulam_ok">확인</button></div>`;
-    m.style.display = 'flex'; m.querySelector('#eulam_ok').onclick = () => { if (m.querySelector('#eulam_c').checked) { this.accept(); const c = document.getElementById('eulachk'); if (c) { c.checked = true; c.onchange?.(); } m.style.display = 'none'; onOk?.(); } else window.G?.toast?.('동의에 체크해 주세요'); }; },
+    m.style.display = 'flex'; const bye = () => { m.style.display = 'none'; removeEventListener('keydown', esc, true); }, esc = e => { if (e.key === 'Escape') { e.stopPropagation(); bye(); } }; addEventListener('keydown', esc, true); m.querySelector('.eulax').onclick = bye; m.onpointerdown = e => { if (e.target === m) bye(); }; m.querySelector('#eulam_ok').onclick = () => { if (m.querySelector('#eulam_c').checked) { this.accept(); const c = document.getElementById('eulachk'); if (c) { c.checked = true; c.onchange?.(); } m.style.display = 'none'; onOk?.(); } else window.G?.toast?.('동의에 체크해 주세요'); }; },
   need(cb) { if (this.accepted()) return cb(); this.showTerms(cb); },
   // chat-line actions
   menu(id, name, text) { let m = document.getElementById('ugcm'); if (!m) { m = document.createElement('div'); m.id = 'ugcm'; m.className = 'eulam'; document.body.append(m); }
