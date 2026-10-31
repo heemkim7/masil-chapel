@@ -524,7 +524,7 @@ function paintMap(g, w, h, big) {
   for (const n of wanderers) { const [x, y] = P(n.x, n.y); dot(g, x, y, r * .7, '#86a8ff'); }
   { const [x, y] = P(cfg.chapel.x, cfg.chapel.y); g.font = `${big ? 30 : 15}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⛪', x, y); }
   { g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 ${big ? 13 : 9}px Pretendard,sans-serif`; g.lineWidth = big ? 4 : 3; g.strokeStyle = 'rgba(255,255,255,.95)'; g.fillStyle = '#4a2b78';
-    if (!big && w >= 110) { const box = []; for (const sp of cfg.spots) { const [x, y] = P(sp.x, sp.y), tw = g.measureText(sp.name).width + 4, b = [x - tw / 2, y - 6, x + tw / 2, y + 6]; if (b[0] < 1 || b[2] > w - 1 || box.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1])) continue; box.push(b); g.strokeText(sp.name, x, y); g.fillText(sp.name, x, y); } } }
+    if (false) { const box = []; for (const sp of cfg.spots) { const [x, y] = P(sp.x, sp.y), tw = g.measureText(sp.name).width + 4, b = [x - tw / 2, y - 6, x + tw / 2, y + 6]; if (b[0] < 1 || b[2] > w - 1 || box.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1])) continue; box.push(b); g.strokeText(sp.name, x, y); g.fillText(sp.name, x, y); } } }
   const pp = scene === 'field' ? player : { x: cfg.chapel.door.x, y: cfg.chapel.door.y };
   { const [x, y] = P(pp.x, pp.y); const pulse = 1 + Math.sin(performance.now() / 220) * .2; g.globalAlpha = .35; dot(g, x, y, r * 2.2 * pulse, '#ff6fa8', 'rgba(0,0,0,0)'); g.globalAlpha = 1; dot(g, x, y, r * 1.15, '#ff4f93');
     if (scene === 'field') { g.strokeStyle = '#ff4f93'; g.lineWidth = big ? 3 : 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(player.ang) * r * 3, y + Math.sin(player.ang) * r * 3); g.stroke(); } }
@@ -538,10 +538,15 @@ function openMap(tab = 'isle') { if (!S || worship) return; if (S.mode === 'deco
   $('#mapnote').textContent = scene === 'inside' ? '지금은 예배당 안이에요 · 장소를 누르면 밖으로 나가 그곳으로 이동해요' : '장소를 누르면 그곳으로 순간이동해요';
   requestAnimationFrame(() => { drawMap(); layoutSpots(); }); }
 let mapF = null;
-function drawMap() { const c = $('#mapcv'); if (!c.clientWidth) return; const [g, w, h] = sizeCanvas(c); mapF = paintMap(g, w, h, true); }
+function drawMap() { const wr = $('#mapwrap'); if (wr && world) { const ar = world.W / world.H, pw = wr.parentElement.clientWidth, mh = Math.max(180, innerHeight - (innerWidth < 800 ? 360 : 340)); wr.style.aspectRatio = ar.toFixed(3); wr.style.width = Math.min(pw, mh * ar) + 'px'; } const c = $('#mapcv'); if (!c.clientWidth) return; const [g, w, h] = sizeCanvas(c); mapF = paintMap(g, w, h, true); }
+let mapSel = null;
+function selSpot(id) { mapSel = id; document.querySelectorAll('#mapspots .spot, #maplist button').forEach(e => e.classList.toggle('on', e.dataset.spot === id)); const sp = cfg.spots.find(s => s.id === id); $('#mapnote').textContent = sp ? `${sp.icon} ${sp.name} · 한 번 더 누르면 이동해요` : '장소를 고르고 한 번 더 누르면 이동해요'; }
+function pickSpot(sp) { if (mapSel === sp.id) { mapSel = null; teleport(sp); } else selSpot(sp.id); }
 function layoutSpots() { const box = $('#mapspots'); const c = $('#mapcv'); const F = mapF || fit(world.W, world.H, c.clientWidth, c.clientHeight);
-  box.innerHTML = ''; for (const sp of cfg.spots) { const b = document.createElement('button'); b.className = 'spot'; b.dataset.spot = sp.id; b.innerHTML = `<b>${sp.icon}</b>${esc(sp.name)}`;
-    b.style.left = (F.ox + sp.x * F.s) + 'px'; b.style.top = (F.oy + sp.y * F.s - 20) + 'px'; b.onclick = () => teleport(sp); box.append(b); } }
+  box.innerHTML = ''; const ls = $('#maplist'); if (ls) ls.innerHTML = ''; mapSel = null;
+  cfg.spots.forEach((sp, i) => { const b = document.createElement('button'); b.className = 'spot'; b.dataset.spot = sp.id; b.textContent = i + 1; b.setAttribute('aria-label', sp.name);
+    b.style.left = (F.ox + sp.x * F.s) + 'px'; b.style.top = (F.oy + sp.y * F.s) + 'px'; b.onclick = () => pickSpot(sp); box.append(b);
+    if (ls) { const li = document.createElement('button'); li.dataset.spot = sp.id; li.innerHTML = `<i>${i + 1}</i>${sp.icon} ${esc(sp.name)}`; li.onclick = () => pickSpot(sp); ls.append(li); } }); }
 addEventListener('resize', () => { if (modal === '#map') { drawMap(); layoutSpots(); } });
 function nearWalk(x, y) { for (let r = 0; r < 600; r += 20) for (let a = 0; a < 6.28; a += .5) { const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; if (world.walkable(px, py)) return { x: px, y: py }; } return { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; }
 function teleport(sp) { closeModal(); if (scene !== 'field') exitChapel(); sitting = null; const p = nearWalk(sp.x, sp.y); player.x = p.x; player.y = p.y; player.vx = player.vy = 0; clickTarget = null; snapCam(); persist(); toast(`${sp.icon} ${sp.name}(으)로 이동했어요`); }

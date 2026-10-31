@@ -337,3 +337,14 @@ body{word-break:keep-all;overflow-wrap:anywhere}
   #btn-act{right:calc(var(--sr,0px) + 80px)!important;bottom:calc(var(--sb,0px) + 16px)!important;width:88px!important;height:88px!important}
   #btn-jump{right:calc(var(--sr,0px) + 96px)!important;bottom:calc(var(--sb,0px) + 120px)!important;width:56px!important;height:56px!important}
 }
+
+/* map v2: numbered pins on the map, names in the list below; map box follows the world aspect (no letterbox) */
+#map #mapwrap{aspect-ratio:auto;width:auto;max-width:100%;height:auto;margin:0 auto;background:transparent}
+#mapcv{width:100%;height:100%;display:block}
+#mapspots .spot{min-width:30px;min-height:30px;width:30px;height:30px;padding:0;border-radius:50%;background:#fff;color:#4a2b78;font:800 14px Pretendard,sans-serif;border:2px solid #6b4a3a;box-shadow:0 2px 0 rgba(80,50,40,.35)}
+#mapspots .spot::after{content:'';position:absolute;inset:-8px}
+#mapspots .spot.on{background:#ff4f93;color:#fff;transform:translate(-50%,-50%) scale(1.3);z-index:2;border-color:#fff;box-shadow:0 0 0 4px rgba(255,79,147,.35)}
+.maplist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:10px}
+.maplist button{display:flex;align-items:center;gap:6px;min-height:40px;padding:6px 10px;border-radius:12px;background:#fff;border:1.5px solid #e4d8f2;font:600 14px Pretendard,sans-serif;color:#3b2a52;text-align:left}
+.maplist button i{font-style:normal;flex:none;width:22px;height:22px;border-radius:50%;background:#efe6fa;color:#4a2b78;font-weight:800;font-size:12px;display:grid;place-items:center}
+.maplist button.on{border-color:#ff4f93;background:#fff0f6}.maplist button.on i{background:#ff4f93;color:#fff}

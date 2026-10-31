@@ -33,7 +33,7 @@ const fmtWhen = st => { const k = kstNow(st); return `${'일월화수목금토'[
 
 // ---------------- staff roles (holder: 'npc' now; designed for real users later via a server role table + moderation)
 export const STAFF = [
-  { id: 'senior', role: '담임목사', name: '김은혜 목사', char: ['pastor', 'robe'], duty: '말씀 · 축도 · 예배 인도(호스트)', holder: 'npc' },
+  { id: 'senior', role: '담임목사', name: '김은성 목사', char: ['pastor', 'robe'], duty: '말씀 · 축도 · 예배 인도(호스트)', holder: 'npc' },
   { id: 'assoc', role: '부목사', name: '이소망 목사', char: ['boy', 'basic'], av: 'm.2.1.2.1.navy.-.-.-.-', duty: '대표기도 · 새가족 심방', holder: 'npc' },
   { id: 'evang', role: '전도사', name: '박기쁨 전도사', char: ['player', 'basic'], av: 'f.1.0.3.2.lav.-.-.-.-', duty: '광고 · 청년부 · 주일학교 담당', holder: 'npc' },
   { id: 'praise', role: '찬양팀 인도자', name: '최하늘', char: ['choirgirl', 'dress'], duty: '입례·결단 찬양 인도', holder: 'npc' },
@@ -458,7 +458,7 @@ function spot(id) { const S0 = SPOTS.find(x => x.id === id); if (!S0) return; cl
     if (a === 'med') { const steps = ['숨을 천천히 들이마셔요', '잠시 멈추고 주님을 생각해요', '천천히 내쉬며 걱정을 내려놓아요', '오늘 감사한 일 하나를 떠올려요']; let i = 0; say('묵상기도 · 3분', steps[0]); tm = setInterval(() => say('묵상기도 · 3분', steps[++i % steps.length]), 6000); setTimeout(() => clearInterval(tm), 180e3); }
     if (a === 'word') { const v = PH[2].verse; say('말씀 듣기', v); speak(v); }
     if (a === 'piano') { say('피아노 찬송', '잔잔한 찬송이 흘러요'); try { window.Aud?.music?.('stanne'); } catch { } }
-    if (a === 'sermon') { let i = 0; const Ls = PH[2].lines; say('설교 · 김은혜 목사', Ls[0]); speak(Ls[0]); tm = setInterval(() => { if (++i >= Ls.length) return clearInterval(tm); say('설교 · 김은혜 목사', Ls[i]); speak(Ls[i]); }, 7000); } }); }
+    if (a === 'sermon') { let i = 0; const Ls = PH[2].lines; say('설교 · 김은성 목사', Ls[0]); speak(Ls[0]); tm = setInterval(() => { if (++i >= Ls.length) return clearInterval(tm); say('설교 · 김은성 목사', Ls[i]); speak(Ls[i]); }, 7000); } }); }
 
 // ---------------- soft city ambience (WebAudio filtered noise; respects the game's mute)
 function startAmbience() { const A = window.Aud; if (!A?.ctx || A.muted) return; try { const c = A.ctx, len = c.sampleRate * 2, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0); let l = 0;

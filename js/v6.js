@@ -164,7 +164,7 @@ export const V = {
     document.querySelectorAll('.mtab').forEach(b => b.onclick = () => this.mapTab(b.dataset.tab));
     $('#mmhome').onclick = () => { this.goHome(); this.drawDongMap(); };
   },
-  mapTab(t) { document.querySelectorAll('.mtab').forEach(b => b.classList.toggle('on', b.dataset.tab === t)); $('#mapwrap').style.display = t === 'isle' ? '' : 'none'; $('#mapnote').style.display = t === 'isle' ? '' : 'none'; $('#dongmap').style.display = t === 'dong' ? 'flex' : 'none'; if (t === 'dong') requestAnimationFrame(() => this.drawDongMap()); },
+  mapTab(t) { document.querySelectorAll('.mtab').forEach(b => b.classList.toggle('on', b.dataset.tab === t)); $('#mapwrap').style.display = t === 'isle' ? '' : 'none'; $('#mapnote').style.display = t === 'isle' ? '' : 'none'; if ($('#maplist')) $('#maplist').style.display = t === 'isle' ? '' : 'none'; $('#dongmap').style.display = t === 'dong' ? 'flex' : 'none'; if (t === 'dong') requestAnimationFrame(() => this.drawDongMap()); },
 };
 const rl = e => /rate_limited/.test(e?.message || '');
 function inRing(x, y, r) { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
