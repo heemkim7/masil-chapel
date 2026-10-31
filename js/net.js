@@ -172,7 +172,7 @@ export class Net {
   // ---- prayer wall (RLS: public rows readable; writes only via rate-limited security-definer RPCs)
   secret() { let s = localStorage.getItem('maeul_secret'); if (!s) { s = Array.from(crypto.getRandomValues(new Uint8Array(18)), b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('maeul_secret', s); } return s; }
   async prayers(dong) { if (!this.sb) throw new Error('offline'); const [pub, mine] = await Promise.all([
-      this.sb.from('prayers').select('id,room,name,body,is_public,amen_count,created_at').eq('room', dong).order('created_at', { ascending: false }).limit(40),
+      this.sb.from('prayers').select('id,room,name,body,is_public,amen_count,created_at,answered,testimony').eq('room', dong).order('created_at', { ascending: false }).limit(40),
       this.sb.rpc('my_prayers', { p_secret: this.secret() })]);
     if (pub.error) throw pub.error; const ids = new Set((mine.data || []).map(r => r.id));
     return { list: pub.data.map(r => ({ ...r, mine: ids.has(r.id) })), mine: (mine.data || []).filter(r => r.room === dong && !r.is_public).map(r => ({ ...r, mine: true })) }; }
