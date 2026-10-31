@@ -35,7 +35,7 @@ function ensureDom() { if (el) return; el = document.createElement('div'); el.id
   <div id="h2msg" class="h2msg"></div><div class="h2card"><small id="h2st">1/6 묵상</small><p id="h2line"></p><small id="h2ref"></small><button id="h2btn"><i id="h2prog"></i><span id="h2bt">다음</span></button></div>`;
   document.body.append(el); cv = el.querySelector('#h2cv'); ctx = cv.getContext('2d');
   bg = new Image(); bg.src = 'assets/hall2f_bg.jpg?v=1';
-  $('#h2exit').onclick = () => leave(); $('#h2snd').onclick = () => { const A = window.Aud; if (!A) return; A.setMuted(!A.muted); if (A.muted) VO.stop(); else bgm(); sndIcon(); };
+  $('#h2exit').onclick = () => leave(); addEventListener('keydown', e => { if (open && e.key === 'Escape') leave(); }); $('#h2snd').onclick = () => { const A = window.Aud; if (!A) return; A.setMuted(!A.muted); if (A.muted) VO.stop(); else bgm(); sndIcon(); };
   const b = $('#h2btn'); b.onpointerdown = e => { e.preventDefault(); if (STEPS[step].hold) { holding = true; b.classList.add('on'); } };
   const up = () => { if (!holding) return; holding = false; b.classList.remove('on'); }; b.onpointerup = b.onpointerleave = b.onpointercancel = up;
   b.onclick = () => { if (!STEPS[step].hold) next(); };
@@ -70,7 +70,7 @@ function buildNpcs() { const r = rnd(hash('h2npc')); const want = Math.max(0, MI
   npcs = npcs.filter(n => !n.out || performance.now() - n.out < 1500); }
 const realN = () => 1 + peers.size;
 function presence() { const c = sb(), g = G(); if (!c) return; ch = c.channel(NS + 'hall:' + ROOM, { config: { presence: { key: g.net.id }, broadcast: { self: false } } });
-  ch.on('presence', { event: 'sync' }, () => { const stt = ch.presenceState(); peers.clear(); for (const [k, arr] of Object.entries(stt)) { if (k === g.net.id) continue; const m = arr[arr.length - 1]; const si = SEATS.findIndex(s => s.id === m.seat_id); peers.set(k, { seat: si >= 0 ? si : null, av: m.look, st: m.state }); }
+  const myCh = ch; ch.on('presence', { event: 'sync' }, () => { if (!open || ch !== myCh || !myCh) return; const stt = myCh.presenceState(); peers.clear(); for (const [k, arr] of Object.entries(stt)) { if (k === g.net.id) continue; const m = arr[arr.length - 1]; const si = SEATS.findIndex(s => s.id === m.seat_id); peers.set(k, { seat: si >= 0 ? si : null, av: m.look, st: m.state }); }
     if (takenByOthers().has(me.seat)) pickSeat(); buildNpcs(); pill(); });
   ch.on('broadcast', { event: 'amen_pulse' }, () => { amenT = performance.now() / 1000; sparkles(); });
   ch.subscribe(s => { if (s === 'SUBSCRIBED') track(); });
@@ -115,7 +115,7 @@ function frame(now) { if (window.Aud?.muted && (window.WH?.vo?.paused === false 
   const am = Math.max(0, 1 - (t - amenT) / 3.2), amU = t - amenT < .5 ? (t - amenT) / .5 : 1;
   // cross glow during amen / word
   { const gl = .25 + am * .75 * amU + (S.k === 'word' ? .2 : 0); const gr = c.createRadialGradient(CX, 190, 10, CX, 190, 200); gr.addColorStop(0, `rgba(255,226,160,${.35 * gl})`); gr.addColorStop(1, 'rgba(255,226,160,0)'); c.globalCompositeOperation = 'lighter'; c.fillStyle = gr; c.fillRect(CX - 200, 0, 400, 400); c.globalCompositeOperation = 'source-over'; }
-  const ppl = seated(); const byRow = Array.from({ length: ROWS }, () => []); for (const p of ppl) byRow[p.s.r].push(p);
+  FIGS.length = 0; const ppl = seated(); const byRow = Array.from({ length: ROWS }, () => []); for (const p of ppl) byRow[p.s.r].push(p);
   const glows = [];
   for (let r = 0; r < ROWS; r++) { const R = ROWY[r]; byRow[r].sort((a, b) => Math.abs(b.s.x - CX) - Math.abs(a.s.x - CX));
     for (const p of byRow[r]) { const fc = hash('f' + p.s.id) % 3 ? 'N' : (p.s.x < CX ? 'NE' : 'NW'); const e = sprite(p.av, fc, null, null, true); if (!e || !e.cv || !e.ok) continue; // back views only; never draw a not-yet-settled (default front) frame
@@ -125,6 +125,7 @@ function frame(now) { if (window.Aud?.muted && (window.WH?.vo?.paused === false 
       // chest-height hand candle beside the near shoulder; never above the head
       const hy = p.s.y + sink - e.ay * k + (e.top + (e.ay - e.top) * .4) * k; p.hy = Math.max(hy, p.s.y + sink - e.ay * k + (e.top + 22) * k); p.hx = p.s.x + 20 * p.s.k;
       const lv = .55 + (p.me ? prayGlow * .45 : (p.st === 'pray' ? .2 : 0)) + am * .6 * amU; candle(c, p.hx, p.hy, p.s.k, lv, t + p.ph, p.a); glows.push([p.hx, p.hy, p.s.k, lv, p.a]);
+      FIGS.push({ id: p.s.id, me: !!p.me, face: fc, x: (p.s.x - e.ax * k) * T.s + T.x, y: (p.s.y + sink - e.ay * k + e.top * k) * T.s + T.y, w: e.cv.width * k * T.s, h: (pb - (p.s.y + sink - e.ay * k + e.top * k)) * T.s, cy: p.hy * T.s + T.y, headY: (p.s.y + sink - e.ay * k + e.top * k) * T.s + T.y });
       if (p.me) meMark(c, p.s.x, p.s.y + sink - e.ay * k + e.top * k - 6, p.s.k); }
     pew(c, R, r); }
   c.globalCompositeOperation = 'lighter'; for (const [x, y, k, lv, a] of glows) { const rad = Math.max((22 + 26 * lv) * k, 15 + 6 * lv), boost = 1 + Math.max(0, .75 - k) * 1.4; const gr = c.createRadialGradient(x, y - 3 * k, 1, x, y - 3 * k, rad); gr.addColorStop(0, `rgba(255,200,110,${Math.min(.5, .26 * lv * a * boost)})`); gr.addColorStop(1, 'rgba(255,170,80,0)'); c.fillStyle = gr; c.fillRect(x - rad, y - rad, rad * 2, rad * 2); } c.globalCompositeOperation = 'source-over';
@@ -141,5 +142,6 @@ function pew(c, R, r) { const { y, k, hw, sp } = R, h = 22 * k * 1.25, d = 7 * k
     c.fillStyle = 'rgba(255,230,190,.25)'; for (let q = 1; q < 3; q++) c.fillRect(x0 + (x1 - x0) * q / 3 - .6 * k, top + h * .3, 1.2 * k, h * .5);
     c.fillStyle = '#8a5636'; c.fillRect(x0 - d * .2, top - d * .4, d * .7, h + d * .4); c.fillRect(x1 - d * .5, top - d * .4, d * .7, h + d * .4);
     c.strokeStyle = 'rgba(62,42,38,.78)'; c.lineWidth = 1.2 * k; c.strokeRect(x0, top, x1 - x0, h); } }
-export const HALL = { enter, leave, get open() { return open; }, get step() { return step; }, setStep, next, amen, get seat() { return SEATS[me.seat]?.id; }, seats: SEATS, get real() { return realN(); }, get npc() { return npcs.filter(n => !n.out).length; }, get T() { return T; }, peersN: () => peers.size };
+const FIGS = [];
+export const HALL = { figs: () => FIGS.slice(), enter, leave, get open() { return open; }, get step() { return step; }, setStep, next, amen, get seat() { return SEATS[me.seat]?.id; }, seats: SEATS, get real() { return realN(); }, get npc() { return npcs.filter(n => !n.out).length; }, get T() { return T; }, peersN: () => peers.size };
 window.HALL = HALL;

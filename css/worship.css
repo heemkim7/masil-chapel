@@ -89,3 +89,4 @@ body.h2-open #hud,body.h2-open #toast,body.h2-open #jtoasts,body.h2-open #minima
 #h2prog{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,196,110,.55)}
 #h2btn span{position:relative}
 @media (min-aspect-ratio:1/1){.h2card{padding:8px 16px 10px;width:min(400px,calc(100vw - 28px))}.h2card p{min-height:1.6em;font-size:15.5px;margin:3px 0 0}#h2ref{margin-bottom:4px}#h2btn{min-height:40px}}
+@media (max-height:500px){.h2card{padding:5px 14px 7px;width:min(360px,calc(100vw - 28px))}.h2card small{font-size:11px}.h2card p{font-size:14px;min-height:1.3em;margin:1px 0}#h2ref{display:none}#h2btn{min-height:34px;font-size:14px}.h2top button{padding:6px 11px;font-size:13px}.h2pill{padding:5px 12px;font-size:12px}}
