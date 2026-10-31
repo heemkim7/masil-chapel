@@ -126,7 +126,7 @@ export class Char {
   }
   // v17 layered 2D: ONE still image per direction; motion is procedural — step bob, side tilt, jelly squash at footfalls,
   // idle breathing; direction changes swap stills directly at full width.
-  _lpose(face) { const MIR = { E: 'W', SE: 'SW', NE: 'NW' }, d0 = MIR[face] || face, flip = !!MIR[face];
+  _lpose(face) { const MIR = { E: 'W', SE: 'SW', NE: 'NW' }, SOL = d => d === 'W' ? 'SW' : d, d0 = SOL(MIR[face] || face), flip = !!MIR[face]; // the pure profile still reads paper-thin; side movement uses the solid 3/4 view
     if (!window.AV.still(this, d0)) return null;
     const walking = this.speedNow > 0, U = this.drawH / 150; let sx = 1, sy = 1, lift = 0, rot = 0;
     if (walking) { const ph = this._ph = this.dist / ((this.cfg?.player?.stepLen || 38) * U * CK.k), s = Math.sin(ph * Math.PI), as = Math.abs(s);
@@ -139,7 +139,7 @@ export class Char {
     let key = 'L:' + d0, fl = flip; if (walking && !this.emote && window.AV.walkStill) { const N = window.AV.WALK_N || 8, ph2 = (this._ph || 0) / 2; key += ':' + (((Math.floor(ph2 * N) % N) + N) % N); rot *= .4; }
     if (this.blendT < 1 && this.prevFace && face === (this.dface || this.face)) { const e = this.blendT, pf = this.prevFace; // paper flip
       // direct still-to-still turn at full width (no paper-thin x-squash, regression from e3e5ecc): hold the old still for a beat, then swap
-      if (e < .3) { key = 'L:' + (MIR[pf] || pf); fl = !!MIR[pf]; if (!window.AV.still(this, MIR[pf] || pf)) { key = 'L:' + d0; fl = flip; } } }
+      if (e < .3) { key = 'L:' + SOL(MIR[pf] || pf); fl = !!MIR[pf]; if (!window.AV.still(this, SOL(MIR[pf] || pf))) { key = 'L:' + d0; fl = flip; } } }
     return { key, next: null, mix: 0, flip: fl, sx, sy, lift, rot, dir: d0, lay: 1 }; }
   _img(ctx, key, alpha) {
     const img = (this.av && window.AV?.frame(this, key)) || IMG[key]; if (!img || alpha <= 0.01) return 0;
