@@ -87,7 +87,7 @@ function startGame(save) { touchSess();
     const c = new Char(SP, n.char, n.outfit, x, y, { name: n.name, tagColor: n.sit ? '#d7e6ff' : '#c8f7d6', cfg }); c.id = n.id; c.sit = !!n.sit; c.pewI = n.pew; c.face = n.sit ? 'W' : n.id === 'pastor' ? 'E' : c.face; inNpcs.push(c); }
   if (S.scene === 'inside') enterChapel(true); else { scene = 'field'; let p = S.pos || { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; if (!world.walkable(p.x, p.y)) p = { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; player.x = p.x; player.y = p.y; }
   spawnPickups(); snapCam(); refreshHud(); persist(); const _first = !netReady; netReady ||= net.init(); Promise.resolve(netReady).then(() => { W.sync(); if (_first) window.Acct?.boot(); }); toast(`${S.name}님, 마실채플에 오신 걸 환영해요!`);
-  if (!S.dong && !S.solo && !S.hintDong) { S.hintDong = 1; setTimeout(() => toast('🌈 지금은 모두의 광장이에요. 위쪽 📍 버튼으로 우리 동네를 인증하면 동네 방에 들어가요'), 2500); }
+  if (!S.dong && !S.solo && !S.hintDong) { S.hintDong = 1; setTimeout(function hintD() { if (modal) return setTimeout(hintD, 1200); toast('🌈 지금은 모두의 광장이에요. 위쪽 📍 버튼으로 우리 동네를 인증하면 동네 방에 들어가요'); }, 2500); }
 }
 // ---------- multiplayer glue ----------
 const meState = () => ({ name: S.name, outfit: player.outfit, x: player.x, y: player.y, face: player.face, anim: player.speedNow > 0 ? 'walk' : sitting ? 'sit' : 'idle', fl: scene === 'inside' ? inside.floor : 'F', equip: player.equip, av: player.av });
@@ -544,8 +544,10 @@ function selSpot(id) { mapSel = id; document.querySelectorAll('#mapspots .spot, 
 function pickSpot(sp) { if (mapSel === sp.id) { mapSel = null; teleport(sp); } else selSpot(sp.id); }
 function layoutSpots() { const box = $('#mapspots'); const c = $('#mapcv'); const F = mapF || fit(world.W, world.H, c.clientWidth, c.clientHeight);
   box.innerHTML = ''; const ls = $('#maplist'); if (ls) ls.innerHTML = ''; mapSel = null;
+  const pos = cfg.spots.map(sp => [F.ox + sp.x * F.s, F.oy + sp.y * F.s]), D = 34; // keep pins from touching (nudge apart along their separation)
+  for (let it = 0; it < 6; it++) for (let i = 0; i < pos.length; i++) for (let j = i + 1; j < pos.length; j++) { const dx = pos[j][0] - pos[i][0], dy = pos[j][1] - pos[i][1], d = Math.hypot(dx, dy) || 1; if (d < D) { const k = (D - d) / 2 / d; pos[i][0] -= dx * k; pos[i][1] -= dy * k; pos[j][0] += dx * k; pos[j][1] += dy * k; } }
   cfg.spots.forEach((sp, i) => { const b = document.createElement('button'); b.className = 'spot'; b.dataset.spot = sp.id; b.textContent = i + 1; b.setAttribute('aria-label', sp.name);
-    b.style.left = (F.ox + sp.x * F.s) + 'px'; b.style.top = (F.oy + sp.y * F.s) + 'px'; b.onclick = () => pickSpot(sp); box.append(b);
+    b.style.left = pos[i][0] + 'px'; b.style.top = pos[i][1] + 'px'; b.onclick = () => pickSpot(sp); box.append(b);
     if (ls) { const li = document.createElement('button'); li.dataset.spot = sp.id; li.innerHTML = `<i>${i + 1}</i>${sp.icon} ${esc(sp.name)}`; li.onclick = () => pickSpot(sp); ls.append(li); } }); }
 addEventListener('resize', () => { if (modal === '#map') { drawMap(); layoutSpots(); } });
 function nearWalk(x, y) { for (let r = 0; r < 600; r += 20) for (let a = 0; a < 6.28; a += .5) { const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; if (world.walkable(px, py)) return { x: px, y: py }; } return { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; }
