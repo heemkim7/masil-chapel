@@ -226,6 +226,11 @@ function drawFace(g, im, C, E, S0, d) { const D0 = S0[2] - S0[0], side = d === '
 // no rim or contact shadow tying them to the head. One pass per composed still: (1) scale the hair about the skull centre so its
 // upper width is ≤ 1.1× head width, (2) back/short hair: taper the lower corners into the nape, (3) shared dark rim (same family as the
 // body outline), (4) soft occlusion shadow on the skin right under the hair edge (forehead, temples, nape).
+function fitHat(g, im, cx, cy, w, h, top, hw) { // hat: soft contact shadow on hair/forehead under the brim + dark rim outline, so it reads as worn, not pasted
+  const W = g.canvas.width, H = g.canvas.height, t = document.createElement('canvas'); t.width = W; t.height = H; const tg = t.getContext('2d'); tg.drawImage(im, cx - w / 2, cy, w, h);
+  const d = tg.getImageData(0, 0, W, H), p = d.data, a0 = new Uint8ClampedArray(W * H); for (let j = 0; j < W * H; j++) a0[j] = p[j * 4 + 3];
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const j = y * W + x; if (a0[j] < 120) continue; let e = 0; for (const q of [-1, 1, -W, W]) if (a0[j + q] < 40) e++; if (!e) continue; const i = j * 4, k = Math.min(.55, .25 + e * .12); for (let c = 0; c < 3; c++) p[i + c] = p[i + c] * (1 - k) + p[i + c] * .3 * k; }
+  tg.putImageData(d, 0, 0); g.save(); g.globalAlpha = .22; g.filter = 'blur(1.5px) brightness(0)'; g.drawImage(t, 0, 3); g.restore(); g.drawImage(t, 0, 0); }
 function fitHair(hg, hd, bg, bd, o) { const { W, H, top, hw, hcx, back, hcol } = o, hp = hd.data, A = (x, y) => x < 0 || y < 0 || x >= W || y >= H ? 0 : hp[(y * W + x) * 4 + 3];
   let ux0 = W, ux1 = 0, hy0 = H, hy1 = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (A(x, y) > 40) { if (y < hy0) hy0 = y; if (y > hy1) hy1 = y; if (y < top + 70 && y > top - 40) { if (x < ux0) ux0 = x; if (x > ux1) ux1 = x; } }
   if (hy1 <= hy0) return; const uw = ux1 - ux0, k = Math.max(.84, Math.min(1, hw * 1.1 / Math.max(1, uw))), py = top + hw * .5;
@@ -271,11 +276,14 @@ export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d 
   fitHair(hg, hd, bg, bd, { W, H, top, hw, hcx, back, hcol }); // char-fix: hair hugs the skull (size, nape taper, rim, contact shadow)
   let htop = H; for (let i = 3, j = 0; i < hp.length; i += 4, j++) if (hp[i] > 40) { htop = (j / W) | 0; break; }
   const cos = (slot, over) => { const id = a[slot]; if (!id || id === '-' || !COS[id]) return; const C = COS[id], im = img(`assets/cos/${id}.png`); if (!im) return; let w, cx = hcx + (C.dx || 0) * hw * (back ? -1 : 1), cy, h;
-    if (slot === 'hat') { w = hw * (C.w || 1) * .95; h = w * im.height / im.width; cy = Math.min(htop, top) + hh * (C.sink || 0) * .9 - h / 2; }
+    if (slot === 'hat') { w = hw * (C.w || 1) * .95; h = w * im.height / im.width; cy = top + hh * ((C.sink || 0) * .9 + .04) - h / 2; /* char-fix: hats sit on the SKULL (same anchor every direction), not on top of a bun/ponytail */ return fitHat(g, im, cx, cy, w, h, top, hw); }
     else if (slot === 'face') { if (back) return; const EB = EYE[/boy/.test(L.base) ? 'boy' : 'player']; if (EB && drawFace(g, im, C, EB[d], EB.S, d)) return; w = hw * (C.w || .8) * (side ? .7 : 1); h = w * im.height / im.width; cx = side ? hcx - hw * .2 : cx + (d === 'SW' ? (C.dxsw || 0) * hw : 0); cy = top + hh * (.6 + (C.dy || 0)); }
     else if (slot === 'back') { if ((C.front ? !back : back) !== over) return; w = hw * (C.w || .8) * 1.15; h = w * im.height / im.width; cy = top + hh * (.93 + (C.dy || 0)) + 8 - h * (C.ay ?? .3); }
     else { if (back) return; w = hw * (C.w || .32) * 1.5; h = w * im.height / im.width; const nk = top + hh * .93, hy = nk + (272 - nk) * .5; cx = side ? hcx - hw * .3 : hcx + hw * .42; cy = hy - h * .6 + hh * (C.dy || 0); }
     g.drawImage(im, cx - w / 2, cy, w, h); };
+  { const id = a.hat, C = id && id !== '-' && COS[id], im = C && img(`assets/cos/${id}.png`); if (im && (C.w || 1) >= .9) { // big hats: tuck the crown hair UNDER the hat (bun/ponytail top no longer pokes out above it); hanging tails stay
+      const w = hw * (C.w || 1) * .95, h = w * im.height / im.width, cx = hcx + (C.dx || 0) * hw * (back ? -1 : 1), cy = top + hh * ((C.sink || 0) * .9 + .04) - h / 2, yc = Math.min(cy + h * .55, top + hh * .03);
+      const hp2 = hd.data; for (let y = 0; y < Math.min(H, yc); y++) for (let x = Math.max(0, Math.round(cx - w * .62)); x < Math.min(W, cx + w * .62); x++) hp2[(y * W + x) * 4 + 3] = 0; hg.putImageData(hd, 0, 0); } }
   cos('back', false); g.drawImage(bc, 0, 0); g.drawImage(oc, 0, 0); g.drawImage(hc2, 0, 0); cos('back', true); cos('face'); cos('hat'); cos('held');
   c.lay = 1; c.top = Math.min(htop, top); c.bodyTop = top; if (lcache.size > 600) lcache.clear(); lcache.set(k, c); return c; }
 // walk fix: the v17 layered path had ONE still per direction, so legs never moved. Build 8 stepping frames per direction from the still:
