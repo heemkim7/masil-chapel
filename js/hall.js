@@ -44,7 +44,7 @@ function sndIcon() { $('#h2snd').textContent = window.Aud?.muted ? '🔇' : '�
 function resize() { vw = innerWidth; vh = innerHeight; dpr = Math.min(devicePixelRatio || 1, 2); cv.width = vw * dpr; cv.height = vh * dpr; cv.style.width = vw + 'px'; cv.style.height = vh + 'px';
   // fit so the front wall + all 11 rows show above the bottom card (card ≈ 25% of a phone screen)
   const cardH = Math.min(230, vh * .26), s = Math.min(vw / BW, (vh) / (BH * .98)) ; const s2 = vw < vh ? Math.max(s, Math.min(vw / (BW * .985), (vh - cardH * .35) / (BH * .86))) : s;
-  let s3 = s2; if (vw < vh) { const cr = el.querySelector('.h2card')?.getBoundingClientRect(); const ct = cr && cr.height ? cr.top : vh - cardH; s3 = Math.min(vw / (BW * .64), Math.max(s2, (ct - 6) / 1040)); }
+  let s3 = s2; if (vw < vh) { const cr = el.querySelector(resting ? '.h2restbar' : '.h2card')?.getBoundingClientRect(); const ct = cr && cr.height ? cr.top : vh - cardH; s3 = Math.min(vw / (BW * .64), Math.max(s2, (ct - 6) / 1040)); }
   T.s = s3; T.x = (vw - BW * s3) / 2; T.y = vw < vh ? 0 : (vh - BH * s3) / 2; }
 // ---------------- enter / leave
 export function enter() { const g = G(); if (!g || !g.S || open) return; ensureDom(); VO.prime(); open = true; window.__h2Open = true; el.style.display = 'block'; document.body.classList.add('h2-open');
@@ -58,7 +58,7 @@ const REST = [['old100', '만복의 근원 하나님 (Old Hundredth)'], ['stanne
 let resting = false, restEl = null, restI = 0;
 function restPlay() { const [f, n] = REST[restI % REST.length]; restEl.src = `assets/audio/${f}.mp3`; restEl.muted = !!window.Aud?.muted; restEl.volume = Math.min(1, (window.Aud?.P?.().bgmVol ?? .5) * 1.1); restEl.play().catch(() => { });
   $('#h2tune').textContent = n; const ms = navigator.mediaSession; if (ms) { try { ms.metadata = new MediaMetadata({ title: n, artist: '마실채플', album: '그냥 앉아 있기', artwork: [{ src: 'assets/icon512.png', sizes: '512x512', type: 'image/png' }] }); ms.playbackState = 'playing'; } catch { } } }
-function rest(on, quiet) { if (on === resting) return; resting = on; window.__h2Rest = on; el?.classList.toggle('rest', on);
+function rest(on, quiet) { if (on === resting) return; resting = on; window.__h2Rest = on; el?.classList.toggle('rest', on); if (cv) resize();
   if (on) { VO.stop(); holding = false; const A = window.Aud; try { A?.stopMusic?.(); A?.el?.pause(); } catch { }
     if (!restEl) { restEl = new Audio(); restEl.preload = 'auto'; restEl.setAttribute('playsinline', ''); restEl.onended = () => { restI++; restPlay(); };
       const ms = navigator.mediaSession; if (ms) { try { ms.setActionHandler('play', () => { restEl.play().catch(() => { }); ms.playbackState = 'playing'; }); ms.setActionHandler('pause', () => { restEl.pause(); ms.playbackState = 'paused'; }); ms.setActionHandler('nexttrack', () => { restI++; restPlay(); }); } catch { } } }
