@@ -1,15 +1,15 @@
 # Worker: masil → https://masil.heemkim7.workers.dev now; target masil.chapel.workers.dev once the account subdomain is chapel (Free plan only)
-name = "masil"
+name = "studio"
 main = "worker.js"
 compatibility_date = "2026-04-07"
 [assets]
 directory = "../dist_cf"
 binding = "ASSETS"
 [[durable_objects.bindings]]
-name = "masil"
+name = "studio"
 class_name = "Room"
 [[durable_objects.bindings]]
-name = "masil"
+name = "studio"
 class_name = "Meter"
 [[migrations]]
 tag = "v1"
