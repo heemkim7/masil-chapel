@@ -175,7 +175,7 @@ function goFloor(to) { const I = cfg.interior, from = inside.floor; inside.floor
   else { const f = inside.F(); player.x = f.spawn.x; player.y = f.spawn.y; }
   snapCam(); try { window.P2?.sfx?.('step'); } catch { } toast(`🪜 ${to === '1F' ? '1층 기도실' : inside.F().name} · ${FPURP[to] || ''}`); }
 const FPURP = { '1F': '나의 기도 · 촛불을 켜고 기도제목을 나눠요 (채팅 없음)', B1: '대화 · 예배당에서 유일하게 이야기 나누는 곳이에요', HALL: '함께 예배 · 말씀과 찬양, 박수·아멘·함께 부르기 (채팅 없음)' };
-function floorBar() { let b = document.getElementById('flbar'); if (!b) { b = document.createElement('div'); b.id = 'flbar'; b.innerHTML = '<button data-f="HALL">2층 예배홀</button><button data-f="1F">1층 기도실</button><button data-f="B1">지하 친교실</button><button data-f="OUT" class="out">🚪 나가기</button>'; document.body.appendChild(b);
+function floorBar() { let b = document.getElementById('flbar'); if (!b) { b = document.createElement('div'); b.id = 'flbar'; b.innerHTML = '<button data-f="HALL">2층 본당 예배홀</button><button data-f="1F">1층 기도실</button><button data-f="B1">지하 친교실</button><button data-f="OUT" class="out">🚪 나가기</button>'; document.body.appendChild(b);
     b.querySelectorAll('button').forEach(x => x.onclick = e => { e.stopPropagation(); const f = x.dataset.f; if (f === 'OUT') return exitChapel(); if (f === 'HALL') { window.HALL ? HALL.enter() : window.WH?.enter(); return; } if (inside.floor !== f) goFloor(f); }); }
   const on = scene === 'inside' && !modal && !document.body.classList.contains('worship') && !document.body.classList.contains('h2-open') && !document.body.classList.contains('wh-open'); b.style.display = on ? '' : 'none'; if (on) b.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.f === inside.floor)); }
 
@@ -188,17 +188,18 @@ const npcList = () => scene === 'field' ? fieldNpcs : inNpcs;
 // B: top-down floor plan on entering from the plaza door. Floors/rooms mirror cfg.interior (B1/1F/2F) so names match inside.
 const CP = { B1: { tab: '지하 친교실', rooms: [['cafe', '☕', '지하 친교실', '대화 · 교회 소식 · 동네 랭킹', 6, 8, 88, 76, 'main']] },
   '1F': { tab: '1층 기도실', rooms: [['pulpit', '🕯', '1층 기도실', '나의 기도 · 촛불 · 기도제목 · 헌금함', 6, 8, 88, 76, 'main']] },
-  '2F': { tab: '2층 예배홀', rooms: [['hall', '🙏', '2층 예배홀', '함께 예배 · 말씀 · 찬양 · 박수·아멘', 6, 8, 88, 76, 'main']] } };
+  '2F': { tab: '2층 본당 예배홀', rooms: [['hall', '🙏', '2층 본당 예배홀', '함께 예배 · 말씀 · 찬양 · 박수·아멘', 6, 8, 88, 76, 'main']] } };
 const CPGO = { hall: () => { enterChapel(true); window.HALL ? HALL.enter() : window.WH ? WH.enter() : toast('⛪ 예배당 안으로 들어왔어요'); }, pulpit: () => enterChapel(), st1: () => enterChapel(), st2: () => cpFloor('2F'), stb: () => cpFloor('B1'), cafe: () => cpFloor('B1', 0), prayer: () => enterChapel() };
 function cpFloor(f, si) { enterChapel(true); goFloor(f); const sp = (inside.F().spots || [])[si]; if (sp) { player.x = sp.x; if (inside.walkable(sp.x, player.y) === false) player.x = inside.F().spawn.x; snapCam(); } }
 let cpTab = '1F';
 function cpRender() { const P = $('#chplan'), T = P.querySelector('.cp-tabs'), L = P.querySelector('.cp-plan');
   T.innerHTML = ['2F', '1F', 'B1'].map(k => `<button data-f="${k}" class="${k === cpTab ? 'on' : ''}">${CP[k].tab}</button>`).join('');
   L.innerHTML = CP[cpTab].rooms.map(([id, ic, nm, sub, x, y, w, h, cls]) => `<button class="cp-room ${cls || ''}" data-room="${id}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><span class="ic">${ic}</span>${nm}<small>${sub}</small></button>`).join('') + '';
+  { const g = P.querySelector('.cp-go'); if (g) g.textContent = `${CP[cpTab].rooms[0][1]} ${CP[cpTab].tab} 들어가기`; }
   T.querySelectorAll('button').forEach(b => b.onclick = () => { cpTab = b.dataset.f; cpRender(); });
   L.querySelectorAll('.cp-room').forEach(b => b.onclick = () => cpPick(b.dataset.room)); }
 function cpPick(id) { if (performance.now() - (+$('#chplan').dataset.t0 || 0) < 450) return; closeModal(); (CPGO[id] || enterChapel)(); }
-function openChPlan() { cpTab = '1F'; cpRender(); const P = $('#chplan'); const t0 = performance.now(), ok = () => performance.now() - t0 > 450; /* ignore the touch ghost-click that follows the opening tap */ P.querySelector('.cp-go').onclick = () => ok() && cpPick('hall'); P.querySelector('.cp-stay').onclick = () => ok() && closeModal(); P.querySelector('.close').onclick = () => ok() && closeModal(); P.dataset.t0 = t0; openModal('#chplan'); clickTarget = null; cpPending = false; }
+function openChPlan() { cpTab = '1F'; cpRender(); const P = $('#chplan'); const t0 = performance.now(), ok = () => performance.now() - t0 > 450; /* ignore the touch ghost-click that follows the opening tap */ P.querySelector('.cp-go').onclick = () => ok() && cpPick(CP[cpTab].rooms[0][0]); P.querySelector('.cp-stay').onclick = () => ok() && closeModal(); P.querySelector('.close').onclick = () => ok() && closeModal(); P.dataset.t0 = t0; openModal('#chplan'); clickTarget = null; cpPending = false; }
 let cpPending = false;
 function nearest() {
   let best = null, bd = 140;
@@ -219,7 +220,7 @@ function interact() {
   if (modal || !S) return; if (sitting) { standUp(); return; }
   const t = nearest(); if (!t) return;
   if (t.type === 'npc') { t.n.face = facingTo(t.n, player); talkTo(t.n); }
-  else if (t.type === 'sign') P2.openLevels(); else if (t.type === 'stairs') goFloor(t.st.to); else if (t.type === 'spot') spotAct(t.sp);
+  else if (t.type === 'sign') P2.openLevels(); else if (t.type === 'stairs') { if (t.st.to === '2F' && inside.on1 && window.HALL) { toast('⛪ 계단으로 2층 본당 예배홀에 올라가요'); HALL.enter(); } else goFloor(t.st.to); } else if (t.type === 'spot') spotAct(t.sp);
   else if (t.type === 'door') openChPlan(); else if (t.type === 'exit') exitChapel();
   else if (t.type === 'shop') window.P2 && P2.openShop(t.s); else if (t.type === 'offering') (window.P2 ? P2.openOffer(true) : openGacha()); else if (t.type === 'board') openBoard(); else if (t.type === 'candle') { inside.lit = (inside.lit || 0) + 1; try { localStorage.maeul_candle = Date.now(); } catch { } emote('pray'); toast('🕯 촛불을 켰어요 · 조용히 마음을 모아요'); } else if (t.type === 'pew') sitOn(t.i);
 }
