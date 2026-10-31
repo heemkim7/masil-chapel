@@ -8,9 +8,10 @@ export class Interior {
     const g = c.getContext('2d'); g.drawImage(m, 0, 0); this.mw = m.width; this.mh = m.height; this.md = g.getImageData(0, 0, m.width, m.height).data;
   }
   // pew i: x = centre, y = floor line. Footprint is small (the pew runs "into" the screen), so you can walk in front of / behind it.
-  pewRect(i) { const [x, y] = this.I.pews[i]; return { x: x - 34, y: y - 14, w: 68, h: 22, cx: x, cy: y }; }
+  get td() { return this.I.view === 'td'; }
+  pewRect(i) { const [x, y] = this.I.pews[i]; if (this.td) { const w = this.I.pewW || 236; return { x: x - w / 2, y: y - 30, w, h: 34, cx: x, cy: y }; } return { x: x - 34, y: y - 14, w: 68, h: 22, cx: x, cy: y }; }
   // where a seated character's feet-anchor goes (drawn raised by sitLift, legs tucked behind the seat front)
-  seat(i) { const [x, y] = this.I.pews[i]; return { x: x + this.I.seatDx, y: y + 1 }; }
+  seat(i) { const [x, y] = this.I.pews[i]; if (this.td) return { x, y: y - 16 }; return { x: x + this.I.seatDx, y: y + 1 }; }
   F() { return (this.I.floors || []).find(f => f.id === this.floor) || { id: '1F' }; }
   view() { return this.on1 ? (this.I.view1 || { x: 0, y: 0, w: this.W, h: this.H }) : { x: 0, y: 0, w: this.W, h: this.H }; }
   get on1() { return this.floor === '1F'; }
@@ -23,6 +24,7 @@ export class Interior {
     if (mx < 0 || my < 0 || mx >= this.mw || my >= this.mh || this.md[(my * this.mw + mx) * 4] < 128) return false;
     for (let i = 0; i < this.I.pews.length; i++) { const r = this.pewRect(i); if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return false; }
     const o = this.I.offering; if (Math.abs(x - o.x) < 40 && Math.abs(y - o.y) < 14) return false;
+    if (this.td) { const b = this.I.board; if (Math.abs(x - b.x) < 44 && Math.abs(y - b.y) < 14) return false; }
     return true;
   }
   randomPoint() { for (let i = 0; i < 400; i++) { const x = Math.random() * this.W, y = Math.random() * this.H; if (this.walkable(x, y)) return { x, y }; } return this.I.spawn; }
@@ -31,7 +33,7 @@ export class Interior {
     if (!this.on1) { ctx.drawImage(IMG['in_' + this.floor], 0, 0, this.W, this.H); this.drawMarks(ctx); return; }
     ctx.drawImage(IMG['in_bg' + this.tier] || IMG.in_bg, 0, 0, this.W, this.H); this.drawMarks(ctx);
     const D = this.I.door; ctx.font = '700 20px Pretendard,sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(74,43,120,.75)'; ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center'; ctx.strokeText('나가기', D.x, D.y - 205); ctx.fillText('나가기', D.x, D.y - 205); ctx.textAlign = 'center';
+    const ly = this.td ? D.y - 150 : D.y - 205; ctx.strokeText('나가기', D.x + (this.td ? 60 : 0), ly); ctx.fillText('나가기', D.x + (this.td ? 60 : 0), ly); ctx.textAlign = 'center';
   }
   drawMarks(ctx) { const t = performance.now() / 1000; ctx.textAlign = 'center';
     for (const st of this.stairs()) { const down = this.on1 && st.to === 'B1', b = Math.sin(t * 3) * 4, k = this.cs();
@@ -40,14 +42,14 @@ export class Interior {
     for (const sp of this.spots()) pill(ctx, sp.label, sp.x, sp.y - 120 * this.cs());
     if (!this.on1) { ctx.font = '900 22px Pretendard,sans-serif'; ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(74,43,120,.85)'; ctx.fillStyle = '#ffe9a8'; ctx.strokeText(this.F().name, this.W / 2, 40); ctx.fillText(this.F().name, this.W / 2, 40); } }
   pewImgH() { return this.I.pewH; }
-  drawPew(ctx, i, part) { // part: 'all' | 'front' (seat box + legs only, drawn over a sitter's lap)
+  drawPew(ctx, i, part) { if (this.td) return pewTD(ctx, this.I.pews[i], this.I.pewW || 236); // part: 'all' | 'front' (seat box + legs only, drawn over a sitter's lap)
     const im = IMG.in_pew_side, [x, y] = this.I.pews[i], h = this.I.pewH, w = h * im.width / im.height, x0 = x - w / 2, y0 = y - h;
     if (part === 'front') { const f = this.I.frontFrac, sy = im.height * f; ctx.drawImage(im, 0, sy, im.width, im.height - sy, x0, y0 + h * f, w, h * (1 - f)); return; }
     ctx.fillStyle = 'rgba(70,40,30,.18)'; ctx.beginPath(); ctx.ellipse(x, y - 2, w * .55, 7, 0, 0, 7); ctx.fill(); ctx.drawImage(im, x0, y0, w, h);
   }
   objects() {
     const I = this.I, out = []; if (!this.on1) return out;
-    I.pews.forEach((p, i) => out.push({ y: p[1] - .5, draw: ctx => this.drawPew(ctx, i, 'all') }));
+    I.pews.forEach((p, i) => out.push({ y: this.td ? p[1] : p[1] - .5, draw: ctx => this.drawPew(ctx, i, 'all') }));
     const o = I.offering; out.push({ y: o.y, draw: ctx => { const im = IMG.in_offering, w = 84, h = w * im.height / im.width; ctx.drawImage(im, o.x - w / 2, o.y - h + 8, w, h);
       ctx.fillStyle = '#4a2b78'; ctx.font = '800 14px Pretendard,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('헌금함', o.x, o.y + 26); } });
     const b = I.board; out.push({ y: b.y, draw: ctx => { const im = IMG.in_board, w = 96, h = w * im.height / im.width; ctx.drawImage(im, b.x - w / 2, b.y - h + 6, w, h);
@@ -76,3 +78,16 @@ function stairDown(ctx, x, y, k, t) { const W = 120 * k, H = 52 * k, n = 5;
   ctx.strokeStyle = '#8f6a8f'; ctx.lineWidth = 4 * k; ctx.lineCap = 'round'; const ry = y - H / 2 - 30 * k;
   ctx.beginPath(); ctx.moveTo(x - W / 2 - 6 * k, ry); ctx.lineTo(x + W / 2 + 6 * k, ry); ctx.stroke(); for (const px of [-W / 2 - 6 * k, 0, W / 2 + 6 * k]) { ctx.beginPath(); ctx.moveTo(x + px, ry); ctx.lineTo(x + px, y - H / 2); ctx.stroke(); }
   ctx.restore(); }
+
+// 3/4 top-down pew seen from behind (faces the pulpit / north): seat strip, then the backrest in front of it (covers a sitter's legs).
+function pewTD(g, [x, y], w) { const x0 = x - w / 2, c = '#5a3424';
+  g.fillStyle = 'rgba(70,40,30,.20)'; g.beginPath(); g.ellipse(x, y + 4, w * .54, 10, 0, 0, 7); g.fill();
+  g.lineWidth = 3; g.strokeStyle = c; g.lineJoin = 'round';
+  rr(g, x0 + 6, y - 40, w - 12, 14, 5); g.fillStyle = '#b7a0d6'; g.fill(); g.stroke(); // cushion
+  const gr = g.createLinearGradient(0, y - 52, 0, y); gr.addColorStop(0, '#e2a66c'); gr.addColorStop(1, '#b97a48');
+  rr(g, x0, y - 52, w, 46, 8); g.fillStyle = gr; g.fill(); g.stroke(); // backrest (back side)
+  g.strokeStyle = 'rgba(90,52,36,.35)'; g.lineWidth = 2; for (const k of [.36, .66]) { g.beginPath(); g.moveTo(x0 + 8, y - 52 + 46 * k); g.lineTo(x0 + w - 8, y - 52 + 46 * k); g.stroke(); }
+  g.fillStyle = '#f3c48f'; g.fillRect(x0 + 8, y - 49, w - 16, 4); // top highlight
+  g.lineWidth = 3; g.strokeStyle = c; g.fillStyle = '#a8693c';
+  for (const lx of [x0 + 4, x0 + w - 18]) { rr(g, lx, y - 58, 14, 62, 5); g.fill(); g.stroke(); } }
+function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }

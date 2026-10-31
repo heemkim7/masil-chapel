@@ -92,7 +92,7 @@ function startGame(save) { touchSess();
   for (const n of cfg.npcs) { const c = new Char(SP, n.char, n.outfit, n.x, n.y, { name: n.name, tagColor: '#c8f7d6', cfg, drawH: n.char === 'lamb' ? 125 : 150 }); c.id = n.id; c.home = { x: n.x, y: n.y }; fieldNpcs.push(c); }
   cfg.wanderers.forEach((w, i) => { const p = world.randomPoint(); const c = new Char(SP, 'player', w.outfit, p.x, p.y, { name: w.name, tagColor: '#d7e6ff', cfg, drawH: 145 }); c.ai = { t: Math.random() * 3, tgt: null, chat: 3 + Math.random() * 6 }; wanderers.push(c); });
   for (const n of cfg.interiorNpcs) { let x = n.x, y = n.y; if (n.pew != null) { const st = inside.seat(n.pew); x = st.x; y = st.y; }
-    const c = new Char(SP, n.char, n.outfit, x, y, { name: n.name, tagColor: n.sit ? '#d7e6ff' : '#c8f7d6', cfg }); c.id = n.id; c.sit = !!n.sit; c.pewI = n.pew; c.face = n.sit ? 'W' : n.id === 'pastor' ? 'E' : c.face; inNpcs.push(c); }
+    const c = new Char(SP, n.char, n.outfit, x, y, { name: n.name, tagColor: n.sit ? '#d7e6ff' : '#c8f7d6', cfg }); c.id = n.id; c.sit = !!n.sit; c.pewI = n.pew; c.face = n.sit ? (inside.td ? 'N' : 'W') : n.id === 'pastor' ? (inside.td ? 'S' : 'E') : c.face; inNpcs.push(c); }
   if (S.scene === 'inside') enterChapel(true); else { scene = 'field'; let p = S.pos || { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; if (!world.walkable(p.x, p.y)) p = { x: cfg.chapel.door.x, y: cfg.chapel.door.y + 120 }; player.x = p.x; player.y = p.y; }
   spawnPickups(); snapCam(); refreshHud(); persist(); const _first = !netReady; netReady ||= net.init(); Promise.resolve(netReady).then(() => { W.sync(); if (_first) window.Acct?.boot(); }); toast(`${S.name}님, 마실채플에 오신 걸 환영해요!`);
   if (!S.dong && !S.solo && !S.hintDong) { S.hintDong = 1; setTimeout(function hintD() { if (modal) return setTimeout(hintD, 1200); toast('🌈 지금은 모두의 광장이에요. 위쪽 📍 버튼으로 우리 동네를 인증하면 동네 방에 들어가요'); }, 2500); }
@@ -175,7 +175,7 @@ const npcList = () => scene === 'field' ? fieldNpcs : inNpcs;
 
 // B: top-down floor plan on entering from the plaza door. Floors/rooms mirror cfg.interior (B1/1F/2F) so names match inside.
 const CP = { B1: { tab: '지하', rooms: [['cafe', '☕', '친교 카페', '차 마시며 교제', 6, 8, 52, 50], ['prayer', '🕯', '기도실', '조용한 기도', 62, 8, 32, 50], ['st1', '🪜', '1층 본당으로', '계단', 6, 64, 30, 22, 'stair']] },
-  '1F': { tab: '1층 본당', rooms: [['hall', '⛪', '본당 예배실', '예배 · 찬양 · 말씀', 14, 6, 72, 54, 'main'], ['pulpit', '📖', '강대상 · 헌금함', '목사님 · 게시판', 4, 64, 34, 20], ['stb', '🪜', '지하 친교실', '계단 ▼', 41, 64, 26, 20, 'stair'], ['st2', '🪜', '2층 성가대석', '계단 ▲', 70, 64, 26, 20, 'stair']] },
+  '1F': { tab: '1층 본당', rooms: [['hall', '⛪', '본당 예배실', '예배 · 찬양 · 말씀', 14, 6, 72, 54, 'main'], ['pulpit', '📋', '로비 · 헌금함', '게시판 · 안내 (예배는 본당)', 4, 64, 34, 20], ['stb', '🪜', '지하 친교실', '계단 ▼', 41, 64, 26, 20, 'stair'], ['st2', '🪜', '2층 성가대석', '계단 ▲', 70, 64, 26, 20, 'stair']] },
   '2F': { tab: '2층 성가대석', rooms: [['choir', '🎶', '성가대 찬양', '성가대석', 6, 8, 52, 50], ['band', '🎹', '찬양팀 악기', '키보드 · 드럼', 62, 8, 32, 50], ['st1', '🪜', '1층 본당으로', '계단', 6, 64, 30, 22, 'stair']] } };
 const CPGO = { hall: () => { enterChapel(true); window.HALL ? HALL.enter() : window.WH ? WH.enter() : toast('⛪ 예배당 안으로 들어왔어요'); }, pulpit: () => enterChapel(), st1: () => enterChapel(), st2: () => cpFloor('2F'), stb: () => cpFloor('B1'), cafe: () => cpFloor('B1', 0), prayer: () => cpFloor('B1', 1), choir: () => cpFloor('2F', 1), band: () => cpFloor('2F', 0) };
 function cpFloor(f, si) { enterChapel(true); goFloor(f); const sp = (inside.F().spots || [])[si]; if (sp) { player.x = sp.x; if (inside.walkable(sp.x, player.y) === false) player.x = inside.F().spawn.x; snapCam(); } }
@@ -194,9 +194,9 @@ function nearest() {
   if (scene === 'field') { const D = cfg.chapel.door; if (Math.hypot(D.x - player.x, (D.y - player.y) * .85) < 175) best = { type: 'door' }; for (const sh of cfg.shops || []) if (Math.hypot(sh.door.x - player.x, sh.door.y - player.y) < 120) best = { type: 'shop', s: sh }; }
   else { const I = cfg.interior, chk = (p, type, r = 130) => { if (Math.hypot(p.x - player.x, p.y - player.y) < r) best = { type }; };
     if (!inside.on1) { for (const sp of inside.spots()) if (Math.hypot(sp.x - player.x, sp.y - player.y) < 140) best = { type: 'spot', sp }; for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 110) best = { type: 'stairs', st }; return best; }
-    chk(I.offering, 'offering', 120); chk(I.board, 'board', 150); chk(I.door, 'exit', 110);
+    { let bz = 1e9; for (const [p, type, r] of [[I.offering, 'offering', 80], [I.board, 'board', 80], [I.door, 'exit', 110]]) { const d = Math.hypot(p.x - player.x, p.y - player.y); if (d < r && d < bz) { bz = d; best = { type }; } } } // nearest object only; zones never overlap
     for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 100) best = { type: 'stairs', st };
-    I.pews.forEach((p, i) => { const r = inside.pewRect(i); if (Math.abs(player.x - r.cx) < 58 && Math.abs(player.y - r.cy) < 60 && !best) best = { type: 'pew', i }; });
+    I.pews.forEach((p, i) => { const r = inside.pewRect(i); if (Math.abs(player.x - r.cx) < (inside.td ? r.w / 2 + 10 : 58) && Math.abs(player.y - r.cy) < 60 && !best) best = { type: 'pew', i }; });
     if (!best || best.type === 'pew') for (const n of inNpcs) if (Math.hypot(n.x - player.x, n.y - player.y) < 140) best = { type: 'npc', n }; }
   if (scene === 'field' && window.P2?.signPos) { const sp = P2.signPos(); if (Math.hypot(sp.x - player.x, sp.y + 20 - player.y) < 120) best = { type: 'sign' }; }
   if (!best && scene === 'field') { let wd = 110; for (const w of wanderers) { const d = Math.hypot(w.x - player.x, w.y - player.y); if (d < wd) { wd = d; best = { type: 'npc', n: w }; } } }
@@ -484,7 +484,7 @@ function render() {
     for (const c of [...fieldNpcs, ...wanderers]) objs.push({ y: c.y, draw: g => c.draw(g), c });
   } else {
     inside.drawStatic(ctx); if (inside.on1) { objs.push(...inside.objects()); window.P2 && objs.push(...P2.objs(tm)); }
-    for (const c of remotes.values()) { if (!sameFl(c)) continue; if (c.sitting) c.face = 'W'; objs.push({ y: c.y, draw: g => sitDraw(g, c, !!c.sitting), c }); }
+    for (const c of remotes.values()) { if (!sameFl(c)) continue; if (c.sitting) c.face = inside.td ? 'N' : 'W'; objs.push({ y: c.y, draw: g => sitDraw(g, c, !!c.sitting), c }); }
     if (inside.on1) for (const c of inNpcs) objs.push({ y: c.y, draw: g => sitDraw(g, c, c.sit), c });
   }
   if (scene === 'field' || inside.on1) objs.push(...decorObjects());
@@ -506,6 +506,8 @@ function render() {
 }
 function sitDraw(g, c, sit) { if (!sit || scene !== 'inside') { c.draw(g); return; }
   // v7 side-view seated pose: side-profile body raised onto the cushion, legs clipped at the seat line, then the pew's seat-front + legs are redrawn over the lap
+  if (inside.td) { const sx = c.speedNow, em = c.emote; c.speedNow = 0; if (em !== 'pray') c.emote = null; c.face = c.dface = 'N'; let pi = -1, bd = 1e9; cfg.interior.pews.forEach((p, k) => { const d = Math.abs(p[0] - c.x) + Math.abs(p[1] - 16 - c.y); if (d < bd) { bd = d; pi = k; } });
+    c.draw(g); if (pi >= 0) inside.drawPew(g, pi, 'all'); c.speedNow = sx; if (em !== 'pray') c.emote = em; return; } // 3/4 top-down: back view, the pew's backrest covers the legs
   const I = cfg.interior, y = c.y, sx = c.speedNow, em = c.emote; c.speedNow = 0; if (em !== 'pray') c.emote = null; if (!['E', 'W'].includes(c.face)) c.face = 'W'; c.dface = c.face;
   let pi = -1, bd = 1e9; I.pews.forEach((p, k) => { const d = Math.abs(p[0] + I.seatDx - c.x) + Math.abs(p[1] - y); if (d < bd) { bd = d; pi = k; } });
   g.save(); g.beginPath(); g.rect(c.x - 200, y - 500, 400, 500 - I.seatCut); g.clip(); c.y = y - I.sitLift; c.draw(g); c.y = y; g.restore();
@@ -566,6 +568,7 @@ window.DEBUG_COL = /[?&]debug=col/.test(location.search); addEventListener('keyd
 function chapelGeom() { const t = window.P2 ? P2.tier : 1, C = { ...cfg.chapel, ...world.chapelArt(t) }, ci = IMG[C.img]; const w = C.h * ci.width / ci.height, l = C.door.x - w * C.ax, top = C.door.y - C.h * C.ay; return { l, top, w, h: C.h, door: C.door }; }
 function chapelFrame() { const g = chapelGeom(), d = Math.hypot(player.x - g.door.x, (player.y - g.door.y) * 1.3), f0 = Math.max(0, Math.min(1, (1300 - d) / 700)), f = f0 * f0 * (3 - 2 * f0);
   const mob = innerWidth < 700, tp = mob ? 235 : 115, bp = mob ? 130 : 90, y0 = g.top - 10, y1 = Math.max(g.door.y + 40, player.y + 20), zH = (innerHeight - tp - bp) / (y1 - y0), zW = innerWidth * (mob ? 1.12 : .98) / g.w, z = Math.min(1, zH, zW); return { f, z, cx: mob ? g.door.x + (innerWidth / 2 - 185) / z : g.l + g.w / 2, cy: y0 + (innerHeight / 2 - tp) / z }; } // mobile: keep the door right of the joystick // tp/bp: HUD+hint toast on top, joystick/chat at bottom
+window.__near = () => nearest()?.type || null;
 window.G = { walkable: (x, y) => world.walkable(x, y), chapelScreen: () => { const g = chapelGeom(), z = cam.z, x = (g.l - cam.x) * z + innerWidth / 2, y = (g.top - cam.y) * z + innerHeight / 2; return { x, y, w: g.w * z, h: g.h * z, top: y, bottom: y + g.h * z, z, door: g.door }; }, inNpcs: () => inNpcs, get modalOpen() { return !!document.querySelector(".modal.show, .modal.open, .modal[style*=flex]"); }, SH, placeAt, AV, Cust, wanderers, addWanderer: () => { const p = world.randomPoint(); const c = new Char(SP, 'player', 'basic', p.x, p.y, { name: '주민', tagColor: '#d7e6ff', cfg, drawH: 145 }); c.ai = { t: Math.random() * 3, tgt: null, chat: 3 + Math.random() * 6 }; wanderers.push(c); return c; }, get S() { return S; }, get player() { return player; }, get scene() { return scene; }, cfg: () => cfg,
   start: (n, o) => { St.wipe(); selOutfit = o; startGame(St.newSave(n, o)); }, moveDir: (deg, ms) => { scripted = { a: deg * Math.PI / 180, ms }; },
   tp: (x, y) => { sitting = null; player.x = x; player.y = y; snapCam(); }, interact, enterChapel, exitChapel, openGacha, doRoll, openInv, openDecor, placeAt, openBoard, startWorship, worshipTap,
