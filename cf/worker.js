@@ -47,7 +47,7 @@ export class Room extends DurableObject {
   waitMsgs() { const ws = this.waiters(), live = this.adm(); ws.forEach(([w], i) => this.tx(w, { t: 'wait', pos: i + 1, live, cap: CAP })); }
   promote() { let n = this.adm(); for (const [w, a] of this.waiters()) { if (n >= CAP) break; this.admit(w, a); n++; } this.waitMsgs(); }
   async arm() { if ((this.waiters().length || this.tapN) && !(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + SCAN); }
-  async alarm() { this.scan(true); this.meter(true); if (this.tapN && Date.now() - (this.tapAt || 0) >= FLUSH_MS - 1000) await this.flush();
+  async alarm() { this.tapDb(); this.scan(true); this.meter(true); if (this.tapN && Date.now() - (this.tapAt || 0) >= FLUSH_MS - 1000) await this.flush();
     if (this.waiters().length || this.tapN) await this.ctx.storage.setAlarm(Date.now() + (this.waiters().length ? SCAN : FLUSH_MS)); }
   // '함께 기도했어요' / candle taps: deduped + counted in memory, also kept in DO SQLite so a restart loses nothing; flushed in one RPC per N taps or 30s.
   tapDb() { if (!this._tdb) { this.ctx.storage.sql.exec('create table if not exists tap(kind text, ref text, uid text, primary key(kind, ref, uid))'); this._tdb = 1; this.tapN = this.ctx.storage.sql.exec('select count(*) c from tap').one().c; } }
