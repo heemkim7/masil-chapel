@@ -53,10 +53,10 @@ window.__errors = [];
   const Q = new URLSearchParams(location.search), qr = (Q.get('room') || '').match(/^(\d{10})(?:-(\d{1,3}))?$/);
   const sv = St.hasSave() && St.load();
   if (qr || Q.has('play')) { // zero-friction entry: a shared link drops straight into the live room as a guest
-    window.__resumed = !!(sess && sv); startGame(sv || St.newSave(cuteNick(), 'basic'));
+    window.__resumed = !!(sess && sv); startGame(sv || guestSave());
     if (qr) V.setDong(qr[1], { keepShard: true, visit: !!(S.dong && S.dong.cd !== qr[1]) }).then(ok => { if (ok) { S.shard = +(qr[2] || 1); S.shardLock = true; persist(); V.hud(); } });
-    if (!sv) toast(`🐑 ${S.name}님으로 들어왔어요. 이름은 꾸미기에서 바꿀 수 있어요`); }
-  else if (sess && sv) { window.__resumed = true; startGame(sv); toast('🔄 이전 세션을 이어서 시작했어요'); } else { if (sv) selOutfit = sv.outfit || 'basic'; endSess(); showTitle(); }
+    if (!sv) genderChip(); }
+  else if (sess && sv) { window.__resumed = true; startGame(sv); toast('🔄 이전 세션을 이어서 시작했어요'); } else if (sv) { selOutfit = sv.outfit || 'basic'; endSess(); showTitle(); } else { startGame(guestSave()); genderChip(); } // first visit: no ID/name gate, straight in as a guest
   requestAnimationFrame(loop); try { initPhase1(); } catch (e) { console.error(e); } try { initPhase2(); } catch (e) { console.error(e); } try { initMobile(); } catch (e) { console.error(e); } try { initPhase4(); } catch (e) { console.error(e); } window.__ready = true;
 })().catch(e => { console.error(e); });
 
@@ -65,7 +65,8 @@ let selOutfit = 'basic', titlePrev = [];
 let selAv = AV.DEFAULT;
 function showTitle() {
   $('#title').style.display = 'flex'; $('#continue').disabled = !St.hasSave();
-  Safe.mountTitle(); titlePrev = []; Cust.mount($('#outfits'), selAv, { title: true, compact: innerHeight < 700, onChange: c => { selAv = c; selOutfit = AV.parse(c).o; } });
+  Safe.mountTitle(); titlePrev = []; const o = $('#outfits'); o.innerHTML = `<div class="gpick"><button data-g="f" class="on">여</button><button data-g="m">남</button></div><small class="gnote">처음엔 모두 같은 교회 옷이에요 · 꾸미기는 들어가서</small>`;
+  o.onclick = e => { const b = e.target.closest('[data-g]'); if (!b) return; selAv = b.dataset.g === 'm' ? AV.DEFAULT_M : AV.DEFAULT; o.querySelectorAll('[data-g]').forEach(x => x.classList.toggle('on', x === b)); };
 }
 function drawTitlePreviews(dt) { for (const p of titlePrev) { const g = p.c.getContext('2d'), pr = +p.c.dataset.pr || 1; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, p.c.width, p.c.height); g.setTransform(pr, 0, 0, pr, 0, 0); g.imageSmoothingQuality = 'high'; p.ch.update(dt);
   const sel = p.o === selOutfit; p.ch.speedNow = sel ? 1 : 0; if (sel) { p.ch.dist += dt * 90; p.ch.face = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'][Math.floor(p.ch.t / 1.2) % 8]; } else p.ch.face = 'S'; p.ch.draw(g); } }
@@ -73,6 +74,13 @@ $('#pname').value = cuteNick();
 $('#newgame').onclick = () => { const n = $('#pname').value.trim() || '새싹'; St.wipe(); const sv = St.newSave(n, 'basic'); sv.av = selAv; startGame(sv); };
 $('#continue').onclick = () => { const s = St.load(); if (s) startGame(s); };
 
+function guestSave() { const sv = St.newSave('손님 ' + (1000 + Math.floor(Math.random() * 9000)), 'basic'); sv.av = AV.DEFAULT; return sv; }
+function genderChip() { // one optional tap; name/account/details live in 꾸미기 later
+  const d = document.createElement('div'); d.id = 'gchip'; d.innerHTML = `<span>교회 옷 그대로 입장했어요</span><button data-g="f" class="on">여</button><button data-g="m">남</button><button data-x aria-label="닫기">✕</button>`;
+  document.body.appendChild(d); const bye = () => { d.classList.add('out'); setTimeout(() => d.remove(), 300); }; let t = setTimeout(bye, 14000); addEventListener('pointerdown', e => { if (!d.contains(e.target)) bye(); }, { once: true, capture: true });
+  d.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.x != null) return bye();
+    const p = AV.parse(S.av); if (p.g !== b.dataset.g) { S.av = b.dataset.g === 'm' ? AV.DEFAULT_M : AV.DEFAULT; AV.apply(player, S.av); AV.preload(AV.parse(S.av)); persist(); try { net.update?.({ av: S.av }); } catch { } }
+    d.querySelectorAll('[data-g]').forEach(x => x.classList.toggle('on', x === b)); clearTimeout(t); t = setTimeout(bye, 2500); }; }
 function cuteNick() { const A = ['포근한', '작은', '반짝이는', '말랑한', '다정한', '졸린', '용감한', '수줍은', '향긋한', '보송한'], B = ['양', '별', '구름', '토끼', '참새', '민들레', '곰돌이', '새싹', '달님', '솜사탕'];
   return A[Math.random() * A.length | 0] + ' ' + B[Math.random() * B.length | 0]; }
 function startGame(save) { touchSess();

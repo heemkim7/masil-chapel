@@ -14,11 +14,17 @@
 #chplan .cp-room.stair{background:#efe7da;border-style:dashed;font-size:12px}
 #chplan .cp-rows{display:grid;grid-template-columns:repeat(2,1fr);gap:5px 18px;width:80%;margin-top:4px}
 #chplan .cp-rows i{display:block;height:5px;border-radius:3px;background:#c9a77f}
-#chplan .cp-door{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);background:#8b6a4f;color:#fff;font:700 12px Pretendard,sans-serif;padding:3px 12px;border-radius:8px 8px 0 0}
-#chplan .cp-you{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);font:700 12px Pretendard,sans-serif;color:#c2410c;animation:cpb 1.2s ease-in-out infinite}
+#chplan .cp-door{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);background:#8b6a4f;color:#fff;font:700 12px Pretendard,sans-serif;padding:3px 12px;border-radius:8px}
+#chplan .cp-you{position:absolute;left:50%;bottom:32px;transform:translateX(-50%);font:700 12px Pretendard,sans-serif;color:#c2410c;animation:cpb 1.2s ease-in-out infinite}
 @keyframes cpb{50%{transform:translate(-50%,-4px)}}
 #chplan .cp-foot{display:flex;gap:8px;margin-top:12px}
 #chplan .cp-foot button{flex:1;min-height:46px;border-radius:12px;border:0;font:700 15px Pretendard,sans-serif;cursor:pointer}
 #chplan .cp-go{background:#7a55c2;color:#fff}
 #chplan .cp-stay{background:#eee6f8;color:#4a2b78}
 @media (max-width:520px){#chplan .cp-plan{aspect-ratio:3/4}#chplan .cp-room{font-size:13px}}
+
+#gchip{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 64px);transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;background:rgba(255,250,243,.95);border:1px solid rgba(62,42,38,.18);border-radius:999px;box-shadow:0 4px 16px rgba(40,20,30,.22);font:600 13px Pretendard,sans-serif;color:#5a3e4a;transition:opacity .3s;white-space:nowrap}
+#gchip.out{opacity:0}#gchip button,.gpick button{min-width:38px;min-height:34px;border:1px solid rgba(62,42,38,.2);border-radius:999px;background:#fff;color:#5a3e4a;font:700 14px Pretendard,sans-serif}
+#gchip button.on,.gpick button.on{background:#fbe3b8}#gchip [data-x]{min-width:30px;border:0;background:none;color:#8a6f7a}
+.gpick{display:flex;gap:10px;justify-content:center;margin:6px 0}.gpick button{min-width:64px;min-height:42px}.gnote{display:block;text-align:center;color:#8a6f7a;font-size:12px}
+@media (min-width:800px){#gchip{top:auto;bottom:96px}}

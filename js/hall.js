@@ -5,12 +5,12 @@
 import { VO, sprite, pilgrimAv, rnd, hash, SONGS, PH } from './worship.js';
 import { NS } from './net.js';
 const G = () => window.G, $ = s => document.querySelector(s);
-const BW = 720, BH = 1280, CX = 356, MIN_FILL = 24, ROWS = 11, ROOM = '2f-1';
+const BW = 720, BH = 1280, CX = 356, MIN_FILL = 40, ROWS = 11, ROOM = '2f-1';
 const hwAt = y => 46 + (y - 418) / 862 * 62;            // carpet half-width in the background art (perspective reference)
 const K = y => hwAt(y) / 108;                            // depth scale (1 at the bottom edge)
 // ---- seat grid: WL / CL / CR / WR × 11 rows; centre sections 3 seats, wall sections 1 seat per row → 88
 const SEATS = []; const ROWY = [];
-for (let r = 0; r < ROWS; r++) { const t = r / (ROWS - 1), y = 474 + 440 * Math.pow(t, 1.12), k = K(y) * 1.32, hw = hwAt(y) * 1.06, sp = 52 * k; ROWY.push({ y, k, hw, sp });
+for (let r = 0; r < ROWS; r++) { const t = r / (ROWS - 1), y = 476 + 540 * Math.pow(t, 1.18), k = K(y) * 1.32, hw = hwAt(y) * 1.06, sp = 52 * k; ROWY.push({ y, k, hw, sp });
   const rr = String(r + 1).padStart(2, '0');
   for (const side of [-1, 1]) { const C = side < 0 ? 'CL' : 'CR', W = side < 0 ? 'WL' : 'WR';
     for (let j = 0; j < 3; j++) SEATS.push({ id: `${C}${rr}-${j + 1}`, r, x: CX + side * (hw + sp * (j + .62)), y, k });
@@ -32,10 +32,10 @@ const sb = () => G()?.net?.sb;
 // ---------------- DOM
 function ensureDom() { if (el) return; el = document.createElement('div'); el.id = 'hall2';
   el.innerHTML = `<canvas id="h2cv"></canvas><div class="h2top"><button id="h2exit" aria-label="나가기">⟵ 나가기</button><span id="h2n" class="h2pill">지금 1명이 함께 예배 중</span><button id="h2snd" aria-label="소리">🔊</button></div>
-  <div id="h2msg" class="h2msg"></div><div class="h2card"><small id="h2st">1/6 묵상</small><p id="h2line"></p><small id="h2ref"></small><button id="h2btn"><i id="h2prog"></i><span id="h2bt">다음</span></button></div>`;
+  <div id="h2msg" class="h2msg"></div><div class="h2card"><small id="h2st">1/6 묵상</small><p id="h2line"></p><small id="h2ref"></small><button id="h2btn"><i id="h2prog"></i><span id="h2bt">다음</span></button><button id="h2rest" type="button">🎵 그냥 앉아 있기</button></div><div class="h2restbar"><small>🎵 그냥 앉아 있어요</small><p id="h2tune">찬송</p><button id="h2back" type="button">예배 순서로</button></div>`;
   document.body.append(el); cv = el.querySelector('#h2cv'); ctx = cv.getContext('2d');
   bg = new Image(); bg.src = 'assets/hall2f_bg.jpg?v=1';
-  $('#h2exit').onclick = () => leave(); addEventListener('keydown', e => { if (open && e.key === 'Escape') leave(); }); $('#h2snd').onclick = () => { const A = window.Aud; if (!A) return; A.setMuted(!A.muted); if (A.muted) VO.stop(); else bgm(); sndIcon(); };
+  $('#h2rest').onclick = () => rest(true); $('#h2back').onclick = () => rest(false); $('#h2exit').onclick = () => leave(); addEventListener('keydown', e => { if (open && e.key === 'Escape') leave(); }); $('#h2snd').onclick = () => { const A = window.Aud; if (!A) return; A.setMuted(!A.muted); if (A.muted) VO.stop(); else if (!resting) bgm(); if (restEl) restEl.muted = A.muted; sndIcon(); };
   const b = $('#h2btn'); b.onpointerdown = e => { e.preventDefault(); if (STEPS[step].hold) { holding = true; b.classList.add('on'); } };
   const up = () => { if (!holding) return; holding = false; b.classList.remove('on'); }; b.onpointerup = b.onpointerleave = b.onpointercancel = up;
   b.onclick = () => { if (!STEPS[step].hold) next(); };
@@ -44,28 +44,42 @@ function sndIcon() { $('#h2snd').textContent = window.Aud?.muted ? '🔇' : '�
 function resize() { vw = innerWidth; vh = innerHeight; dpr = Math.min(devicePixelRatio || 1, 2); cv.width = vw * dpr; cv.height = vh * dpr; cv.style.width = vw + 'px'; cv.style.height = vh + 'px';
   // fit so the front wall + all 11 rows show above the bottom card (card ≈ 25% of a phone screen)
   const cardH = Math.min(230, vh * .26), s = Math.min(vw / BW, (vh) / (BH * .98)) ; const s2 = vw < vh ? Math.max(s, Math.min(vw / (BW * .985), (vh - cardH * .35) / (BH * .86))) : s;
-  T.s = s2; T.x = (vw - BW * s2) / 2; T.y = vw < vh ? Math.min(0, (vh - cardH * .35) - 1130 * s2) : (vh - BH * s2) / 2; }
+  let s3 = s2; if (vw < vh) { const cr = el.querySelector('.h2card')?.getBoundingClientRect(); const ct = cr && cr.height ? cr.top : vh - cardH; s3 = Math.min(vw / (BW * .64), Math.max(s2, (ct - 6) / 1040)); }
+  T.s = s3; T.x = (vw - BW * s3) / 2; T.y = vw < vh ? 0 : (vh - BH * s3) / 2; }
 // ---------------- enter / leave
 export function enter() { const g = G(); if (!g || !g.S || open) return; ensureDom(); VO.prime(); open = true; window.__h2Open = true; el.style.display = 'block'; document.body.classList.add('h2-open');
   try { g.closeModal?.(); } catch { } step = 0; amenT = -9; fx = []; wordI = -1; resize(); sndIcon(); bgm(); pickSeat(); buildNpcs(); setStep(0); presence(); lastT = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); }
-export function leave() { if (!open) return; open = false; window.__h2Open = false; VO.stop(); cancelAnimationFrame(raf); el.style.display = 'none'; document.body.classList.remove('h2-open'); clearInterval(hb);
+export function leave() { if (!open) return; rest(false, 1); open = false; window.__h2Open = false; VO.stop(); cancelAnimationFrame(raf); el.style.display = 'none'; document.body.classList.remove('h2-open'); clearInterval(hb);
   try { sb()?.rpc('release_seat', { p_room: ROOM, p_secret: secret() }); } catch { } if (ch) { const c = ch; ch = null; c.untrack().catch(() => { }).finally(() => sb()?.removeChannel(c)); } peers.clear();
   try { window.Aud?.music?.('old100'); } catch { } }
+// ---------------- '그냥 앉아 있기': no steps, a continuous loop of public-domain/CC0 organ hymns (assets/audio/LICENSES.md).
+// Uses its own <audio> element (not WebAudio) so it keeps playing when the screen idles or the tab is backgrounded; Media Session gives lock-screen controls.
+const REST = [['old100', '만복의 근원 하나님 (Old Hundredth)'], ['stanne', '오 신실하신 주 (St. Anne)'], ['newbrit', '나 같은 죄인 살리신 (Amazing Grace)'], ['nicaea', '거룩 거룩 거룩 (Nicaea)']];
+let resting = false, restEl = null, restI = 0;
+function restPlay() { const [f, n] = REST[restI % REST.length]; restEl.src = `assets/audio/${f}.mp3`; restEl.muted = !!window.Aud?.muted; restEl.volume = Math.min(1, (window.Aud?.P?.().bgmVol ?? .5) * 1.1); restEl.play().catch(() => { });
+  $('#h2tune').textContent = n; const ms = navigator.mediaSession; if (ms) { try { ms.metadata = new MediaMetadata({ title: n, artist: '마실채플', album: '그냥 앉아 있기', artwork: [{ src: 'assets/icon512.png', sizes: '512x512', type: 'image/png' }] }); ms.playbackState = 'playing'; } catch { } } }
+function rest(on, quiet) { if (on === resting) return; resting = on; window.__h2Rest = on; el?.classList.toggle('rest', on);
+  if (on) { VO.stop(); holding = false; const A = window.Aud; try { A?.stopMusic?.(); A?.el?.pause(); } catch { }
+    if (!restEl) { restEl = new Audio(); restEl.preload = 'auto'; restEl.setAttribute('playsinline', ''); restEl.onended = () => { restI++; restPlay(); };
+      const ms = navigator.mediaSession; if (ms) { try { ms.setActionHandler('play', () => { restEl.play().catch(() => { }); ms.playbackState = 'playing'; }); ms.setActionHandler('pause', () => { restEl.pause(); ms.playbackState = 'paused'; }); ms.setActionHandler('nexttrack', () => { restI++; restPlay(); }); } catch { } } }
+    restPlay(); me.st = 'pray'; track(); }
+  else { if (restEl) { restEl.pause(); try { navigator.mediaSession.playbackState = 'none'; navigator.mediaSession.metadata = null; } catch { } } me.st = 'sit'; track(); if (!quiet) { bgm(); setStep(step); } } }
 function bgm() { try { window.Aud?.music?.('old100'); } catch { } }
 // ---------------- seats, NPC fill, presence
+const vis = s => { const m = 34 * s.k; return (s.x - m) * T.s + T.x >= 2 && (s.x + m) * T.s + T.x <= vw - 2; };
 function takenByOthers() { const t = new Set(); for (const p of peers.values()) if (p.seat != null) t.add(p.seat); return t; }
 function freeSeats() { const t = takenByOthers(); return SEATS.filter(s => !t.has(s.i) && s.i !== me.seat); }
-function pickSeat(avoid) { const t = takenByOthers(); const saved = SEATS.findIndex(s => s.id === localStorage.getItem('h2_seat'));
+function pickSeat(avoid) { const t = takenByOthers(); const saved = SEATS.findIndex(s => s.id === localStorage.getItem('h2_seat2'));
   // default: centre sections, middle rows first (good view of the cross); remembered seat if still free
-  const order = SEATS.filter(s => !t.has(s.i) && !(avoid && avoid.has(s.i))).sort((a, b) => score(a) - score(b));
-  me.seat = saved >= 0 && !t.has(saved) && !(avoid && avoid.has(saved)) ? saved : (order[0]?.i ?? 0); localStorage.setItem('h2_seat', SEATS[me.seat].id); claim(); }
-const score = s => Math.abs(s.r - 6) * 2 + (s.id[0] === 'W' ? 9 : 0) + (s.id.endsWith('-1') ? 0 : s.id.endsWith('-2') ? .5 : 1) + (s.id[1] === 'R' ? .2 : 0);
+  const order = SEATS.filter(s => vis(s) && !t.has(s.i) && !(avoid && avoid.has(s.i))).sort((a, b) => score(a) - score(b));
+  me.seat = saved >= 0 && vis(SEATS[saved]) && !t.has(saved) && !(avoid && avoid.has(saved)) ? saved : (order[0]?.i ?? 0); localStorage.setItem('h2_seat2', SEATS[me.seat].id); claim(); }
+const score = s => Math.abs(s.r - 9) * 2 + (s.id[0] === 'W' ? 9 : 0) + (s.id.endsWith('-1') ? 0 : s.id.endsWith('-2') ? .5 : 1) + (s.id[1] === 'R' ? .2 : 0);
 async function claim() { const c = sb(); if (!c) return; try { const st = SEATS[me.seat]; const { data, error } = await c.rpc('claim_seat', { p_room: ROOM, p_seat: st.id, p_secret: secret() });
     if (!error && data === false) { const av = new Set([me.seat]); (me.tried ||= new Set()).add(me.seat); if (me.tried.size < 12) { pickSeat(me.tried); } } else { me.tried = null; track(); } } catch { } }
 function buildNpcs() { const r = rnd(hash('h2npc')); const want = Math.max(0, MIN_FILL - realN()); const t = takenByOthers(); t.add(me.seat);
   const keep = npcs.filter(n => !t.has(n.seat) && !n.out); for (const n of npcs) if (t.has(n.seat)) n.out = n.out || performance.now(); // fade out NPCs whose seat a real person took
   const live = npcs.filter(n => !n.out).length; if (live > want) { let k = live - want; for (const n of npcs.slice().reverse()) if (!n.out && k-- > 0) n.out = performance.now(); }
-  const used = new Set([...t, ...npcs.filter(n => !n.out).map(n => n.seat)]); const pool = SEATS.filter(s => !used.has(s.i)).sort((a, b) => hash('s' + a.id) - hash('s' + b.id)).map((s, i, A) => [s, A.slice(0, i).filter(q => q.r === s.r).length * ROWS + ((s.r * 7) % ROWS)]).sort((a, b) => a[1] - b[1]).map(q => q[0]); // round-robin rows so the hall fills evenly
+  const used = new Set([...t, ...npcs.filter(n => !n.out).map(n => n.seat)]); const pool = SEATS.filter(s => !used.has(s.i) && vis(s)).map(s => [s, (ROWS - 1 - s.r) * .55 + (hash('s' + s.id) % 1000) / 1000 * 3.2]).sort((a, b) => a[1] - b[1]).map(q => q[0]); // fill from the camera side: nearest rows first
   for (let k = npcs.filter(n => !n.out).length; k < want && pool.length; k++) { const s = pool.shift(); npcs.push({ seat: s.i, av: pilgrimAv(rnd(hash('npc' + s.id))), ph: r() * 6.28, in: performance.now() }); }
   npcs = npcs.filter(n => !n.out || performance.now() - n.out < 1500); }
 const realN = () => 1 + peers.size;
@@ -110,7 +124,7 @@ function frame(now) { if (window.Aud?.muted && (window.WH?.vo?.paused === false 
   if (S.k === 'calm') { const b = (Math.sin(t * Math.PI / 4) + 1) / 2; $('#h2line').textContent = b > .5 ? '숨을 천천히 들이쉬고…' : '…천천히 내쉬어요'; }
   if ((t | 0) % 2 === 0 && !frame._b) { frame._b = 1; buildNpcs(); pill(); } else if ((t | 0) % 2) frame._b = 0;
   const c = ctx; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.fillStyle = '#3a2a2e'; c.fillRect(0, 0, vw, vh);
-  if (bg.complete && bg.naturalWidth) { if (T.x > 0) { c.save(); c.filter = 'blur(18px) brightness(.55)'; c.drawImage(bg, -40, -40, vw + 80, vh + 80); c.restore(); } c.setTransform(dpr * T.s, 0, 0, dpr * T.s, dpr * T.x, dpr * T.y); c.drawImage(bg, 0, 0, BW, BH); }
+  if (bg.complete && bg.naturalWidth) { if (T.x > 0) { c.save(); c.filter = 'blur(18px) brightness(.55)'; c.drawImage(bg, -40, -40, vw + 80, vh + 80); c.restore(); } c.setTransform(dpr * T.s, 0, 0, dpr * T.s, dpr * T.x, dpr * T.y); c.drawImage(bg, 0, 0, BW, BH); c.drawImage(bg, 0, BH - 4, BW, 4, 0, BH - 4, BW, 600); }
   else c.setTransform(dpr * T.s, 0, 0, dpr * T.s, dpr * T.x, dpr * T.y);
   const am = Math.max(0, 1 - (t - amenT) / 3.2), amU = t - amenT < .5 ? (t - amenT) / .5 : 1;
   // cross glow during amen / word
@@ -119,12 +133,12 @@ function frame(now) { if (window.Aud?.muted && (window.WH?.vo?.paused === false 
   const glows = [];
   for (let r = 0; r < ROWS; r++) { const R = ROWY[r]; byRow[r].sort((a, b) => Math.abs(b.s.x - CX) - Math.abs(a.s.x - CX));
     for (const p of byRow[r]) { const fc = hash('f' + p.s.id) % 3 ? 'N' : (p.s.x < CX ? 'NE' : 'NW'); const e = sprite(p.av, fc, null, null, true); if (!e || !e.cv || !e.ok) continue; // back views only; never draw a not-yet-settled (default front) frame
-      const k = p.s.k * .78, bow = (p.st === 'pray' && (p.me ? holding : 1) ? 2.5 : 0) * k, sink = (e.ay - e.top) * k * .3; // sink into the pew so its backrest covers the lower body
-      const pb = R.y + 27.5 * R.k * .45; c.save(); c.beginPath(); c.rect(p.s.x - 200, 0, 400, pb); c.clip();
+      const k = p.s.k * .68, bow = (p.st === 'pray' && (p.me ? holding : 1) ? 2.5 : 0) * k, sink = (e.ay - e.top) * k * .24; // sink into the pew so its backrest covers the lower body
+      const pb = R.y + 22 * R.k * .6; c.save(); c.beginPath(); c.rect(p.s.x - 200, 0, 400, pb); c.clip();
       c.globalAlpha = p.a; c.drawImage(e.cv, p.s.x - e.ax * k, p.s.y + sink - e.ay * k + bow + Math.sin(t * .8 + p.ph) * .5 * k, e.cv.width * k, e.cv.height * k); c.globalAlpha = 1; c.restore();
       // chest-height hand candle beside the near shoulder; never above the head
-      const hy = p.s.y + sink - e.ay * k + (e.top + (e.ay - e.top) * .4) * k; p.hy = Math.max(hy, p.s.y + sink - e.ay * k + (e.top + 22) * k); p.hx = p.s.x + 20 * p.s.k;
-      const lv = .55 + (p.me ? prayGlow * .45 : (p.st === 'pray' ? .2 : 0)) + am * .6 * amU; candle(c, p.hx, p.hy, p.s.k, lv, t + p.ph, p.a); glows.push([p.hx, p.hy, p.s.k, lv, p.a]);
+      const hy = p.s.y + sink - e.ay * k + (e.top + (e.ay - e.top) * .4) * k; p.hy = Math.min(R.y - 22 * R.k * .4 - 3 * R.k, Math.max(hy, p.s.y + sink - e.ay * k + (e.top + 22) * k)); p.hx = p.s.x + 20 * p.s.k;
+      const lv = .55 + (p.me ? prayGlow * .45 : (p.st === 'pray' ? .2 : 0)) + am * .6 * amU; candle(c, p.hx, p.hy, p.s.k * 1.25, lv, t + p.ph, p.a); glows.push([p.hx, p.hy, p.s.k, lv, p.a]);
       FIGS.push({ id: p.s.id, me: !!p.me, face: fc, x: (p.s.x - e.ax * k) * T.s + T.x, y: (p.s.y + sink - e.ay * k + e.top * k) * T.s + T.y, w: e.cv.width * k * T.s, h: (pb - (p.s.y + sink - e.ay * k + e.top * k)) * T.s, cy: p.hy * T.s + T.y, headY: (p.s.y + sink - e.ay * k + e.top * k) * T.s + T.y });
       if (p.me) meMark(c, p.s.x, p.s.y + sink - e.ay * k + e.top * k - 6, p.s.k); }
     pew(c, R, r); }
@@ -136,12 +150,12 @@ function candle(c, x, y, k, lv, t, a) { const h = 9 * k, w = 3.4 * k; c.globalAl
   const fl = 1 + Math.sin(t * 9) * .08 + Math.sin(t * 5.3) * .05, fh = (5 + lv * 2.2) * k * fl; c.fillStyle = `rgba(255,${190 + lv * 30 | 0},90,.95)`; c.beginPath(); c.ellipse(x, y - h * .2 - fh * .5, 1.7 * k, fh * .5, 0, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,230,.9)'; c.beginPath(); c.ellipse(x, y - h * .2 - fh * .38, .8 * k, fh * .26, 0, 0, 7); c.fill(); c.globalAlpha = 1; }
 function meMark(c, x, y, k) { const f = Math.max(9, 11 * k); c.font = `700 ${f}px Pretendard, sans-serif`; c.textAlign = 'center'; const w = f * 1.9; c.fillStyle = 'rgba(255,248,240,.92)'; c.strokeStyle = 'rgba(62,42,38,.55)'; c.lineWidth = 1; c.beginPath(); c.roundRect(x - w / 2, y - f * 1.25, w, f * 1.3, f * .6); c.fill(); c.stroke(); c.fillStyle = '#6a4a8a'; c.fillText('나', x, y - f * .25); }
 // pew: wooden backrest per section, soft chocolate outline; drawn after that row's people so it occludes their lower body
-function pew(c, R, r) { const { y, k, hw, sp } = R, h = 22 * k * 1.25, d = 7 * k; const segs = [[hw - sp * .05, hw + sp * 3.25], [hw + sp * 3.25 + 30 * k * .4, hw + sp * 4.6 + 30 * k]];
-  for (const side of [-1, 1]) for (const [a, b] of segs) { const x0 = side < 0 ? CX - b : CX + a, x1 = side < 0 ? CX - a : CX + b, top = y - h * .55;
+function pew(c, R, r) { const { y, k, hw, sp } = R, h = 22 * k, d = 7 * k; const segs = [[hw - sp * .05, hw + sp * 3.25], [hw + sp * 3.25 + 30 * k * .4, hw + sp * 4.6 + 30 * k]];
+  for (const side of [-1, 1]) for (const [a, b] of segs) { const xa = side < 0 ? CX - b : CX + a, xb = side < 0 ? CX - a : CX + b, top = y - h * .4; const L = (8 - T.x) / T.s, Rr = (vw - 8 - T.x) / T.s; let x0 = Math.max(xa, L), x1 = Math.min(xb, Rr); if (x1 - x0 < 24 * k) continue;
     c.fillStyle = '#9a6440'; c.fillRect(x0, top, x1 - x0, h); c.fillStyle = '#c0855a'; c.fillRect(x0, top, x1 - x0, h * .26); c.fillStyle = '#7a4a30'; c.fillRect(x0, top + h * .82, x1 - x0, h * .18);
     c.fillStyle = 'rgba(255,230,190,.25)'; for (let q = 1; q < 3; q++) c.fillRect(x0 + (x1 - x0) * q / 3 - .6 * k, top + h * .3, 1.2 * k, h * .5);
     c.fillStyle = '#8a5636'; c.fillRect(x0 - d * .2, top - d * .4, d * .7, h + d * .4); c.fillRect(x1 - d * .5, top - d * .4, d * .7, h + d * .4);
     c.strokeStyle = 'rgba(62,42,38,.78)'; c.lineWidth = 1.2 * k; c.strokeRect(x0, top, x1 - x0, h); } }
 const FIGS = [];
-export const HALL = { figs: () => FIGS.slice(), enter, leave, get open() { return open; }, get step() { return step; }, setStep, next, amen, get seat() { return SEATS[me.seat]?.id; }, seats: SEATS, get real() { return realN(); }, get npc() { return npcs.filter(n => !n.out).length; }, get T() { return T; }, peersN: () => peers.size };
+export const HALL = { rest, get resting() { return resting; }, get restAudio() { return restEl && { paused: restEl.paused, src: restEl.src, t: restEl.currentTime, muted: restEl.muted }; }, figs: () => FIGS.slice(), enter, leave, get open() { return open; }, get step() { return step; }, setStep, next, amen, get seat() { return SEATS[me.seat]?.id; }, seats: SEATS, get real() { return realN(); }, get npc() { return npcs.filter(n => !n.out).length; }, get T() { return T; }, peersN: () => peers.size };
 window.HALL = HALL;

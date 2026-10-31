@@ -90,3 +90,10 @@ body.h2-open #hud,body.h2-open #toast,body.h2-open #jtoasts,body.h2-open #minima
 #h2btn span{position:relative}
 @media (min-aspect-ratio:1/1){.h2card{padding:8px 16px 10px;width:min(400px,calc(100vw - 28px))}.h2card p{min-height:1.6em;font-size:15.5px;margin:3px 0 0}#h2ref{margin-bottom:4px}#h2btn{min-height:40px}}
 @media (max-height:500px){.h2card{padding:5px 14px 7px;width:min(360px,calc(100vw - 28px))}.h2card small{font-size:11px}.h2card p{font-size:14px;min-height:1.3em;margin:1px 0}#h2ref{display:none}#h2btn{min-height:34px;font-size:14px}.h2top button{padding:6px 11px;font-size:13px}.h2pill{padding:5px 12px;font-size:12px}}
+
+#h2rest{display:block;margin:8px auto 0;border:0;background:none;color:#8a6f7a;font:600 13.5px Pretendard,sans-serif;padding:6px 10px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.h2restbar{display:none;position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);width:min(360px,calc(100vw - 28px));background:rgba(255,250,243,.9);border:1px solid rgba(62,42,38,.18);border-radius:20px;box-shadow:0 6px 24px rgba(40,20,30,.25);padding:10px 16px 12px;text-align:center;box-sizing:border-box}
+.h2restbar small{display:block;color:#8a6f7a;font:600 12.5px Pretendard,sans-serif}.h2restbar p{margin:4px 0 8px;font:700 15px/1.35 Pretendard,sans-serif;color:#4a3440;word-break:keep-all}
+#h2back{min-height:40px;padding:0 22px;border:1px solid rgba(62,42,38,.22);border-radius:999px;background:#f6e9dc;color:#5a3e4a;font:700 14.5px Pretendard,sans-serif}
+#hall2.rest .h2card,#hall2.rest #h2msg{display:none}#hall2.rest .h2restbar{display:block}
+@media (max-height:500px){#h2rest{margin-top:2px;padding:3px 8px;font-size:12.5px}}

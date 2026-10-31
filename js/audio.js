@@ -23,7 +23,7 @@ export const Aud = {
     const s = JSON.parse(localStorage.getItem('maeul_audio') || '{}'); this.vol = s.vol ?? .7; this.want = s.on ?? true; // user pref; still silent until a gesture
     const go = () => { this.unlock(); };
     for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, go, { once: false, passive: true });
-    document.addEventListener('visibilitychange', () => { if (document.hidden) { this.el && this.el.pause(); this.ctx && this.ctx.suspend(); } else { this.ctx && !this.muted && this.ctx.resume(); if (this.el && this.track && this.P().bgm) this.el.play().catch(() => { this.pending = true; }); } });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { this.el && this.el.pause(); this.ctx && this.ctx.suspend(); } else if (window.__h2Rest) { this.ctx && !this.muted && this.ctx.resume(); } else { this.ctx && !this.muted && this.ctx.resume(); if (this.el && this.track && this.P().bgm) this.el.play().catch(() => { this.pending = true; }); } });
   },
   unlock() {
     if (this.ctx && this.ctx.state !== 'running' && !document.hidden) this.ctx.resume?.(); // iOS: resume on every gesture until running

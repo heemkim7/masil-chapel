@@ -59,8 +59,8 @@ function phaseAt(now = Date.now()) { const s = ((now - EPOCH) / 1000) % CYC; let
 
 // ---------------- pilgrims (NPC fillers for empty seats)
 const PN = ['하늘', '소망', '은별', '다온', '새봄', '나래', '이슬', '한결', '여름', '가람', '보람', '단비', '해솔', '라온', '미리', '온유', '사랑', '주안', '예찬', '시온', '빛나', '겨레', '노을', '마루'];
-function pilgrimAv(r) { const A = window.AV, g = r() < .52 ? 'f' : 'm', o = A.OUTFITS[g][Math.floor(r() * A.OUTFITS[g].length)][0];
-  return [g, Math.floor(r() * 3.6), Math.floor(r() * 4), Math.floor(r() * A.HAIRS[g].length), Math.floor(r() * A.HAIRC.length), o, '-', '-', '-', '-'].join('.'); }
+function pilgrimAv(r) { const A = window.AV, g = r() < .52 ? 'f' : 'm', o = 'formal'; // unified congregation: everyone in the same church outfit, modest natural hair colours
+  return [g, 1 + Math.floor(r() * 2.4), Math.floor(r() * 3), Math.floor(r() * Math.min(3, A.HAIRS[g].length)), [1, 2, 1, 2, 1][Math.floor(r() * 5)], o, '-', '-', '-', '-'].join('.'); }
 
 // ---------------- seat layout: fanned elliptical pews around the pulpit with a centre aisle
 const AIS = [Math.PI / 2 + .62, Math.PI / 2, Math.PI / 2 - .62], AW = [30, 36, 30]; // side, centre, side aisles (angle, half-width px)

@@ -31,7 +31,7 @@ export class Interior {
     if (!this.on1) { ctx.drawImage(IMG['in_' + this.floor], 0, 0, this.W, this.H); this.drawMarks(ctx); return; }
     ctx.drawImage(IMG['in_bg' + this.tier] || IMG.in_bg, 0, 0, this.W, this.H); this.drawMarks(ctx);
     const D = this.I.door; ctx.font = '700 20px Pretendard,sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(74,43,120,.75)'; ctx.fillStyle = '#fff';
-    ctx.textAlign = 'right'; ctx.strokeText('나가기', D.x - 34, D.y + 6); ctx.fillText('나가기', D.x - 34, D.y + 6); ctx.textAlign = 'center';
+    ctx.textAlign = 'center'; ctx.strokeText('나가기', D.x, D.y - 205); ctx.fillText('나가기', D.x, D.y - 205); ctx.textAlign = 'center';
   }
   drawMarks(ctx) { const t = performance.now() / 1000; ctx.textAlign = 'center';
     for (const st of this.stairs()) { const down = this.on1 && st.to === 'B1', b = Math.sin(t * 3) * 4, k = this.cs();

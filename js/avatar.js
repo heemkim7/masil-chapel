@@ -15,7 +15,7 @@ export const OUTFITS = {
   m: [['basic', '기본 후드', 'basic', null], ['mint', '민트 티셔츠', 'mint', null], ['sky', '하늘 티셔츠', 'mint', [140, 190, 250]], ['lav', '라벤더 티셔츠', 'mint', [190, 160, 235]], ['peach', '피치 티셔츠', 'mint', [250, 180, 150]], ['navy', '네이비 후드', 'basic', [110, 130, 190]], ['choir', '성가대 가운', 'choir', null],
     ['hanbok', '한복 저고리', 'hanbok', null], ['formal', '예배 정장', 'formal', null], ['winter', '성탄 후드', 'winter', null], ['summer', '여름 마린룩', 'summer', null], ['spring', '봄 새싹 후드', 'spring', null], ['autumn', '가을 체크', 'autumn', null]] };
 // outfits unlocked by gacha (cos id 'o_<id>'); everything else in SHIP is a free starter
-export const LOCKED_OUTFITS = ['hanbok', 'formal', 'winter', 'summer', 'spring', 'autumn'];
+export const LOCKED_OUTFITS = ['hanbok', 'winter', 'summer', 'spring', 'autumn'];
 // hair pieces (h00..h11) — layer 'over' (on top of head) or 'back' (behind body when facing front)
 const HP = { h00: { w: .5, y: -.08, at: 'top', l: 'over' }, h01: { w: 1.55, y: -.02, at: 'top', l: 'over', cap: 1 }, h02: { w: 1.3, y: -.04, at: 'top', l: 'over', cap: 1 }, h03: { w: 1.08, y: .3, at: 'top', l: 'back' },
   h04: { w: .22, y: .55, at: 'top', l: 'over', dx: .42 }, h05: { w: 1.35, y: -.08, at: 'top', l: 'over', cap: 1 }, h06: { w: 1.18, y: -.1, at: 'top', l: 'over' }, h07: { w: .2, y: -.14, at: 'top', l: 'over', dx: .05 },
@@ -39,7 +39,8 @@ export const COS = {
   c40: D('물뿌리개', 'held', '일반'), c41: D('촛불', 'held', '희귀'), c42: D('십자가 목걸이', 'face', '영웅', { w: .3, dy: .5 }), c43: D('별 요술봉', 'held', '영웅'),
   c44: D('커피 한 잔', 'held', '일반'), c45: D('바게트', 'held', '일반'), c46: D('종이비행기', 'held', '일반'), c47: D('음표 팻말', 'held', '희귀') };
 const SLOTS = ['hat', 'face', 'back', 'held'];
-export const DEFAULT = 'f.1.0.0.0.basic.-.-.-.-';
+export const DEFAULT = 'f.1.0.0.2.formal.-.-.-.-'; // unified church outfit (예배 정장) for everyone at first
+export const DEFAULT_M = 'm.1.0.0.1.formal.-.-.-.-';
 export function parse(code) { const p = String(code || DEFAULT).split('.'); const d = DEFAULT.split('.');
   const g = p[0] === 'm' ? 'm' : 'f', n = (i, max) => Math.max(0, Math.min(max, +p[i] || 0));
   const o = OUTFITS[g].find(x => x[0] === p[5]) ? p[5] : 'basic';
@@ -298,5 +299,5 @@ export function preload(a) { preloadLayers(a); SLOTS.forEach(s => a[s] && a[s] !
 export function rollCos(atBox, owned) { const pool = Object.entries(COS).filter(([id]) => !owned.includes(id)); if (!pool.length) return null;
   const w = { 일반: 10, 희귀: atBox ? 6 : 3.5, 영웅: atBox ? 2.2 : 1, 전설: atBox ? .8 : .3 }; let r = Math.random() * pool.reduce((s, [, c]) => s + w[c.rar], 0);
   for (const [id, c] of pool) if ((r -= w[c.rar]) < 0) return { id, kind: 'cos', name: c.name, rar: c.rar, img: `cos/${id}.png` }; return null; }
-export const AV = { ver: 0, _cc: () => { cache.clear(); AV.ver++; }, GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor, still, walkStill, WALK_N, layeredReady, layeredSettled, SHIP, LOCKED_OUTFITS, shipHair, shipOutfit, LAYER_PIVOT, layered: true };
+export const AV = { ver: 0, _cc: () => { cache.clear(); AV.ver++; }, GENDER, AGE, SKIN, HAIRC, OUTFITS, HAIRS, COS, SLOTS, DEFAULT, DEFAULT_M, parse, encode, frame, apply, init, preload, rollCos, rig, lastAnchor, still, walkStill, WALK_N, layeredReady, layeredSettled, SHIP, LOCKED_OUTFITS, shipHair, shipOutfit, LAYER_PIVOT, layered: true };
 window.AV = AV;

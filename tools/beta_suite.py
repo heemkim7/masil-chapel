@@ -33,7 +33,7 @@ with sync_playwright() as p:
     if want('size'):
         for w, h in SIZES:
             t = f'size.{w}x{h}'; pg, errs, c = boot(b, w, h)
-            rec(t + '.title', pg.evaluate(VIS, '#newgame') == 'ok', pg.evaluate(VIS, '#newgame'))
+            rec(t + '.instantGuest', pg.evaluate("getComputedStyle(document.querySelector('#title')).display") == 'none' and pg.evaluate("G.S.name").startswith('손님 ') and (pg.evaluate(VIS, '#gchip') == 'ok' or pg.evaluate("!!window.__resumed")), pg.evaluate(VIS, '#gchip'))
             start(pg); pg.screenshot(path=f'shots/beta/{w}x{h}_hud.png')
             mob = pg.evaluate(VIS, '#btn-menu') == 'ok' and pg.evaluate(VIS, '#btn-inv') != 'ok'
             for sel in (['#btn-set', '#btn-menu', '#btn-gacha', '#dongbtn', '#btn-act'] if mob else ['#btn-set', '#btn-wh', '#btn-gacha', '#btn-inv', '#dongbtn', '#btn-act']):
@@ -50,7 +50,7 @@ with sync_playwright() as p:
     # ---- first-time / returning
     if want('flow'):
         pg, errs, c = boot(b, 390, 844)
-        rec('flow.first.title', pg.evaluate(VIS, '#newgame') == 'ok')
+        rec('flow.first.instantGuest', pg.evaluate("G.scene") in ('field', 'inside') and 'formal' in pg.evaluate("G.S.av"), pg.evaluate("G.S.av"))
         start(pg, '처음이'); rec('flow.first.scene', pg.evaluate("G.scene") in ('field', 'inside'), pg.evaluate("G.scene"))
         rec('flow.first.name', pg.evaluate("G.S.name") == '처음이')
         coins0 = pg.evaluate("G.S.coins"); rec('flow.first.coins', isinstance(coins0, (int, float)) and coins0 >= 0, str(coins0))
@@ -129,7 +129,7 @@ with sync_playwright() as p:
         P[0][0].wait_for_timeout(9000)
         seen = [pg.evaluate("WH.peers.size") for pg, _, _ in P]; rec('multi.presence', min(seen) >= N - 1, str(seen))
         seats = [pg.evaluate("WH.me.seat") for pg, _, _ in P]; rec('multi.uniqueSeats', len(set(seats)) == N, str(seats))
-        P[1][0].evaluate("WH.leave()"); P[0][0].wait_for_timeout(6000); rec('multi.leaveSeen', P[0][0].evaluate("WH.peers.size") <= N - 2, str(P[0][0].evaluate("WH.peers.size")))
+        pre = P[0][0].evaluate("WH.peers.size"); P[1][0].evaluate("WH.leave()"); P[0][0].wait_for_timeout(6000); post = P[0][0].evaluate("WH.peers.size"); rec('multi.leaveSeen', post <= pre - 1, f'{pre}->{post}')  # relative: other live clients may share the room
         rec('multi.noerr', all(not e for _, e, _ in P), str([e[:1] for _, e, _ in P]))
         for _, _, c in P: c.close()
     # ---- chapel prominence (regression: chapel must stay the dominant landmark at the default spawn camera)
