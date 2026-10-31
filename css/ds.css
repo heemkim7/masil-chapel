@@ -56,4 +56,8 @@ button.mini{padding:4px 10px;font-size:12px;border-radius:999px;min-height:28px}
 #p2acct .oauth.g{background:#fff;color:#3c4043;border:1.5px solid #dadce0}
 #p2acct .acct-ok{margin:0;font-size:15px}
 /* PC: keep the talk/jump buttons clear of the right-hand menu column */
-@media (pointer:fine) and (min-width:701px){#btn-act{right:calc(var(--sr, 0px) + 92px)}#btn-jump{right:calc(var(--sr, 0px) + 108px);bottom:calc(var(--sb, 0px) + 136px)}}
+/* h29 PC: the right column shows the 7 main buttons; ☰ 메뉴 opens the rest as a tidy panel, so 대화/점프 sit flush in the bottom-right corner (no dead strip beside them) */
+@media (pointer:fine) and (min-width:701px){#side>button:nth-child(n+8){display:none}
+ body.menuopen #side{display:grid;grid-template-columns:repeat(4,64px);gap:10px;background:rgba(255,255,255,.96);padding:12px;border-radius:20px;box-shadow:0 10px 30px rgba(80,50,120,.28);z-index:70;max-height:none;overflow:visible}
+ body.menuopen #side>button{display:flex!important;width:64px;height:64px}body.menuopen #minimap{visibility:hidden}
+ #btn-act{right:calc(var(--sr, 0px) + 16px)!important}#btn-jump{right:calc(var(--sr, 0px) + 34px)!important;bottom:calc(var(--sb, 0px) + 122px)!important}}
