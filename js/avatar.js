@@ -283,7 +283,12 @@ export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d 
     g.drawImage(im, cx - w / 2, cy, w, h); };
   { const id = a.hat, C = id && id !== '-' && COS[id], im = C && img(`assets/cos/${id}.png`); if (im && (C.w || 1) >= .9) { // big hats: tuck the crown hair UNDER the hat (bun/ponytail top no longer pokes out above it); hanging tails stay
       const w = hw * (C.w || 1) * .95, h = w * im.height / im.width, cx = hcx + (C.dx || 0) * hw * (back ? -1 : 1), cy = top + hh * ((C.sink || 0) * .9 + .04) - h / 2, yc = Math.min(cy + h * .55, top + hh * .03);
-      const hp2 = hd.data; for (let y = 0; y < Math.min(H, yc); y++) for (let x = Math.max(0, Math.round(cx - w * .62)); x < Math.min(W, cx + w * .62); x++) hp2[(y * W + x) * 4 + 3] = 0; hg.putImageData(hd, 0, 0); } }
+      const hp2 = hd.data; for (let y = 0; y < Math.min(H, yc); y++) for (let x = Math.max(0, Math.round(cx - w * .62)); x < Math.min(W, cx + w * .62); x++) hp2[(y * W + x) * 4 + 3] = 0; hg.putImageData(hd, 0, 0); }
+    if (im) { /* hair-under-hat: bald skull showing beside a narrow crown (top hat/cap) gets hair colour, so the head reads as hair tucked under the hat */
+      const w = hw * (C.w || 1) * .95, h = w * im.height / im.width, cy = top + hh * ((C.sink || 0) * .9 + .04) - h / 2, ye = Math.min(cy + h * .85, top + hh * .3), hp3 = hd.data;
+      for (let y = top; y < ye; y++) for (let x = x0; x <= x1; x++) { const i = (y * W + x) * 4; if (bp[i + 3] > 40 && hp3[i + 3] < 200) { const l = .78 + .22 * (y - top) / Math.max(1, ye - top); for (let q = 0; q < 3; q++) bp[i + q] = hcol[q] * l * .92; } }
+      bg.putImageData(bd, 0, 0);
+      if (back) { /* back view: hair 'wings' sticking out beside the hat band above the ears are tucked */ const yb = cy + h * .8; for (let y = 0; y < Math.min(H, yb); y++) for (let x = 0; x < W; x++) if (x < x0 + 1 || x > x1 - 1) hp3[(y * W + x) * 4 + 3] = 0; hg.putImageData(hd, 0, 0); } } }
   cos('back', false); g.drawImage(bc, 0, 0); g.drawImage(oc, 0, 0); g.drawImage(hc2, 0, 0); cos('back', true); cos('face'); cos('hat'); cos('held');
   c.lay = 1; c.top = Math.min(htop, top); c.bodyTop = top; if (lcache.size > 600) lcache.clear(); lcache.set(k, c); return c; }
 // walk fix: the v17 layered path had ONE still per direction, so legs never moved. Build 8 stepping frames per direction from the still:
@@ -319,7 +324,7 @@ export function walkStill(ch, d, f) { const st = still(ch, d); if (!st) return n
   // upper body (rows above the hem) with the existing gentle arm swing / hem sway
   let tl = W, tr = 0; for (let x = 0; x < W; x++) if (A_(x, y0 - 2) > 40) { if (x < tl) tl = x; if (x > tr) tr = x; }
   if (side) { const yT = Math.round(y0 - BH * .1); let l2 = cx, r2 = cx; while (l2 > 0 && A_(l2 - 1, yT) > 40) l2--; while (r2 < W - 1 && A_(r2 + 1, yT) > 40) r2++; // side views: the still's frozen mid-stride thighs flare out below the waist — clip them to the torso column
-    if (r2 > l2) { for (let y = yT; y < H; y++) { const e = (y - yT) * .25; for (let x = 0; x < W; x++) if (x < l2 - e * .08 || x > r2 + e * .08) sp[(y * W + x) * 4 + 3] = 0; } tl = Math.max(tl, l2); tr = Math.min(tr, r2); } }
+    if (r2 > l2) { for (let y = yT; y < H; y++) { const e = (y - yT) * .25; for (let x = 0; x < W; x++) if (x < l2 - e * .08 || x > r2 - e * 1.2) sp[(y * W + x) * 4 + 3] = 0; } tl = Math.max(tl, l2); tr = Math.min(tr, r2); } }
   const ya = bt + BH * .36, swayRows = Math.max(6, BH * .1);
   const cp = (x, y, sx, sy) => { if (x < 0 || x >= W || y < 0 || y >= H || sx < 0 || sx >= W || sy < 0 || sy >= H) return; const i = (sy * W + sx) * 4, a = sp[i + 3]; if (!a) return; const o = (y * W + x) * 4; op[o] = sp[i]; op[o + 1] = sp[i + 1]; op[o + 2] = sp[i + 2]; op[o + 3] = side && sy > y0 - 2 ? a * Math.max(0, (y0 + 1 - sy) / 3) : a; };
   for (let y = 0; y <= y0 + 1; y++) { const hs = sm((y - (hem - swayRows)) / swayRows), sway = (side ? (skirt ? 1.6 : .6) : (skirt ? 2 : 1)) * s * hs;
