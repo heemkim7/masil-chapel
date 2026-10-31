@@ -421,7 +421,7 @@ function bindTab(t, B) { const g = G();
   if (t === 'comm') loadPrayers(); }
 async function loadPrayers() { const box = $('#wh-pr'), g = G(); const d = g.V?.current?.(); if (!box) return;
   try { const r = await g.net.prayers(d.cd); const L2 = r.list.filter(x => x.is_public).slice(0, 6); box.innerHTML = L2.length ? L2.map(p => `<div class="wh-row"><div><b>${esc(window.Safe ? window.Safe.clean(p.name) : p.name)}</b><small>${esc(window.Safe ? window.Safe.clean(p.body) : p.body).slice(0, 60)}</small></div><span class="wh-tag">${p.amen_count || 0}명 기도</span><button data-pw="${p.id}">함께 기도</button></div>`).join('') : '<p class="wh-note">아직 기도제목이 없어요. 첫 기도제목을 올려 보세요.</p>';
-    box.querySelectorAll('[data-pw]').forEach(b => b.onclick = async () => { b.disabled = true; try { const n = await g.net.prayWith(b.dataset.pw); b.previousElementSibling.textContent = `${n}명 기도`; b.textContent = '기도했어요'; } catch { b.textContent = '잠시 후 다시'; } }); }
+    box.querySelectorAll('[data-pw]').forEach(b => b.onclick = async () => { b.disabled = true; try { const n = await g.net.prayWith(b.dataset.pw, parseInt(b.previousElementSibling?.textContent) || 0); b.previousElementSibling.textContent = `${n}명 기도`; b.textContent = '기도했어요'; } catch { b.textContent = '잠시 후 다시'; } }); }
   catch { box.innerHTML = '<p class="wh-note">오프라인이라 기도제목을 불러올 수 없어요.</p>'; } }
 function myCell() { const n = ['사랑셀', '소망셀', '믿음셀', '은혜셀', '평화셀']; return n[hash(G().net?.secret?.() || 'x') % n.length]; }
 function newbieStep() { const v = JSON.parse(localStorage.getItem('wh_att') || '[]').length; return v >= 4 ? '4주 새가족반 수료 · 셀 배정 완료' : `새가족반 ${Math.min(4, v)}/4주 · 출석하면 다음 단계로`; }

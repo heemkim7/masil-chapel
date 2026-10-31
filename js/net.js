@@ -20,14 +20,19 @@ const CELL = 900, KEEP = 2; // cell size (world px); drop a cell only when ≥KE
 // Supabase stays for auth, DB and RPCs. Any failure → solo mode (game keeps working single-player).
 export const DO_MODE = /(^|\.)(masil|masilchapel)\.[a-z0-9-]+\.workers\.dev$/.test(location.hostname) || /[?&]rt=do/.test(location.search); // Worker "masil" (target masil.chapel.workers.dev)
 const DO_TRY = [800, 2000, 4500, 8000];
+// Identity for the DO = verified Supabase JWT (guests use anonymous sign-in). Sent as a WebSocket subprotocol, never in the URL.
+const AUTH_LS = 'sb-gisykxqhticmdhmupnry-auth-token';
+export async function doToken(sb) { try { const c = window.G?.net?.sb || sb; let { data } = await c.auth.getSession(); let s = data?.session;
+    if (!s && c === sb) { try { const j = JSON.parse(localStorage.getItem(AUTH_LS) || 'null'); if (j?.access_token && j.expires_at * 1000 > Date.now() + 60000) return j.access_token; } catch { } }
+    if (!s) { const r = await c.auth.signInAnonymously(); s = r.data?.session; } return s?.access_token || null; } catch { return null; } }
 class DOChan {
   constructor(rt, topic, cfg) { this.rt = rt; this.topic = topic; this.key = cfg?.config?.presence?.key || ('w' + Math.random().toString(36).slice(2, 10)); this.hs = []; this.st = {}; this.state = 'closed'; this.mine = null; this.tries = 0; }
   on(type, f, fn) { this.hs.push([type, f?.event, fn]); return this; }
   fire(type, ev, arg) { for (const [t, e, fn] of this.hs) if (t === type && (e === ev || e === '*')) try { fn(arg); } catch (x) { console.warn('[rt]', x); } }
   presenceState() { const o = {}; for (const k in this.st) o[k] = [this.st[k]]; return o; }
   subscribe(cb) { this.cb = cb || (() => { }); this.open(); return this; }
-  open() { if (this.dead) return; const u = new URL('/rt/ws', location.href); u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('topic', this.topic); u.searchParams.set('k', this.key);
-    let ws; try { ws = this.ws = new WebSocket(u); } catch { return this.closed(null); }
+  async open() { if (this.dead) return; const tok = await doToken(this.rt.sb); if (this.dead) return; if (!tok) return this.closed(null, true); const u = new URL('/rt/ws', location.href); u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('topic', this.topic); 
+    let ws; try { ws = this.ws = new WebSocket(u, ['masil', 'at.' + tok]); } catch { return this.closed(null); }
     ws.onmessage = e => this.msg(e.data); ws.onclose = () => this.closed(ws); ws.onerror = () => { };
     clearInterval(this.pt); this.pt = setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 5000); }
   msg(d) { if (d === 'pong') return; let m; try { m = JSON.parse(d); } catch { return; }
@@ -42,14 +47,14 @@ class DOChan {
   send(o) { if (this.state !== 'joined') return Promise.resolve('error'); this.raw({ t: 'b', e: o.event, p: o.payload }); return Promise.resolve('ok'); }
   track(m) { this.mine = m; if (this.state === 'joined') this.raw({ t: 'tr', m }); return Promise.resolve('ok'); }
   untrack() { this.mine = null; this.raw({ t: 'ut' }); return Promise.resolve('ok'); }
-  closed(ws) { if (ws && ws !== this.ws) return; clearInterval(this.pt); const was = this.state; this.state = 'closed'; this.st = {}; if (this.dead) return;
+  closed(ws, noTok) { if (!noTok && ws && ws !== this.ws) return; clearInterval(this.pt); const was = this.state; this.state = 'closed'; this.st = {}; if (this.dead) return;
     if (was === 'joined') { this.fire('presence', 'sync'); this.cb('CLOSED'); }
     if (this.tries >= DO_TRY.length) { this.dead = true; this.cb('CHANNEL_ERROR'); this.rt.down(this); return; }
     setTimeout(() => this.open(), DO_TRY[this.tries++] * (0.8 + Math.random() * 0.4)); }
   close() { this.dead = true; clearInterval(this.pt); try { this.ws?.close(1000); } catch { } }
 }
 export function rtPatch(sb, net) { if (!DO_MODE || !sb || sb.__do) return sb; const chans = new Set(), base = { POS: Net.POS_MS, FAR: Net.FAR_MS };
-  const rt = { net, ev(ch, g) { if (net && ch.topic === net.topic) { if (g.ok) net.emit('gate', { ok: true, live: g.live, cap: g.cap }); else { net.pos = g.pos; net.emit('gate', g); } } },
+  const rt = { net, sb, ev(ch, g) { if (net && ch.topic === net.topic) { if (g.ok) net.emit('gate', { ok: true, live: g.live, cap: g.cap }); else { net.pos = g.pos; net.emit('gate', g); } } },
     cfg(m) { Net.POS_MS = m.lean ? base.POS * 2 : base.POS; Net.FAR_MS = m.lean ? base.FAR * 2 : base.FAR; },
     down(ch) { if (net && (ch.topic === net.topic || !net.ch)) { net.gateDown = true; net.setStatus('offline'); net.emit('gate', { down: true }); } } };
   sb.channel = (t, c) => { const ch = new DOChan(rt, t, c); chans.add(ch); return ch; };
@@ -64,7 +69,7 @@ export class Net {
   on(ev, fn) { (this.h[ev] ||= []).push(fn); } emit(ev, ...a) { for (const f of this.h[ev] || []) f(...a); }
   async init() {
     try { const m = globalThis.__SUPA_MOD || await Promise.race([import(CDN), new Promise((_, r) => setTimeout(() => r(new Error('cdn timeout')), 8000))]);
-      this.sb = m.createClient(SUPA_URL, SUPA_KEY, { realtime: { params: { eventsPerSecond: 30 } }, auth: { persistSession: true, storageKey: 'maeul_auth', detectSessionInUrl: true, flowType: 'pkce' } }); rtPatch(this.sb, this); if (DO_MODE) { Net.GRID_ON = 1e9; Net.GRID_OFF = 1e9 - 1; } return true;
+      this.sb = m.createClient(SUPA_URL, SUPA_KEY, { realtime: { params: { eventsPerSecond: 30 } }, auth: { persistSession: true, storageKey: 'maeul_auth', detectSessionInUrl: true, flowType: 'pkce' } }); rtPatch(this.sb, this); if (DO_MODE) { Net.GRID_ON = 1e9; Net.GRID_OFF = 1e9 - 1; try { await doToken(this.sb); const { data } = await this.sb.auth.getSession(); if (data?.session?.user?.id) this.id = data.session.user.id; } catch { } } return true;
     } catch (e) { console.warn('[net] offline:', e.message); this.setStatus('offline'); return false; }
   }
   setStatus(s) { this.status = s; this.emit('status', s, this.peers.size); }
@@ -131,7 +136,11 @@ export class Net {
     this.me = me; if (!this.ch || this.status !== 'online') return; const now = performance.now();
     const st = this.state(), L = this.lastSt, moved = !L || st.x !== L.x || st.y !== L.y || st.face !== L.face || st.anim !== L.anim || st.fl !== L.fl;
     this.gridOn = this.peers.size >= Net.GRID_ON || (this.gridOn && this.peers.size > Net.GRID_OFF); if (this.gridOn) this.updateCells(st); else if (this.cells?.size) { for (const c of this.cells.values()) { try { this.sb.removeChannel(c.ch); } catch { } } this.cells.clear(); this._cc = null; };
-    if (moved && now - this.lastSend > (this.nearPeer(st) ? Net.POS_MS : Net.FAR_MS)) { this.lastSend = now; this.lastSt = st; this.sent = (this.sent || 0) + 1;
+    let due; if (DO_MODE) { // send on direction/target/anim/floor change (+3s keepalive while moving, +final stop); receivers interpolate
+      const dx = L ? Math.sign(st.x - L.x) : 0, dy = L ? Math.sign(st.y - L.y) : 0, dir = dx + ',' + dy + ',' + st.face + ',' + st.anim + ',' + st.fl;
+      due = moved && ((dir !== this.lastDir && now - this.lastSend > 120) || now - this.lastSend > 3000); if (due) this.lastDir = dir; }
+    else due = moved && now - this.lastSend > (this.nearPeer(st) ? Net.POS_MS : Net.FAR_MS);
+    if (due) { this.lastSend = now; this.lastSt = st; this.sent = (this.sent || 0) + 1;
       const own = this.cells.get(this.cellKey(st)); (own?.ok ? own.ch : this.ch).send({ type: 'broadcast', event: 'pos', payload: st }); }
     const K = JSON.stringify([st.outfit, st.av, st.equip, st.fl, st.name]);
     if (K !== this.lastPresK && now - this.lastPres > 2500) { this.lastPres = now; this.lastPresK = K; this.ch.track(st); }
@@ -168,6 +177,6 @@ export class Net {
     if (pub.error) throw pub.error; const ids = new Set((mine.data || []).map(r => r.id));
     return { list: pub.data.map(r => ({ ...r, mine: ids.has(r.id) })), mine: (mine.data || []).filter(r => r.room === dong && !r.is_public).map(r => ({ ...r, mine: true })) }; }
   async postPrayer(dong, name, body, pub) { body = window.Safe ? window.Safe.clean(body) : body; const r = await this.sb.rpc('post_prayer', { p_room: dong, p_name: name, p_body: body, p_public: pub, p_secret: this.secret() }); if (r.error) throw r.error; if (pub) this.send('prayer', { op: 'new' }); return r.data; }
-  async prayWith(id) { const r = await this.sb.rpc('pray_with', { p_id: id, p_secret: this.secret() }); if (r.error) throw r.error; this.send('prayer', { op: 'amen', pid: id, n: r.data }); return r.data; }
+  async prayWith(id, cur) { if (DO_MODE && this.ch?.raw) { if (!this.ch.raw({ t: 'tap', k: 'pray', r: String(id) })) throw new Error('offline'); return (+cur || 0) + 1; } const r = await this.sb.rpc('pray_with', { p_id: id, p_secret: this.secret() }); if (r.error) throw r.error; this.send('prayer', { op: 'amen', pid: id, n: r.data }); return r.data; }
   async history(room) { if (NS !== 'chapel:') return; try { const { data } = await this.sb.from('chat_messages').select('name,body,created_at').eq('room', room).order('created_at', { ascending: false }).limit(8); if (data && this.room === room) this.emit('history', data.reverse()); } catch { } }
 }
