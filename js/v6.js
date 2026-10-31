@@ -59,12 +59,12 @@ export const V = {
   async setDong(cd, opt = {}) { const S = this.S, d = await this.byCode(cd); if (!d) return false; S.solo = false; A.net.solo = false; A.net.gateDown = false;
     if (opt.visit && S.dong && S.dong.cd !== cd) S.visit = d; else { S.dong = d; S.visit = null; } if (!opt.keepShard) { S.shard = 1; S.shardLock = false; }
     if (S.visit) S.recent = [{ cd: d.cd, name: d.name, sgg: d.sgg }, ...(S.recent || []).filter(r => r.cd !== d.cd)].slice(0, 4);
-    A.persist(); this.hud(); A.toast(S.visit ? `🧳 ${d.sgg} ${d.name}에 놀러 왔어요` : `📍 ${d.sgg} ${d.name} 예배당에 들어왔어요`); A.chatLog('📍', `${d.sido} ${d.sgg} ${d.name} 방`); return true; },
+    A.persist(); this.hud(); A.arrive?.(); A.toast(S.visit ? `🧳 ${d.sgg} ${d.name}에 놀러 왔어요` : `📍 ${d.sgg} ${d.name} 예배당에 들어왔어요`); A.chatLog('📍', `${d.sido} ${d.sgg} ${d.name} 방`); return true; },
   goSolo() { const S = this.S; S.solo = true; S.visit = null; A.net.leave(); A.net.gateLeave?.(); A.net.leaveLobby(); A.persist(); this.hud(); A.toast('🌙 혼자 모드: 다른 사람 없이 조용히 플레이해요'); A.closeModal(); },
   // top-bar place switcher: current place + 광장 / 우리 동네 / recent visits / search; tickRoom() reconnects to the new room on the next frame
   goPlace(k) { const S = this.S; S.solo = false; A.net.solo = false; A.net.gateDown = false; S.shard = 1; S.shardLock = false;
     if (k === 'plaza') S.visit = S.dong ? PLAZA : null; else if (k === 'home') S.visit = null;
-    A.persist(); this.hud(); A.closeModal(); const d = this.current(); A.toast(`${d.cd === '0' ? '🌈' : '📍'} ${d.name}(으)로 이동했어요`); },
+    A.persist(); this.hud(); A.closeModal(); A.arrive?.(); const d = this.current(); A.toast(`${d.cd === '0' ? '🌈' : '📍'} ${d.name}(으)로 이동했어요`); },
   openPlaces() { const S = this.S, d = this.current(), here = d ? d.cd : null, L = [];
     L.push([`🌈 모두의 광장${here === '0' ? ' · 지금 여기' : ''}`, () => here === '0' ? A.closeModal() : this.goPlace('plaza')]);
     if (S.dong) L.push([`🏠 우리 동네 ${S.dong.name}${here === S.dong.cd && !S.visit ? ' · 지금 여기' : ''}`, () => (here === S.dong.cd && !S.visit) ? A.closeModal() : this.goPlace('home')]);
@@ -73,7 +73,7 @@ export const V = {
     if (d) L.push(['🚪 같은 장소 다른 방', () => this.openShards()]);
     L.push([S.solo ? '🌙 혼자 모드 · 지금 여기' : '🌙 혼자 모드', () => S.solo ? A.closeModal() : this.goSolo()], ['닫기', null]);
     A.dialog('📍 장소 이동', `지금: ${this.dongLabel().replace(/^\S+ /, '')}`, L); },
-  goHome() { const S = this.S; if (S.visit) { S.visit = null; A.persist(); this.hud(); A.toast(`🏠 우리 동네 ${S.dong.name}(으)로 돌아왔어요`); } },
+  goHome() { const S = this.S; if (S.visit) { S.visit = null; A.persist(); this.hud(); A.arrive?.(); A.toast(`🏠 우리 동네 ${S.dong.name}(으)로 돌아왔어요`); } },
   tickRoom(scene) { const net = A.net; if (!net.sb) return; if (document.getElementById('title')?.style.display === 'flex') { if (net.lb) net.leaveLobby(); return; } /* no lobby presence on the title screen */ const r = this.room(scene);
     if (!r) { if (net.room) { net.room = null; net.leave(); } return; }
     const h = this.current(); if (!net.lobbyMe || net.lobbyMe.dong !== h.cd || net.lobbyMe.shard !== this.shard()) { net.lobby(h.cd, this.S.name, this.shard()); this.lbWait ||= Date.now(); }

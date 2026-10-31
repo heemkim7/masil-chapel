@@ -48,7 +48,7 @@ window.__errors = [];
   Col.init({ S: () => S, player: () => player, world: () => world, chapel: () => cfg.chapel, room: () => (V.current() ? V.current().cd : 'solo'), net, toast, coinFx, refreshHud, persist });
   Svc.init({ S: () => S, net, scene: () => scene, enterChapel, sitAny: () => { if (!sitting) sitOn(pickPew()); }, startWorship, worshipOn: () => !!worship, endWorship, pastor: () => inNpcs.find(n => n.id === 'pastor'),
     say: sayLine, emote, npcs: () => inNpcs, addXp, toast, refreshHud, coinFx, persist, V, dialog, cfg: () => cfg, tp: (x, y) => { sitting = null; player.x = x; player.y = y; snapCam(); }, player: () => player, remotes, chatLog, refreshLead: () => {} });
-  V.init({ S: () => S, player: () => player, net, toast, chatLog, openModal, closeModal, addXp, emote, refreshHud, persist, remotes, coinFx, board, meState, dialog, say: sayLine });
+  V.init({ S: () => S, player: () => player, arrive: () => arriveFront(), net, toast, chatLog, openModal, closeModal, addXp, emote, refreshHud, persist, remotes, coinFx, board, meState, dialog, say: sayLine });
   $('#loading').style.display = 'none';
   const Q = new URLSearchParams(location.search), qr = (Q.get('room') || '').match(/^(\d{10})(?:-(\d{1,3}))?$/);
   const sv = St.hasSave() && St.load();
@@ -166,6 +166,9 @@ function addXp(n) { const before = St.levelInfo(cfg, S.xp).lv; S.xp = Math.max(0
 
 // ---------- scenes ----------
 function enterChapel(silent) { scene = 'inside'; inside.floor = '1F'; try { window.Aud?.music('old100'); } catch { } player.x = cfg.interior.spawn.x; player.y = cfg.interior.spawn.y; player.face = 'N'; sitting = null; snapCam(); if (!silent) toast('🕯 1층 기도실 · ' + FPURP['1F']); persist(); refreshHud(); }
+// h29 #3: after a 동네/place change, land at the chapel's front-center with an arrival cue
+function arriveFront() { try { window.HALL?.leave?.(); } catch { } if (scene === 'inside') exitChapel(); scene = 'field'; sitting = null; player.x = cfg.chapel.door.x; player.y = cfg.chapel.door.y + 120; player.face = 'S'; snapCam(); persist(); refreshHud();
+  setTimeout(() => { try { const F = window.FX; if (F) { F.burst(F.headOf(player), ['✨', '💛', '⭐'], { n: 14, kind: 'float', label: '도착!', ring: 1 }); F.cue('sit'); } emote('wave'); } catch { } }, 120); }
 function exitChapel() { scene = 'field'; try { if (!document.body.classList.contains('worship')) window.Aud?.stopMusic(); } catch { } player.x = cfg.chapel.door.x; player.y = cfg.chapel.door.y + 80; player.face = 'S'; sitting = null; snapCam(); persist(); refreshHud(); }
 function goFloor(to) { const I = cfg.interior, from = inside.floor; inside.floor = to; sitting = null;
   if (to === '1F') { const st = (I.stairs1 || []).find(s => s.to === from) || I.spawn; player.x = st.x - 70; player.y = st.y + 20; if (!inside.walkable(player.x, player.y)) { player.x = I.spawn.x; player.y = I.spawn.y; } }
