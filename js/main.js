@@ -224,12 +224,21 @@ function interact() {
   else if (t.type === 'shop') window.P2 && P2.openShop(t.s); else if (t.type === 'offering') (window.P2 ? P2.openOffer(true) : openGacha()); else if (t.type === 'board') openBoard(); else if (t.type === 'candle') { inside.lit = (inside.lit || 0) + 1; try { localStorage.maeul_candle = Date.now(); } catch { } emote('pray'); toast('🕯 촛불을 켰어요 · 조용히 마음을 모아요'); } else if (t.type === 'pew') sitOn(t.i);
 }
 function facingTo(a, b) { const ang = Math.atan2(b.y - a.y, b.x - a.x); return ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'][((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8]; }
-function sitOn(i) { if (window.P2 && P2.seatTaken(i)) { toast('이미 다른 분이 앉은 자리예요'); return; } const st = inside.seat(i); sitting = { i, back: { x: player.x, y: Math.min(player.y, st.y - 18) + (player.y < st.y ? 0 : 36) } }; player.x = st.x; player.y = st.y; player.face = 'W'; window.P2 && P2.claim(i); window.P2 && P2.sfx('click'); player.vx = player.vy = 0; toast('의자에 앉았어요. 목사님께 말 걸면 예배가 시작돼요 (다시 누르면 일어나기)'); }
+// h29 #4: 3 seat slots per pew (slot key = pew*3+s, synced through P2 seat claims); NPCs hold the middle slot
+const SLOTS = 3;
+function slotPos(i, k) { const st = inside.seat(i), w = inside.td ? (cfg.interior.pewW || 236) : 0; return { x: st.x + (k - 1) * w * .3, y: st.y }; }
+function slotTaken(i, k) { if (k === 1 && inNpcs.some(n => n.sit && n.pewI === i)) return true; if (window.P2 && P2.seatTaken(i * SLOTS + k)) return true;
+  for (const c of remotes.values()) { if (!c.sitting || !sameFl(c)) continue; const p = slotPos(i, k); if (Math.hypot(c.x - p.x, c.y - p.y) < 22) return true; } return false; }
+function freeSlots(i) { let n = 0; for (let k = 0; k < SLOTS; k++) if (!slotTaken(i, k)) n++; return n; }
+function sitOn(i, k) { if (k == null) { let bd = 1e9; for (let q = 0; q < SLOTS; q++) { if (slotTaken(i, q)) continue; const p = slotPos(i, q), d = Math.abs(p.x - player.x) + Math.abs(p.y - player.y) * .3; if (d < bd) { bd = d; k = q; } } }
+  if (k == null) { toast(`이 의자는 꽉 찼어요 (${SLOTS}/${SLOTS}) · 옆 의자를 이용해 주세요`); try { window.P2?.sfx?.('err'); } catch { } return; }
+  const st = slotPos(i, k); sitting = { i, k, back: { x: player.x, y: Math.min(player.y, st.y - 18) + (player.y < st.y ? 0 : 36) } }; player.x = st.x; player.y = st.y; player.face = 'W'; window.P2 && P2.claim(i * SLOTS + k); window.P2 && P2.sfx('click'); player.vx = player.vy = 0;
+  const left = freeSlots(i); toast(`의자에 앉았어요 (${SLOTS - left}/${SLOTS}) · 목사님께 말 걸면 예배가 시작돼요 (다시 누르면 일어나기)`); }
 function svcOpts(tail) { const o = [['⛪ 예배 드리기 (찬양→기도→말씀→헌금→축도)', () => Svc.start()]];
   if (net.status === 'online') o.push(Svc.isLeader() ? ['🎙 인도 그만하기', () => Svc.release()] : ['🎙 오늘의 인도자 하기', () => Svc.claim()]); return o.concat(tail); }
-function pickPew() { const used = new Set(inNpcs.filter(n => n.sit).map(n => n.pewI)); let best = 0, bd = 1e9; cfg.interior.pews.forEach((p, i) => { const d = Math.hypot(p[0] - player.x, p[1] - player.y) + (used.has(i) || (window.P2 && P2.seatTaken(i)) ? 4000 : 0); if (d < bd) { bd = d; best = i; } }); return best; }
+function pickPew() { const used = new Set(inNpcs.filter(n => n.sit).map(n => n.pewI)); let best = 0, bd = 1e9; cfg.interior.pews.forEach((p, i) => { const d = Math.hypot(p[0] - player.x, p[1] - player.y) + (freeSlots(i) ? 0 : 4000) + (used.has(i) ? 150 : 0); if (d < bd) { bd = d; best = i; } }); return best; }
 function endWorship(abort) { if (!worship) return; if (abort) try { window.Aud?.stopMusic(); } catch { } if (abort) { worship = null; document.body.classList.remove('worship'); $('#worship').style.display = 'none'; } else worship.t = worship.end + 1; }
-function standUp() { if (!sitting) return; window.P2 && P2.release(sitting.i); const st = inside.seat(sitting.i); player.x = st.x - 20; player.y = st.y + 26; if (!inside.walkable(player.x, player.y)) { player.x = sitting.back.x; player.y = sitting.back.y; } sitting = null; }
+function standUp() { if (!sitting) return; window.P2 && P2.release(sitting.i); const st = slotPos(sitting.i, sitting.k ?? 1); player.x = st.x - 20; player.y = st.y + 26; if (!inside.walkable(player.x, player.y)) { player.x = sitting.back.x; player.y = sitting.back.y; } sitting = null; }
 
 // ---------- worship mini-game ----------
 let hymnI = 0; function startWorship(opt = {}) { try { const ids = ['old100', 'newbrit', 'nicaea', 'stanne', 'joy']; window.Aud?.music(ids[hymnI++ % ids.length]); } catch { }
