@@ -62,7 +62,7 @@
     let sb, N;
     try { N = await import('./net.js'); const m = await Promise.race([import('https://esm.sh/@supabase/supabase-js@2.45.4'), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 8000))]);
       // separate, auth-less, read-only client: the title screen runs before the game's own net.init()
-      sb = m.createClient(N.SUPA_URL, N.SUPA_KEY, { auth: { persistSession: false, autoRefreshToken: false, storageKey: 'maeul_title_watch' } });
+      sb = m.createClient(N.SUPA_URL, N.SUPA_KEY, { auth: { persistSession: false, autoRefreshToken: false, storageKey: 'maeul_title_watch' } }); N.rtPatch?.(sb, null);
     } catch (e) { console.warn('[fb5 live]', e); return; } // offline → no badge (never a fake number)
     if (N.NS !== 'chapel:' && !/[?&]qa=1/.test(location.search) && !window.__QA && !navigator.webdriver) return;
     ch = sb.channel(N.NS + 'lobby', { config: { presence: { key: 'title-watch-' + Math.random().toString(36).slice(2, 8), enabled: true } } }); // never track() → watcher is not counted

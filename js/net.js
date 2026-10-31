@@ -14,6 +14,48 @@ const CDN = 'https://esm.sh/@supabase/supabase-js@2.45.4';
 // so it only receives nearby users. Rate: 2Hz if someone is within NEAR, else 1Hz (edge/far); idle or seated → nothing.
 const CELL = 900, KEEP = 2; // cell size (world px); drop a cell only when ≥KEEP cells away (hysteresis, no flapping)
 
+
+// v15 Cloudflare transport: on *.workers.dev (or ?rt=do) realtime goes to SQLite Durable Objects over one WebSocket per channel.
+// The shim mimics the small part of supabase-js RealtimeChannel this game uses, so the rest of the file is unchanged.
+// Supabase stays for auth, DB and RPCs. Any failure → solo mode (game keeps working single-player).
+export const DO_MODE = /\.workers\.dev$/.test(location.hostname) || /[?&]rt=do/.test(location.search);
+const DO_TRY = [800, 2000, 4500, 8000];
+class DOChan {
+  constructor(rt, topic, cfg) { this.rt = rt; this.topic = topic; this.key = cfg?.config?.presence?.key || ('w' + Math.random().toString(36).slice(2, 10)); this.hs = []; this.st = {}; this.state = 'closed'; this.mine = null; this.tries = 0; }
+  on(type, f, fn) { this.hs.push([type, f?.event, fn]); return this; }
+  fire(type, ev, arg) { for (const [t, e, fn] of this.hs) if (t === type && (e === ev || e === '*')) try { fn(arg); } catch (x) { console.warn('[rt]', x); } }
+  presenceState() { const o = {}; for (const k in this.st) o[k] = [this.st[k]]; return o; }
+  subscribe(cb) { this.cb = cb || (() => { }); this.open(); return this; }
+  open() { if (this.dead) return; const u = new URL('/rt/ws', location.href); u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('topic', this.topic); u.searchParams.set('k', this.key);
+    let ws; try { ws = this.ws = new WebSocket(u); } catch { return this.closed(null); }
+    ws.onmessage = e => this.msg(e.data); ws.onclose = () => this.closed(ws); ws.onerror = () => { };
+    clearInterval(this.pt); this.pt = setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 5000); }
+  msg(d) { if (d === 'pong') return; let m; try { m = JSON.parse(d); } catch { return; }
+    if (m.t === 'ok') { this.st = m.s || {}; this.state = 'joined'; this.tries = 0; this.rt.ev(this, { ok: true, live: m.live, cap: m.cap }); this.rt.cfg(m); this.cb('SUBSCRIBED'); if (this.mine) this.raw({ t: 'tr', m: this.mine }); this.fire('presence', 'sync'); }
+    else if (m.t === 'wait') { this.state = 'waiting'; this.rt.ev(this, { pos: m.pos, live: m.live, cap: m.cap }); }
+    else if (m.t === 'pj') { this.st[m.k] = m.m; this.fire('presence', 'sync'); }
+    else if (m.t === 'pl') { delete this.st[m.k]; this.fire('presence', 'sync'); }
+    else if (m.t === 'b') this.fire('broadcast', m.e, { type: 'broadcast', event: m.e, payload: m.p });
+    else if (m.t === 'cfg') this.rt.cfg(m);
+    else if (m.t === 'down') { this.dead = true; this.rt.down(this); } }
+  raw(o) { if (this.ws?.readyState === 1) { this.ws.send(JSON.stringify(o)); return true; } return false; }
+  send(o) { if (this.state !== 'joined') return Promise.resolve('error'); this.raw({ t: 'b', e: o.event, p: o.payload }); return Promise.resolve('ok'); }
+  track(m) { this.mine = m; if (this.state === 'joined') this.raw({ t: 'tr', m }); return Promise.resolve('ok'); }
+  untrack() { this.mine = null; this.raw({ t: 'ut' }); return Promise.resolve('ok'); }
+  closed(ws) { if (ws && ws !== this.ws) return; clearInterval(this.pt); const was = this.state; this.state = 'closed'; this.st = {}; if (this.dead) return;
+    if (was === 'joined') { this.fire('presence', 'sync'); this.cb('CLOSED'); }
+    if (this.tries >= DO_TRY.length) { this.dead = true; this.cb('CHANNEL_ERROR'); this.rt.down(this); return; }
+    setTimeout(() => this.open(), DO_TRY[this.tries++] * (0.8 + Math.random() * 0.4)); }
+  close() { this.dead = true; clearInterval(this.pt); try { this.ws?.close(1000); } catch { } }
+}
+export function rtPatch(sb, net) { if (!DO_MODE || !sb || sb.__do) return sb; const chans = new Set(), base = { POS: Net.POS_MS, FAR: Net.FAR_MS };
+  const rt = { net, ev(ch, g) { if (net && ch.topic === net.topic) { if (g.ok) net.emit('gate', { ok: true, live: g.live, cap: g.cap }); else { net.pos = g.pos; net.emit('gate', g); } } },
+    cfg(m) { Net.POS_MS = m.lean ? base.POS * 2 : base.POS; Net.FAR_MS = m.lean ? base.FAR * 2 : base.FAR; },
+    down(ch) { if (net && (ch.topic === net.topic || !net.ch)) { net.gateDown = true; net.setStatus('offline'); net.emit('gate', { down: true }); } } };
+  sb.channel = (t, c) => { const ch = new DOChan(rt, t, c); chans.add(ch); return ch; };
+  sb.removeChannel = async ch => { ch?.close?.(); chans.delete(ch); return 'ok'; };
+  sb.getChannels = () => [...chans]; sb.__do = true; return sb; }
+
 export class Net {
   static GRID_ON = 30; static GRID_OFF = 20; /* grid cells only pay off in a crowd; below that one room channel = fewer joins */ static POS_MS = 1000; static FAR_MS = 2000; static NEAR = 1400; // 2Hz with a peer near, 1Hz otherwise (edge/far); 0 when idle/seated
   constructor() { this.sb = null; this.ch = null; this.room = null; this.id = Net.cid(); this.peers = new Map(); this.status = 'offline'; this.h = {}; this.me = null; this.lastSend = 0; this.lastPres = 0; }
@@ -22,7 +64,7 @@ export class Net {
   on(ev, fn) { (this.h[ev] ||= []).push(fn); } emit(ev, ...a) { for (const f of this.h[ev] || []) f(...a); }
   async init() {
     try { const m = globalThis.__SUPA_MOD || await Promise.race([import(CDN), new Promise((_, r) => setTimeout(() => r(new Error('cdn timeout')), 8000))]);
-      this.sb = m.createClient(SUPA_URL, SUPA_KEY, { realtime: { params: { eventsPerSecond: 30 } }, auth: { persistSession: true, storageKey: 'maeul_auth', detectSessionInUrl: true, flowType: 'pkce' } }); return true;
+      this.sb = m.createClient(SUPA_URL, SUPA_KEY, { realtime: { params: { eventsPerSecond: 30 } }, auth: { persistSession: true, storageKey: 'maeul_auth', detectSessionInUrl: true, flowType: 'pkce' } }); rtPatch(this.sb, this); if (DO_MODE) { Net.GRID_ON = 1e9; Net.GRID_OFF = 1e9 - 1; } return true;
     } catch (e) { console.warn('[net] offline:', e.message); this.setStatus('offline'); return false; }
   }
   setStatus(s) { this.status = s; this.emit('status', s, this.peers.size); }
@@ -32,19 +74,19 @@ export class Net {
   static gid() { try { let c = sessionStorage.getItem('maeul_gid'); if (!c) { c = (crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 36); sessionStorage.setItem('maeul_gid', c); } return c; } catch { return Math.random().toString(36).slice(2, 12); } }
   // One entry per tab session (sessionStorage id, not the shared localStorage cid) → idempotent server upsert; responses are sequence-checked so a late reply can't overwrite a newer state.
   async gateBeat() { this.gidv ||= Net.gid(); const seq = this._gseq = (this._gseq || 0) + 1;
-    for (let k = 0; ; k++) { try { const { data, error } = await this.sb.rpc('gate_beat', { p_cid: this.gidv, p_qa: NS !== 'chapel:' }); if (error) throw error; if (seq !== this._gseq) return { stale: true }; return data; }
+    for (let k = 0; ; k++) { try { const { data, error } = DO_MODE ? { data: await fetch('/rt/gate', { cache: 'no-store' }).then(r => r.json()) } : await this.sb.rpc('gate_beat', { p_cid: this.gidv, p_qa: NS !== 'chapel:' }); if (error) throw error; if (seq !== this._gseq) return { stale: true }; return data; }
       catch (e) { if (k >= Net.GATE_TRY.length) throw e; await new Promise(r => setTimeout(r, Net.GATE_TRY[k] * (0.8 + Math.random() * 0.4))); } } }
   gateEnter() { if (this._gate) return this._gate; this.emit('gate', { checking: true });
     const tok = this._gtok = (this._gtok || 0) + 1;
     return this._gate = (async () => { for (;;) { if (this.solo || tok !== this._gtok) return false; let r; try { r = await this.gateBeat(); } catch (e) { this.gateDown = true; this._gate = null; this.emit('gate', { down: true }); return false; }
         if (r.stale) continue;
         if (r.full) { this.gateDown = true; this._gate = null; this.emit('gate', { down: true, full: true }); return false; }
-        if (r.ok) { this.admitted = true; if (this.lobbyMe) this.lobby(this.lobbyMe.dong, this.lobbyMe.name, this.lobbyMe.shard); this.emit('gate', { ok: true, live: r.live, cap: r.cap }); clearInterval(this._hb); this._hb = setInterval(() => this.gateHeart(), Net.GATE_BEAT); return true; }
+        if (r.ok) { this.admitted = true; if (this.lobbyMe) this.lobby(this.lobbyMe.dong, this.lobbyMe.name, this.lobbyMe.shard); this.emit('gate', { ok: true, live: r.live, cap: r.cap }); clearInterval(this._hb); if (!DO_MODE) this._hb = setInterval(() => this.gateHeart(), Net.GATE_BEAT); return true; }
         this.pos = r.pos; this.emit('gate', { pos: r.pos, live: r.live, cap: r.cap, guard: r.guard }); await new Promise(res => setTimeout(res, Net.GATE_POLL)); } })(); }
   // Heartbeat while admitted. If the server no longer holds our slot (expired after sleep/network loss) we drop Realtime and re-queue instead of silently over-filling.
   async gateHeart() { let r; try { r = await this.gateBeat(); } catch { return; } if (r.stale || r.ok || !this.admitted) return;
     clearInterval(this._hb); this.admitted = false; this._gate = null; const want = this.room || this._want; this.leave?.(true); this._want = want; this.gateEnter().then(ok => { if (ok && this._want) this.join(this._want, this.me); }); }
-  gateLeave() { clearInterval(this._hb); this.admitted = false; this._gate = null; this._gtok = (this._gtok || 0) + 1; this._gseq = (this._gseq || 0) + 1; const id = this.gidv; if (!id) return;
+  gateLeave() { clearInterval(this._hb); this.admitted = false; this._gate = null; this._gtok = (this._gtok || 0) + 1; this._gseq = (this._gseq || 0) + 1; const id = this.gidv; if (!id || DO_MODE) return;
     try { const body = JSON.stringify({ p_cid: id }), u = SUPA_URL + '/rest/v1/rpc/gate_leave'; // keepalive so a tab close still frees the slot at once
       fetch(u, { method: 'POST', keepalive: true, headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' }, body }).catch(() => { }); } catch { } }
   goSolo() { this.solo = true; this.emit('gate', { solo: true }); }
