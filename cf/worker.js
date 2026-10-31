@@ -1,4 +1,4 @@
-// Worker name: masilchapel (https://masilchapel.heemkim7.workers.dev)
+// Worker name: masil (https://masil.heemkim7.workers.dev; target masil.chapel.workers.dev)
 // 마실채플 realtime on Cloudflare Workers Free: static assets + SQLite Durable Objects (WebSocket Hibernation).
 // Room DO (one per channel topic): presence, broadcast relay (pos filtered by floor = zone sync), FIFO queue, CAP per channel.
 // Meter DO: daily (UTC) estimate of billed DO requests -> lean mode at 80%, solo (down) at 95% of the Free 100k/day.
