@@ -21,7 +21,7 @@ async function google() { const c = sb(); const { data } = await c.auth.getSessi
   const r = data?.session?.user?.is_anonymous ? await c.auth.linkIdentity(opt) : await c.auth.signInWithOAuth(opt); if (r.error) G().toast('Google 연결 실패: ' + r.error.message); }
 export async function open() { const P = await providers(), u = await user(), body = $('#p2acct .body');
   body.innerHTML = u ? `<p class="acct-ok">🔗 연동됨 · <b>${esc(u.email || u.user_metadata?.full_name || '계정')}</b></p><p class="mnote">이 계정으로 어느 기기에서 로그인해도 지금 예배당·캐릭터·지갑으로 돌아와요.</p><div class="row"><button id="acbak" class="big alt">지금 백업</button><button id="acout" class="big alt">이 기기에서 로그아웃</button></div>`
-    : `<p class="mnote">지금은 손님으로 플레이 중이에요. 계정을 연동하면 기기를 바꾸거나 로그아웃해도 그대로 이어할 수 있어요.</p>
+    : `<p class="mnote">지금은 성도로 플레이 중이에요. 계정을 연동하면 기기를 바꾸거나 로그아웃해도 그대로 이어할 수 있어요.</p>
       ${P.google ? '<button id="acg" class="big oauth g">Google로 연동 / 로그인</button>' : ''}${P.kakao && window.MAEUL_KAKAO ? '<button id="ack" class="big oauth k">카카오로 연동</button>' : ''}
       <label class="aclab">이메일<input id="acmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" maxlength="120"></label><button id="acsend" class="big">인증 메일 받기</button>
       <div id="acotp" hidden><label class="aclab">메일로 받은 6자리 코드<input id="accode" inputmode="numeric" maxlength="10" placeholder="123456"></label><button id="acver" class="big">확인</button><small class="mnote">메일의 링크를 눌러도 돼요</small></div><p id="acmsg" class="mnote" aria-live="polite"></p>`;

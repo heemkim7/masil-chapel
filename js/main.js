@@ -48,7 +48,7 @@ window.__errors = [];
   Col.init({ S: () => S, player: () => player, world: () => world, chapel: () => cfg.chapel, room: () => (V.current() ? V.current().cd : 'solo'), net, toast, coinFx, refreshHud, persist });
   Svc.init({ S: () => S, net, scene: () => scene, enterChapel, sitAny: () => { if (!sitting) sitOn(pickPew()); }, startWorship, worshipOn: () => !!worship, endWorship, pastor: () => inNpcs.find(n => n.id === 'pastor'),
     say: sayLine, emote, npcs: () => inNpcs, addXp, toast, refreshHud, coinFx, persist, V, dialog, cfg: () => cfg, tp: (x, y) => { sitting = null; player.x = x; player.y = y; snapCam(); }, player: () => player, remotes, chatLog, refreshLead: () => {} });
-  V.init({ S: () => S, player: () => player, net, toast, chatLog, openModal, closeModal, addXp, emote, refreshHud, persist, remotes, coinFx, board, meState, dialog, say: sayLine });
+  V.init({ S: () => S, player: () => player, arrive: () => arriveFront(), net, toast, chatLog, openModal, closeModal, addXp, emote, refreshHud, persist, remotes, coinFx, board, meState, dialog, say: sayLine });
   $('#loading').style.display = 'none';
   const Q = new URLSearchParams(location.search), qr = (Q.get('room') || '').match(/^(\d{10})(?:-(\d{1,3}))?$/);
   const sv = St.hasSave() && St.load();
@@ -74,7 +74,7 @@ $('#pname').value = cuteNick();
 $('#newgame').onclick = () => { const n = $('#pname').value.trim() || '새싹'; St.wipe(); const sv = St.newSave(n, 'basic'); sv.av = selAv; startGame(sv); };
 $('#continue').onclick = () => { const s = St.load(); if (s) startGame(s); };
 
-function guestSave() { const sv = St.newSave('손님 ' + (1000 + Math.floor(Math.random() * 9000)), 'basic'); sv.av = AV.DEFAULT; return sv; }
+function guestSave() { const sv = St.newSave('성도 ' + (1000 + Math.floor(Math.random() * 9000)), 'basic'); sv.av = AV.DEFAULT; return sv; }
 const HAIR3 = { f: [[0, '단발'], [4, '긴 머리'], [3, '포니테일']], m: [[0, '숏컷'], [4, '앞머리'], [3, '곱슬']] };
 function genderChip() { // first screen: clear 여/남 choice + 3 hairstyles, same church outfit per gender, then 입장
   const d = document.createElement('div'); d.id = 'gpick'; let g = 'f', hs = 0;
@@ -88,7 +88,7 @@ function genderChip() { // first screen: clear 여/남 choice + 3 hairstyles, sa
 function cuteNick() { const A = ['포근한', '작은', '반짝이는', '말랑한', '다정한', '졸린', '용감한', '수줍은', '향긋한', '보송한'], B = ['양', '별', '구름', '토끼', '참새', '민들레', '곰돌이', '새싹', '달님', '솜사탕'];
   return A[Math.random() * A.length | 0] + ' ' + B[Math.random() * B.length | 0]; }
 function startGame(save) { touchSess();
-  S = save; S.decorInv ||= {}; if (!S.started) { Object.assign(S.decorInv, cfg.startDecor); S.started = 1; }
+  S = save; if (/^손님 \d+$/.test(S.name || '')) S.name = S.name.replace('손님', '성도'); S.decorInv ||= {}; if (!S.started) { Object.assign(S.decorInv, cfg.startDecor); S.started = 1; }
   $('#title').style.display = 'none'; $('#hud').style.display = 'block'; S.mode = null; document.body.classList.remove('decor', 'worship');
   player = new Char(SP, 'player', S.outfit, 0, 0, { name: S.name, tagColor: '#ffe38a', equip: S.equip, cfg });
   S.cos ||= []; S.av ||= `f.1.0.0.0.${['basic', 'choir', 'mint'].includes(S.outfit) ? S.outfit : 'basic'}.-.-.-.-`; AV.apply(player, S.av); AV.preload(AV.parse(S.av));
@@ -110,7 +110,7 @@ let lastRoomOnline = null;
 net.on('update', p => { const c = remotes.get(p.id); if (!c) return; if (p.name) c.name = p.name; c.fl = p.fl; if (p.outfit && SP.has('player', p.outfit, 'walk_S')) c.outfit = p.outfit; c.equip = p.equip || null; if (p.av && p.av !== c.av) { AV.apply(c, String(p.av).slice(0, 80)); AV.preload(c._avp); } });
 net.on('status', s => { refreshOnline(); if (s === 'online' && net.room !== lastRoomOnline) { lastRoomOnline = net.room; Svc.joined(); } });
 net.on('chat', p => { const nm = String(p.name || '이웃').slice(0, 12); if (Safe.isBlocked(p.id, nm)) return; const c = remotes.get(p.id); const t = Safe.clean(String(p.text || '').slice(0, 80)); if (c) c.say(t); chatLog(nm, t, 0, p.id); });
-net.on('emote', p => { const c = remotes.get(p.id); if (c && ['wave', 'jump', 'pray'].includes(p.e)) c.doEmote(p.e); });
+net.on('emote', p => { const c = remotes.get(p.id); if (!c) return; if (['wave', 'jump', 'pray'].includes(p.e)) c.doEmote(p.e); else if (p.e === 'eat') window.P4?.eatFx?.(c, p.f === '🐟' ? '🐟' : '🍞', false); });
 net.on('jump', p => { const c = remotes.get(p.id); c && c.jump(); });
 net.on('praise', p => { const c = remotes.get(p.id); c && V.remotePraise(c, p.line); });
 net.on('prayer', () => { if (modal === '#board') V.renderPrayers(); });
@@ -166,13 +166,16 @@ function addXp(n) { const before = St.levelInfo(cfg, S.xp).lv; S.xp = Math.max(0
 
 // ---------- scenes ----------
 function enterChapel(silent) { scene = 'inside'; inside.floor = '1F'; try { window.Aud?.music('old100'); } catch { } player.x = cfg.interior.spawn.x; player.y = cfg.interior.spawn.y; player.face = 'N'; sitting = null; snapCam(); if (!silent) toast('🕯 1층 기도실 · ' + FPURP['1F']); persist(); refreshHud(); }
+// h29 #3: after a 동네/place change, land at the chapel's front-center with an arrival cue
+function arriveFront() { try { window.HALL?.leave?.(); } catch { } if (scene === 'inside') exitChapel(); scene = 'field'; sitting = null; player.x = cfg.chapel.door.x; player.y = cfg.chapel.door.y + 120; player.face = 'S'; snapCam(); persist(); refreshHud();
+  setTimeout(() => { try { const F = window.FX; if (F) { F.burst(F.headOf(player), ['✨', '💛', '⭐'], { n: 14, kind: 'float', label: '도착!', ring: 1 }); F.cue('sit'); } emote('wave'); } catch { } }, 120); }
 function exitChapel() { scene = 'field'; try { if (!document.body.classList.contains('worship')) window.Aud?.stopMusic(); } catch { } player.x = cfg.chapel.door.x; player.y = cfg.chapel.door.y + 80; player.face = 'S'; sitting = null; snapCam(); persist(); refreshHud(); }
 function goFloor(to) { const I = cfg.interior, from = inside.floor; inside.floor = to; sitting = null;
   if (to === '1F') { const st = (I.stairs1 || []).find(s => s.to === from) || I.spawn; player.x = st.x - 70; player.y = st.y + 20; if (!inside.walkable(player.x, player.y)) { player.x = I.spawn.x; player.y = I.spawn.y; } }
   else { const f = inside.F(); player.x = f.spawn.x; player.y = f.spawn.y; }
   snapCam(); try { window.P2?.sfx?.('step'); } catch { } toast(`🪜 ${to === '1F' ? '1층 기도실' : inside.F().name} · ${FPURP[to] || ''}`); }
 const FPURP = { '1F': '나의 기도 · 촛불을 켜고 기도제목을 나눠요 (채팅 없음)', B1: '대화 · 예배당에서 유일하게 이야기 나누는 곳이에요', HALL: '함께 예배 · 말씀과 찬양, 박수·아멘·함께 부르기 (채팅 없음)' };
-function floorBar() { let b = document.getElementById('flbar'); if (!b) { b = document.createElement('div'); b.id = 'flbar'; b.innerHTML = '<button data-f="HALL">2층 예배홀</button><button data-f="1F">1층 기도실</button><button data-f="B1">지하 친교실</button><button data-f="OUT" class="out">🚪 나가기</button>'; document.body.appendChild(b);
+function floorBar() { let b = document.getElementById('flbar'); if (!b) { b = document.createElement('div'); b.id = 'flbar'; b.innerHTML = '<button data-f="HALL">2층 본당 예배홀</button><button data-f="1F">1층 기도실</button><button data-f="B1">지하 친교실</button><button data-f="OUT" class="out">🚪 나가기</button>'; document.body.appendChild(b);
     b.querySelectorAll('button').forEach(x => x.onclick = e => { e.stopPropagation(); const f = x.dataset.f; if (f === 'OUT') return exitChapel(); if (f === 'HALL') { window.HALL ? HALL.enter() : window.WH?.enter(); return; } if (inside.floor !== f) goFloor(f); }); }
   const on = scene === 'inside' && !modal && !document.body.classList.contains('worship') && !document.body.classList.contains('h2-open') && !document.body.classList.contains('wh-open'); b.style.display = on ? '' : 'none'; if (on) b.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.f === inside.floor)); }
 
@@ -185,24 +188,25 @@ const npcList = () => scene === 'field' ? fieldNpcs : inNpcs;
 // B: top-down floor plan on entering from the plaza door. Floors/rooms mirror cfg.interior (B1/1F/2F) so names match inside.
 const CP = { B1: { tab: '지하 친교실', rooms: [['cafe', '☕', '지하 친교실', '대화 · 교회 소식 · 동네 랭킹', 6, 8, 88, 76, 'main']] },
   '1F': { tab: '1층 기도실', rooms: [['pulpit', '🕯', '1층 기도실', '나의 기도 · 촛불 · 기도제목 · 헌금함', 6, 8, 88, 76, 'main']] },
-  '2F': { tab: '2층 예배홀', rooms: [['hall', '🙏', '2층 예배홀', '함께 예배 · 말씀 · 찬양 · 박수·아멘', 6, 8, 88, 76, 'main']] } };
+  '2F': { tab: '2층 본당 예배홀', rooms: [['hall', '🙏', '2층 본당 예배홀', '함께 예배 · 말씀 · 찬양 · 박수·아멘', 6, 8, 88, 76, 'main']] } };
 const CPGO = { hall: () => { enterChapel(true); window.HALL ? HALL.enter() : window.WH ? WH.enter() : toast('⛪ 예배당 안으로 들어왔어요'); }, pulpit: () => enterChapel(), st1: () => enterChapel(), st2: () => cpFloor('2F'), stb: () => cpFloor('B1'), cafe: () => cpFloor('B1', 0), prayer: () => enterChapel() };
 function cpFloor(f, si) { enterChapel(true); goFloor(f); const sp = (inside.F().spots || [])[si]; if (sp) { player.x = sp.x; if (inside.walkable(sp.x, player.y) === false) player.x = inside.F().spawn.x; snapCam(); } }
 let cpTab = '1F';
 function cpRender() { const P = $('#chplan'), T = P.querySelector('.cp-tabs'), L = P.querySelector('.cp-plan');
   T.innerHTML = ['2F', '1F', 'B1'].map(k => `<button data-f="${k}" class="${k === cpTab ? 'on' : ''}">${CP[k].tab}</button>`).join('');
   L.innerHTML = CP[cpTab].rooms.map(([id, ic, nm, sub, x, y, w, h, cls]) => `<button class="cp-room ${cls || ''}" data-room="${id}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><span class="ic">${ic}</span>${nm}<small>${sub}</small></button>`).join('') + '';
+  { const g = P.querySelector('.cp-go'); if (g) g.textContent = `${CP[cpTab].rooms[0][1]} ${CP[cpTab].tab} 들어가기`; }
   T.querySelectorAll('button').forEach(b => b.onclick = () => { cpTab = b.dataset.f; cpRender(); });
   L.querySelectorAll('.cp-room').forEach(b => b.onclick = () => cpPick(b.dataset.room)); }
 function cpPick(id) { if (performance.now() - (+$('#chplan').dataset.t0 || 0) < 450) return; closeModal(); (CPGO[id] || enterChapel)(); }
-function openChPlan() { cpTab = '1F'; cpRender(); const P = $('#chplan'); const t0 = performance.now(), ok = () => performance.now() - t0 > 450; /* ignore the touch ghost-click that follows the opening tap */ P.querySelector('.cp-go').onclick = () => ok() && cpPick('hall'); P.querySelector('.cp-stay').onclick = () => ok() && closeModal(); P.querySelector('.close').onclick = () => ok() && closeModal(); P.dataset.t0 = t0; openModal('#chplan'); clickTarget = null; cpPending = false; }
+function openChPlan() { cpTab = '2F'; cpRender(); const P = $('#chplan'); const t0 = performance.now(), ok = () => performance.now() - t0 > 450; /* ignore the touch ghost-click that follows the opening tap */ P.querySelector('.cp-go').onclick = () => ok() && cpPick(CP[cpTab].rooms[0][0]); P.querySelector('.cp-stay').onclick = () => ok() && closeModal(); P.querySelector('.close').onclick = () => ok() && closeModal(); P.dataset.t0 = t0; openModal('#chplan'); clickTarget = null; cpPending = false; }
 let cpPending = false;
 function nearest() {
   let best = null, bd = 140;
   for (const n of npcList()) { const d = Math.hypot(n.x - player.x, n.y - player.y); if (d < (n.sit ? Math.min(bd, 70) : bd)) { bd = d; best = { type: 'npc', n }; } }
   if (scene === 'field') { const D = cfg.chapel.door; if (Math.hypot(D.x - player.x, (D.y - player.y) * .85) < 175) best = { type: 'door' }; for (const sh of cfg.shops || []) if (Math.hypot(sh.door.x - player.x, sh.door.y - player.y) < 120) best = { type: 'shop', s: sh }; }
   else { const I = cfg.interior, chk = (p, type, r = 130) => { if (Math.hypot(p.x - player.x, p.y - player.y) < r) best = { type }; };
-    if (!inside.on1) { for (const sp of inside.spots()) if (Math.hypot(sp.x - player.x, sp.y - player.y) < 140) best = { type: 'spot', sp }; for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 110) best = { type: 'stairs', st }; return best; }
+    if (!inside.on1) { for (const sp of inside.spots()) if (Math.hypot(sp.x - player.x, sp.y - player.y) < 140) best = { type: 'spot', sp }; for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 110) best = { type: 'stairs', st }; (inside.F().seats || []).forEach((q, j) => { if (Math.hypot(q[0] - player.x, q[1] - player.y) < 75) best = { type: 'seat', j }; }); return best; }
     { let bz = 1e9; for (const [p, type, r] of [[I.offering, 'offering', 80], [I.board, 'board', 80], [inside.candle(), 'candle', 80], [I.door, 'exit', 110]]) { const d = Math.hypot(p.x - player.x, p.y - player.y); if (d < r && d < bz) { bz = d; best = { type }; } } } // nearest object only; zones never overlap
     for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 100) best = { type: 'stairs', st };
     I.pews.forEach((p, i) => { const r = inside.pewRect(i); if (Math.abs(player.x - r.cx) < (inside.td ? r.w / 2 + 10 : 58) && Math.abs(player.y - r.cy) < 60 && !best) best = { type: 'pew', i }; });
@@ -211,22 +215,34 @@ function nearest() {
   if (!best && scene === 'field') { let wd = 110; for (const w of wanderers) { const d = Math.hypot(w.x - player.x, w.y - player.y); if (d < wd) { wd = d; best = { type: 'npc', n: w }; } } }
   return best;
 }
-const ACTLBL = { sign: '레벨 보기', stairs: '계단 이동', spot: '둘러보기', shop: '상점 들어가기', npc: '대화', door: '들어가기', exit: '나가기', offering: '헌금하기', board: '기도제목', candle: '촛불 켜기', pew: '앉기' };
+const ACTLBL = { sign: '레벨 보기', stairs: '계단 이동', spot: '둘러보기', shop: '상점 들어가기', npc: '대화', door: '들어가기', exit: '나가기', offering: '헌금하기', board: '기도제목', candle: '촛불 켜기', pew: '앉기', seat: '앉기' };
 function interact() {
   if (modal || !S) return; if (sitting) { standUp(); return; }
   const t = nearest(); if (!t) return;
   if (t.type === 'npc') { t.n.face = facingTo(t.n, player); talkTo(t.n); }
-  else if (t.type === 'sign') P2.openLevels(); else if (t.type === 'stairs') goFloor(t.st.to); else if (t.type === 'spot') spotAct(t.sp);
+  else if (t.type === 'sign') P2.openLevels(); else if (t.type === 'stairs') { if (t.st.to === '2F' && inside.on1 && window.HALL) { toast('⛪ 계단으로 2층 본당 예배홀에 올라가요'); HALL.enter(); } else goFloor(t.st.to); } else if (t.type === 'spot') spotAct(t.sp); else if (t.type === 'seat') sitB1(t.j);
   else if (t.type === 'door') openChPlan(); else if (t.type === 'exit') exitChapel();
   else if (t.type === 'shop') window.P2 && P2.openShop(t.s); else if (t.type === 'offering') (window.P2 ? P2.openOffer(true) : openGacha()); else if (t.type === 'board') openBoard(); else if (t.type === 'candle') { inside.lit = (inside.lit || 0) + 1; try { localStorage.maeul_candle = Date.now(); } catch { } emote('pray'); toast('🕯 촛불을 켰어요 · 조용히 마음을 모아요'); } else if (t.type === 'pew') sitOn(t.i);
 }
 function facingTo(a, b) { const ang = Math.atan2(b.y - a.y, b.x - a.x); return ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'][((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8]; }
-function sitOn(i) { if (window.P2 && P2.seatTaken(i)) { toast('이미 다른 분이 앉은 자리예요'); return; } const st = inside.seat(i); sitting = { i, back: { x: player.x, y: Math.min(player.y, st.y - 18) + (player.y < st.y ? 0 : 36) } }; player.x = st.x; player.y = st.y; player.face = 'W'; window.P2 && P2.claim(i); window.P2 && P2.sfx('click'); player.vx = player.vy = 0; toast('의자에 앉았어요. 목사님께 말 걸면 예배가 시작돼요 (다시 누르면 일어나기)'); }
+// h29 #4: 3 seat slots per pew (slot key = pew*3+s, synced through P2 seat claims); NPCs hold the middle slot
+const SLOTS = 3;
+function slotPos(i, k) { const st = inside.seat(i), w = inside.td ? (cfg.interior.pewW || 236) : 0; return { x: st.x + (k - 1) * w * .3, y: st.y }; }
+function slotTaken(i, k) { if (k === 1 && inNpcs.some(n => n.sit && n.pewI === i)) return true; if (window.P2 && P2.seatTaken(i * SLOTS + k)) return true;
+  for (const c of remotes.values()) { if (!c.sitting || !sameFl(c)) continue; const p = slotPos(i, k); if (Math.hypot(c.x - p.x, c.y - p.y) < 22) return true; } return false; }
+function freeSlots(i) { let n = 0; for (let k = 0; k < SLOTS; k++) if (!slotTaken(i, k)) n++; return n; }
+function sitOn(i, k) { if (k == null) { let bd = 1e9; for (let q = 0; q < SLOTS; q++) { if (slotTaken(i, q)) continue; const p = slotPos(i, q), d = Math.abs(p.x - player.x) + Math.abs(p.y - player.y) * .3; if (d < bd) { bd = d; k = q; } } }
+  if (k == null) { toast(`이 의자는 꽉 찼어요 (${SLOTS}/${SLOTS}) · 옆 의자를 이용해 주세요`); try { window.P2?.sfx?.('err'); } catch { } return; }
+  const st = slotPos(i, k); sitting = { i, k, back: { x: player.x, y: Math.min(player.y, st.y - 18) + (player.y < st.y ? 0 : 36) } }; player.x = st.x; player.y = st.y; player.face = 'W'; window.P2 && P2.claim(i * SLOTS + k); window.P2 && P2.sfx('click'); player.vx = player.vy = 0;
+  const left = freeSlots(i); toast(`의자에 앉았어요 (${SLOTS - left}/${SLOTS}) · 목사님께 말 걸면 예배가 시작돼요 (다시 누르면 일어나기)`); }
 function svcOpts(tail) { const o = [['⛪ 예배 드리기 (찬양→기도→말씀→헌금→축도)', () => Svc.start()]];
   if (net.status === 'online') o.push(Svc.isLeader() ? ['🎙 인도 그만하기', () => Svc.release()] : ['🎙 오늘의 인도자 하기', () => Svc.claim()]); return o.concat(tail); }
-function pickPew() { const used = new Set(inNpcs.filter(n => n.sit).map(n => n.pewI)); let best = 0, bd = 1e9; cfg.interior.pews.forEach((p, i) => { const d = Math.hypot(p[0] - player.x, p[1] - player.y) + (used.has(i) || (window.P2 && P2.seatTaken(i)) ? 4000 : 0); if (d < bd) { bd = d; best = i; } }); return best; }
+function pickPew() { const used = new Set(inNpcs.filter(n => n.sit).map(n => n.pewI)); let best = 0, bd = 1e9; cfg.interior.pews.forEach((p, i) => { const d = Math.hypot(p[0] - player.x, p[1] - player.y) + (freeSlots(i) ? 0 : 4000) + (used.has(i) ? 150 : 0); if (d < bd) { bd = d; best = i; } }); return best; }
 function endWorship(abort) { if (!worship) return; if (abort) try { window.Aud?.stopMusic(); } catch { } if (abort) { worship = null; document.body.classList.remove('worship'); $('#worship').style.display = 'none'; } else worship.t = worship.end + 1; }
-function standUp() { if (!sitting) return; window.P2 && P2.release(sitting.i); const st = inside.seat(sitting.i); player.x = st.x - 20; player.y = st.y + 26; if (!inside.walkable(player.x, player.y)) { player.x = sitting.back.x; player.y = sitting.back.y; } sitting = null; }
+function b1Taken(j) { const q = (inside.F().seats || [])[j]; for (const c of remotes.values()) if (c.sitting && sameFl(c) && Math.hypot(c.x - q[0], c.y - q[1]) < 22) return true; return false; }
+function sitB1(j) { const Q = inside.F().seats || [], q = Q[j]; if (!q) return; if (b1Taken(j)) { const f = Q.map((_, k) => k).filter(k => !b1Taken(k)); toast(f.length ? '이 자리는 이미 누가 앉아 있어요 · 옆자리를 이용해 주세요' : `친교실 자리가 꽉 찼어요 (${Q.length}/${Q.length})`); try { window.P2?.sfx?.('err'); } catch { } return; }
+  sitting = { b1: j, back: { x: player.x, y: player.y } }; player.x = q[0]; player.y = q[1]; player.vx = player.vy = 0; player.face = q[0] < 768 ? 'E' : 'W'; try { window.P2?.sfx?.('click'); } catch { } const used = Q.filter((_, k) => k === j || b1Taken(k)).length; toast(`☕ 친교실 자리에 앉았어요 (${used}/${Q.length}) · 다시 누르면 일어나기`); }
+function standUp() { if (!sitting) return; if (sitting.b1 != null) { player.x = sitting.back.x; player.y = Math.min(sitting.back.y + 20, 830); sitting = null; return; } window.P2 && P2.release(sitting.i); const st = slotPos(sitting.i, sitting.k ?? 1); player.x = st.x - 20; player.y = st.y + 26; if (!inside.walkable(player.x, player.y)) { player.x = sitting.back.x; player.y = sitting.back.y; } sitting = null; }
 
 // ---------- worship mini-game ----------
 let hymnI = 0; function startWorship(opt = {}) { try { const ids = ['old100', 'newbrit', 'nicaea', 'stanne', 'joy']; window.Aud?.music(ids[hymnI++ % ids.length]); } catch { }
@@ -382,7 +398,7 @@ document.querySelectorAll('.close').forEach(b => b.onclick = closeModal);
 $('#btn-gacha').onclick = () => (window.P2 ? P2.openOffer(false) : openGacha()); $('#groll').onclick = doRoll; $('#btn-inv').onclick = openInv; $('#btn-decor').onclick = openDecor; $('#btn-board').onclick = openBoard;
 $('#btn-act').onclick = () => worship ? worshipTap() : interact(); $('#wtap').onclick = worshipTap;
 $('#minimap').onclick = () => openMap(); $('#dtext').onclick = () => dlgAdvance(); $('#btn-jump').onclick = doJump;
-$('#chlv') && ($('#chlv').onclick = () => window.P2?.openLevels()); $('#lvbox') && ($('#lvbox').style.cursor = 'pointer', $('#lvbox').onclick = () => window.P2?.openLevels()); $('#btn-set') && ($('#btn-set').onclick = () => window.P2?.openSet()); $('#btn-menu').onclick = () => dialog('🚪 나가기', '어떻게 나갈까요?\n· 잠깐 나가기: 이 기기에 저장이 남아 다음에 이어서 해요\n· 로그아웃: 이 기기의 세션·저장을 지우고 다음엔 새 손님으로 시작해요 (서버 기록은 남지만 손님 계정은 다시 찾을 수 없어요)', [['🚪 잠깐 나가기', () => { persist(); endSess(); net.leave(); location.reload(); }], ['🔓 로그아웃', () => dialog('🔓 로그아웃', '정말 로그아웃할까요?\n손님 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요.', [['로그아웃', () => { window.__RESETTING = true; try { net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]])], ['취소', null]]);
+$('#chlv') && ($('#chlv').onclick = () => window.P2?.openLevels()); $('#lvbox') && ($('#lvbox').style.cursor = 'pointer', $('#lvbox').onclick = () => window.P2?.openLevels()); $('#btn-set') && ($('#btn-set').onclick = () => window.P2?.openSet()); $('#btn-menu').onclick = () => dialog('🚪 나가기', '어떻게 나갈까요?\n· 잠깐 나가기: 이 기기에 저장이 남아 다음에 이어서 해요\n· 로그아웃: 이 기기의 세션·저장을 지우고 다음엔 새 성도으로 시작해요 (서버 기록은 남지만 성도 계정은 다시 찾을 수 없어요)', [['🚪 잠깐 나가기', () => { persist(); endSess(); net.leave(); location.reload(); }], ['🔓 로그아웃', () => dialog('🔓 로그아웃', '정말 로그아웃할까요?\n성도 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요.', [['로그아웃', () => { window.__RESETTING = true; try { net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]])], ['취소', null]]);
 let toastT; function toast(t) { const d = $('#toast'); d.textContent = t; d.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => d.classList.remove('show'), 2600); }
 function coinFx() { const d = $('#coinbox'); d.classList.remove('bump'); void d.offsetWidth; d.classList.add('bump'); }
 
@@ -510,12 +526,14 @@ function render() {
     ctx.fillStyle = '#6b4f9a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lbl, at.x, at.y - 14 + b); ctx.textBaseline = 'alphabetic'; } }
   for (const o of objs) if (o.c) o.c.drawLabel(ctx);
   // interaction hint marker
-  const t = !modal && nearest(); if (t && t.type !== 'pew' && t.type !== 'shop') { const p = t.type === 'npc' ? t.n : t.type === 'stairs' ? t.st : t.type === 'spot' ? t.sp : t.type === 'sign' ? { x: P2.signPos().x, y: P2.signPos().y + 30 } : t.type === 'door' ? cfg.chapel.door : cfg.interior[{ exit: 'door', offering: 'offering', board: 'board' }[t.type]];
+  const t = !modal && nearest(); if (t && t.type !== 'pew' && t.type !== 'shop') { const p = t.type === 'npc' ? t.n : t.type === 'seat' ? { x: inside.F().seats[t.j][0], y: inside.F().seats[t.j][1] } : t.type === 'stairs' ? t.st : t.type === 'spot' ? t.sp : t.type === 'sign' ? { x: P2.signPos().x, y: P2.signPos().y + 30 } : t.type === 'door' ? cfg.chapel.door : cfg.interior[{ exit: 'door', offering: 'offering', board: 'board' }[t.type]];
     ctx.font = '30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('💬', p.x, p.y - (t.type === 'npc' ? 200 : 170) + Math.sin(tm * 4) * 5); }
   if (scene === 'field') { const D = cfg.chapel.door; ctx.font = '700 18px Pretendard,sans-serif'; ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(80,60,100,.6)'; ctx.lineWidth = 4; ctx.textAlign = 'center'; const nm = `⛪ 마실채플 · ${V.current() ? V.current().name : '우리 동네'}`; ctx.strokeText(nm, D.x, D.y + 40); ctx.fillText(nm, D.x, D.y + 40); }
 }
 function sitDraw(g, c, sit) { if (!sit || scene !== 'inside') { c.draw(g); return; }
   // v7 side-view seated pose: side-profile body raised onto the cushion, legs clipped at the seat line, then the pew's seat-front + legs are redrawn over the lap
+  if (!inside.on1) { const sx = c.speedNow, em = c.emote, y = c.y, cut = 30 * (inside.cs?.() || 1); c.speedNow = 0; if (em !== 'pray') c.emote = null; c.face = c.dface = 'S'; // B1 chairs/cushions: front view, legs tucked below the seat
+    g.save(); g.beginPath(); g.rect(c.x - 200, y - 600, 400, 600 - 6); g.clip(); c.y = y + cut; c.draw(g); c.y = y; g.restore(); c.speedNow = sx; if (em !== 'pray') c.emote = em; return; }
   if (inside.td) { const sx = c.speedNow, em = c.emote; c.speedNow = 0; if (em !== 'pray') c.emote = null; c.face = c.dface = 'N'; let pi = -1, bd = 1e9; cfg.interior.pews.forEach((p, k) => { const d = Math.abs(p[0] - c.x) + Math.abs(p[1] - 16 - c.y); if (d < bd) { bd = d; pi = k; } });
     c.draw(g); if (pi >= 0) inside.drawPew(g, pi, 'all'); c.speedNow = sx; if (em !== 'pray') c.emote = em; return; } // 3/4 top-down: back view, the pew's backrest covers the legs
   const I = cfg.interior, y = c.y, sx = c.speedNow, em = c.emote; c.speedNow = 0; if (em !== 'pray') c.emote = null; if (!['E', 'W'].includes(c.face)) c.face = 'W'; c.dface = c.face;
@@ -582,4 +600,4 @@ window.__near = () => nearest()?.type || null;
 window.G = { walkable: (x, y) => world.walkable(x, y), chapelScreen: () => { const g = chapelGeom(), z = cam.z, x = (g.l - cam.x) * z + innerWidth / 2, y = (g.top - cam.y) * z + innerHeight / 2; return { x, y, w: g.w * z, h: g.h * z, top: y, bottom: y + g.h * z, z, door: g.door }; }, inNpcs: () => inNpcs, get modalOpen() { return !!document.querySelector(".modal.show, .modal.open, .modal[style*=flex]"); }, SH, placeAt, AV, Cust, wanderers, addWanderer: (i = (window.__wi = (window.__wi || 0) + 1)) => { const p = world.randomPoint(); const c = new Char(SP, 'player', 'basic', p.x, p.y, { name: '주민', tagColor: '#d7e6ff', cfg, drawH: 145 }); c.ai = { t: Math.random() * 3, tgt: null, chat: 3 + Math.random() * 6 }; const wg = i % 2 ? 'f' : 'm'; c.wav = `${wg}.1.${i % 3}.${[0, 3, 4][i % 3]}.${(i * 3) % 9}.formal.-.-.-.-`; try { AV.apply(c, c.wav); AV.preload(AV.parse(c.wav)); } catch { } wanderers.push(c); return c; }, get S() { return S; }, get player() { return player; }, get scene() { return scene; }, cfg: () => cfg,
   start: (n, o) => { St.wipe(); selOutfit = o; startGame(St.newSave(n, o)); }, moveDir: (deg, ms) => { scripted = { a: deg * Math.PI / 180, ms }; },
   tp: (x, y) => { sitting = null; player.x = x; player.y = y; snapCam(); }, interact, enterChapel, exitChapel, openGacha, doRoll, openInv, openDecor, placeAt, openBoard, startWorship, worshipTap,
-  get worship() { return worship; }, V, net, remotes, jump: doJump, openMap, teleport, world: () => world, closeModal, emote, pickups, C: Col, Svc, nearest, refreshHud, sitOn, toast, openModal, get inside() { return inside; }, cam, goFloor, addXp, coinFx, persist, dialog, get modal() { return modal; }, get sitting() { return sitting; }, standUp, pickPew, openInv, drawMinimap: () => drawMinimap() };
+  get worship() { return worship; }, V, net, remotes, jump: doJump, openMap, teleport, world: () => world, closeModal, emote, pickups, C: Col, Svc, nearest, refreshHud, sitOn, sitB1, toast, openModal, get inside() { return inside; }, cam, goFloor, addXp, coinFx, persist, dialog, get modal() { return modal; }, get sitting() { return sitting; }, standUp, pickPew, openInv, drawMinimap: () => drawMinimap() };

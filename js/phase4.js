@@ -1,5 +1,8 @@
 // Phase 4: pilgrim bots (fill quiet rooms), 오병이어 shared bread/fish rain, gold pillars on the nationwide map
+import { burst, cue, headOf } from './fx.js';
 const G = () => window.G;
+// h29: eating — the caught bread/fish flies into my character's hands, the character munches (chew squash), crumbs + 😋 + '+1' float up, chew sound; others see it via the 'eat' emote
+export function eatFx(ch, e, mine) { if (!ch) return; ch.doEmote?.('eat'); ch.say?.(e === '🐟' ? '😋 냠냠 · 생선 맛있어요!' : '😋 냠냠 · 빵 맛있어요!', 1.6); burst(ch, [e, '✨'], { n: 3, kind: 'float', sp: 40, size: 24, life: 1 }); burst(ch, ['·', '•', '∙'], { n: 9, kind: 'crumb', sp: 90, size: 20, life: .8 }); burst(ch, ['💛'], { n: 1, sp: 30, size: 22, life: 1.2, label: mine ? '+1 냠냠!' : null }); cue('chew'); }
 const PNAMES = ['순례자 요셉', '순례자 한나', '순례자 디모데', '순례자 룻', '순례자 바나바', '순례자 마리아'];
 const PLINES = ['먼 동네에서 걸어왔어요 🧳 이 예배당 참 예뻐요!', '샬롬! 함께 기도해도 될까요? 🙏', '오늘도 은혜로운 하루 되세요 ☀️', '다음 마을 예배당도 들러볼 거예요 🗺️', '헌금함 옆에서 소원을 빌면 좋대요 ✨'];
 let pil = [], pt = 0, obiCd = 0, rain = null;
@@ -12,14 +15,14 @@ function pilgrims(dt) { const g = G(); if (!g?.S) return; pt -= dt; if (pt > 0) 
 function btn() { let b = document.getElementById('btn-obi'); if (!b) { b = document.createElement('button'); b.id = 'btn-obi'; b.className = 'obibtn'; b.textContent = '🍞🐟 오병이어'; b.title = '방 안 모두에게 빵과 물고기 비를 내려요'; b.onclick = () => start(true); document.body.appendChild(b); }
   const g = G(); b.style.display = g?.S && g.scene === 'field' && !g.modalOpen && !g.worship ? '' : 'none'; b.disabled = Date.now() < obiCd; }
 export function start(mine, seed) {
-  const g = G(); if (rain || g?.scene !== 'field' || g?.worship) return; if (mine) { if (Date.now() < obiCd) return; obiCd = Date.now() + 10 * 60e3; g.net?.send('obi', { name: g.S?.name || '이웃' }); g.toast?.('🍞🐟 오병이어! 떨어지는 빵과 물고기를 눌러 모아요'); }
+  const g = G(); if (rain || g?.scene !== 'field' || g?.worship) return; if (mine) { if (Date.now() < obiCd) return; obiCd = Date.now() + 10 * 60e3; g.net?.send('obi', { name: g.S?.name || '이웃' }); g.toast?.('🍞🐟 오병이어! 떨어지는 빵과 물고기를 눌러 냠냠 먹어요'); }
   const cv = document.createElement('canvas'); cv.id = 'obicv'; cv.style.pointerEvents = 'none'; document.body.appendChild(cv); const pr = Math.min(2, devicePixelRatio || 1);
   const fit = () => { cv.width = innerWidth * pr; cv.height = innerHeight * pr; }; fit();
   rain = { cv, t: 0, got: 0, P: [], end: 7 }; for (let i = 0; i < 26; i++) rain.P.push({ x: Math.random() * innerWidth, y: -Math.random() * innerHeight * 1.2 - 30, v: 90 + Math.random() * 90, e: Math.random() < .6 ? '🍞' : '🐟', r: Math.random() * 6, on: 1 });
-  const tap = ev => { const p0 = ev.touches?.[0] || ev, x = p0.clientX, y = p0.clientY; for (const p of rain.P) if (p.on && Math.hypot(p.x - x, p.y - y) < 34) { p.on = 0; rain.got++; try { window.Aud?.play?.('coin'); } catch { } ev.preventDefault(); ev.stopPropagation(); break; } };
+  const tap = ev => { const p0 = ev.touches?.[0] || ev, x = p0.clientX, y = p0.clientY; for (const p of rain.P) if (p.on === 1 && Math.hypot(p.x - x, p.y - y) < 40) { p.on = 2; p.fly = 0; p.fx = p.x; p.fy = p.y; rain.got++; try { window.Aud?.play?.('coin'); } catch { } ev.preventDefault(); ev.stopPropagation(); break; } };
   addEventListener('pointerdown', tap, true); rain.tap = tap; let last = performance.now();
   const f = now => { if (!rain) return; const dt = Math.min(.05, (now - last) / 1000); last = now; rain.t += dt; if (g.scene !== 'field') rain.t = rain.end; const c = cv.getContext('2d'); c.setTransform(pr, 0, 0, pr, 0, 0); c.clearRect(0, 0, innerWidth, innerHeight);
-    c.font = '40px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; for (const p of rain.P) { if (!p.on) continue; p.y += p.v * dt; p.r += dt; if (p.y > innerHeight + 40) p.y = -40; c.save(); c.translate(p.x + Math.sin(p.r * 2) * 10, p.y); c.rotate(Math.sin(p.r) * .4); c.fillText(p.e, 0, 0); c.restore(); }
+    c.font = '40px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; for (const p of rain.P) { if (p.on === 2) { p.fly += dt / .38; const h = headOf(g.player) || { x: innerWidth / 2, y: innerHeight / 2 }, k = Math.min(1, p.fly), e2 = k * k * (3 - 2 * k), X = p.fx + (h.x - p.fx) * e2, Y = p.fy + (h.y + 40 - p.fy) * e2 - Math.sin(k * Math.PI) * 80; c.save(); c.translate(X, Y); c.scale(1 - k * .45, 1 - k * .45); c.fillText(p.e, 0, 0); c.restore(); if (k >= 1) { p.on = 0; eatFx(g.player, p.e, true); g.net?.send('emote', { e: 'eat', f: p.e }); } continue; } if (!p.on) continue; p.y += p.v * dt; p.r += dt; if (p.y > innerHeight + 40) p.y = -40; c.save(); c.translate(p.x + Math.sin(p.r * 2) * 10, p.y); c.rotate(Math.sin(p.r) * .4); c.fillText(p.e, 0, 0); c.restore(); }
     c.font = '800 20px Pretendard,sans-serif'; c.fillStyle = '#7a4b00'; c.strokeStyle = '#fff'; c.lineWidth = 4; const s = `🍞🐟 ${rain.got}개 모았어요 · ${Math.max(0, Math.ceil(rain.end - rain.t))}초`; const cy = innerWidth < 760 ? 228 : 128; c.strokeText(s, innerWidth / 2, cy); c.fillText(s, innerWidth / 2, cy);
     if (rain.t < rain.end) requestAnimationFrame(f); else finish(); };
   requestAnimationFrame(f); }
@@ -33,5 +36,5 @@ export function pillars(g, items, lv, T, bounds, total) { const T0 = tops || [];
     const gr = g.createLinearGradient(px - w, 0, px + w, 0); gr.addColorStop(0, '#d8a200'); gr.addColorStop(.5, '#fff3a6'); gr.addColorStop(1, '#c98f00');
     g.save(); g.globalAlpha = .92; g.fillStyle = 'rgba(120,80,0,.25)'; g.beginPath(); g.ellipse(px, py, w + 3, 4, 0, 0, 7); g.fill(); g.fillStyle = gr; g.fillRect(px - w / 2, py - h, w, h); g.beginPath(); g.ellipse(px, py - h, w / 2, 2.5, 0, 0, 7); g.fillStyle = '#fff8c8'; g.fill();
     g.globalAlpha = .5 + .5 * Math.sin(t * 3 + px); g.fillStyle = '#fff'; g.font = '11px serif'; g.textAlign = 'center'; g.fillText('✨', px, py - h - 8); g.restore(); } }
-export function initPhase4() { window.P4 = { start, pillars, churchTops }; const g = G(); g?.net?.on?.('obi', p => { if (window.Safe?.isBlocked?.(p.id, p.name)) return; g.toast?.(`🍞🐟 ${String(p.name || '이웃').slice(0, 12)}님이 오병이어를 나눴어요!`); start(false); });
+export function initPhase4() { window.P4 = { start, pillars, churchTops, eatFx, _rain: () => rain }; const g = G(); g?.net?.on?.('obi', p => { if (window.Safe?.isBlocked?.(p.id, p.name)) return; g.toast?.(`🍞🐟 ${String(p.name || '이웃').slice(0, 12)}님이 오병이어를 나눴어요!`); start(false); });
   let last = performance.now(); const loop = now => { const dt = Math.min(.5, (now - last) / 1000); last = now; try { pilgrims(dt); btn(); } catch (e) { console.warn(e); } requestAnimationFrame(loop); }; requestAnimationFrame(loop); churchTops(); }

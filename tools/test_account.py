@@ -35,7 +35,7 @@ with sync_playwright() as p:
     sec1 = pg.evaluate("localStorage.getItem('maeul_secret')")
     # guest logout warning offers linking
     pg.evaluate("P2.openSet()"); pg.wait_for_timeout(300); pg.click('#p2logout'); pg.wait_for_timeout(400)
-    ok['guest_logout_warns'] = '손님' in pg.inner_text('#dialog') and '연동' in pg.inner_text('#dialog'); pg.screenshot(path='shots/ui/acct_1_guest_warn.png')
+    ok['guest_logout_warns'] = '성도' in pg.inner_text('#dialog') and '연동' in pg.inner_text('#dialog'); pg.screenshot(path='shots/ui/acct_1_guest_warn.png')
     pg.evaluate("[...document.querySelectorAll('#dopts button')].find(b=>b.textContent.includes('먼저 계정 연동')).click()"); pg.wait_for_timeout(1200)
     ok['link_panel_opens'] = pg.is_visible('#acmail'); ok['google_btn_when_enabled'] = pg.is_visible('#acg'); ok['kakao_hidden'] = not pg.is_visible('#ack')
     pg.fill('#acmail', 'qa@example.invalid'); pg.click('#acsend'); pg.wait_for_timeout(800); pg.screenshot(path='shots/ui/acct_2_otp.png')
@@ -43,7 +43,7 @@ with sync_playwright() as p:
     ok['row_saved_with_guest_secret'] = bool(DB['row']) and DB['row']['secret'] == sec1 and 'chapel_v4_save' in DB['row']['save']
     pg.screenshot(path='shots/ui/acct_3_linked.png'); ok['linked_ui'] = '연동됨' in pg.inner_text('#p2acct')
     pg.evaluate("G.closeModal(); P2.openSet()"); pg.wait_for_timeout(300); pg.click('#p2logout'); pg.wait_for_timeout(600)
-    ok['linked_logout_no_guest_warning'] = '손님' not in pg.inner_text('#dialog'); pg.screenshot(path='shots/ui/acct_4_linked_logout.png'); c1.close()
+    ok['linked_logout_no_guest_warning'] = '성도' not in pg.inner_text('#dialog'); pg.screenshot(path='shots/ui/acct_4_linked_logout.png'); c1.close()
     # new device: login with same email → restore
     c2, pg, e2 = device(); sec2 = pg.evaluate("localStorage.getItem('maeul_secret')")
     pg.evaluate("G.start('딴사람','basic')"); pg.wait_for_timeout(1000); pg.evaluate('G.closeModal&&G.closeModal()'); pg.wait_for_timeout(2000)
