@@ -28,7 +28,7 @@ export class Net {
   setStatus(s) { this.status = s; this.emit('status', s, this.peers.size); }
   // ENTRY GATE (global cap + FIFO queue, server-side counter via REST RPC; DO-ready: swap gateBeat() for a DO fetch).
   // Waiting costs 1 REST call / GATE_POLL ms and zero Realtime messages; admitted users heartbeat every GATE_BEAT ms.
-  static GATE_POLL = 5000; static GATE_BEAT = 10000; static GATE_TRY = [800, 2000, 4500]; // waiters poll 5s (refill ≤~6s), admitted beat 10s (abandon expiry 30s), retry with backoff before solo
+  static GATE_POLL = 5000; static GATE_BEAT = 5000; static GATE_TRY = [800, 2000, 4500]; // waiters poll 5s (refill ≤~6s), admitted beat 10s (abandon expiry 30s), retry with backoff before solo
   static gid() { try { let c = sessionStorage.getItem('maeul_gid'); if (!c) { c = (crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 36); sessionStorage.setItem('maeul_gid', c); } return c; } catch { return Math.random().toString(36).slice(2, 12); } }
   // One entry per tab session (sessionStorage id, not the shared localStorage cid) → idempotent server upsert; responses are sequence-checked so a late reply can't overwrite a newer state.
   async gateBeat() { this.gidv ||= Net.gid(); const seq = this._gseq = (this._gseq || 0) + 1;
