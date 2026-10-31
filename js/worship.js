@@ -477,9 +477,10 @@ window.WH = WH;
 function hook() { const g = G(); if (!g?.net) return setTimeout(hook, 500); g.net.on('wh', p => onNet(p)); }
 hook();
 function wire() { const g = G(), b = document.getElementById('btn-wh'); if (!g?.V || !b) return setTimeout(wire, 500);
-  b.onclick = () => enter();
+  b.onclick = () => (window.HALL ? window.HALL.enter() : enter());
   const op = g.V.openPrayers.bind(g.V); g.V.openPrayers = async (...a) => { const r = op(...a); const L0 = document.getElementById('blist'); let t = document.getElementById('wh-ttb');
     if (L0 && !t) { t = document.createElement('div'); t.id = 'wh-ttb'; L0.parentElement.insertBefore(t, L0); }
     if (t) { const o = occurrences(), live = o.find(x => x.live), nx = o.filter(x => !x.live).slice(0, 2); t.innerHTML = `<b>예배 시간표</b>${live ? `<span class="live">지금 ${esc(live.e.name)}</span>` : ''}${nx.map(x => `<span>${esc(x.e.name)} ${fmtWhen(x.st)} · ${fmtLeft(x.st - Date.now())} 후</span>`).join('')}<button id="wh-ttgo">본당 입장</button>`;
-      t.querySelector('#wh-ttgo').onclick = () => { g.closeModal?.(); enter(); }; } return r; }; }
+      t.querySelector('#wh-ttgo').onclick = () => { g.closeModal?.(); (window.HALL ? window.HALL.enter() : enter()); }; } return r; }; }
 wire();
+export { VO, sprite, pilgrimAv, rnd, hash, SONGS, PH };

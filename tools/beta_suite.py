@@ -147,7 +147,7 @@ with sync_playwright() as p:
             pl = pg.evaluate("(() => { const P = document.querySelector('#chplan'); return { vis: !!P && P.style.display === 'flex', tabs: P ? P.querySelectorAll('.cp-tabs button').length : 0, rooms: P ? P.querySelectorAll('.cp-room').length : 0 } })()")
             rec(t + '.tapOpensPlan', pl['vis'] and pl['tabs'] == 3 and pl['rooms'] >= 3, str(pl))
             pg.click('#chplan .cp-go'); pg.wait_for_timeout(2500)
-            rec(t + '.planEntersHall', pg.evaluate("WH.open"), '')
+            rec(t + '.planEntersHall', pg.evaluate("!!(window.HALL && HALL.open)"), '')
             rec(t + '.noerr', not errs, '; '.join(errs[:3])); c.close()
     # ---- pastor voice + real touch entrance (Date shifted so the sermon phase is live)
     if want('voice'):
@@ -158,8 +158,8 @@ with sync_playwright() as p:
             pg, errs, c = boot(b, w, h, ctx=c); start(pg); pg.wait_for_timeout(2000); t = f'voice.{w}x{h}'
             r = pg.evaluate("G.chapelScreen()"); x, y = r['x'] + r['w'] * .45, max(140, r['y'] + r['h'] * .55)
             (pg.touchscreen.tap if mob else pg.mouse.click)(x, y); pg.wait_for_timeout(800)
-            rec(t + '.planShownNotSkipped', pg.evaluate("document.querySelector('#chplan').style.display === 'flex' && !WH.open"), '')
-            pg.click('#chplan .cp-go'); pg.wait_for_timeout(4000); a = pg.evaluate("WH.vo"); pg.wait_for_timeout(1500); b2 = pg.evaluate("WH.vo")
+            rec(t + '.planShownNotSkipped', pg.evaluate("document.querySelector('#chplan').style.display === 'flex' && !WH.open && !(window.HALL && HALL.open)"), '')
+            pg.click('#chplan .cp-go'); pg.wait_for_timeout(2500); pg.click('#h2btn'); pg.wait_for_timeout(600); pg.click('#h2btn'); pg.wait_for_timeout(1500); a = pg.evaluate("WH.vo"); pg.wait_for_timeout(1500); b2 = pg.evaluate("WH.vo")
             rec(t + '.mp3Plays', b2['mode'] == 'mp3' and not b2['paused'] and (b2['t'] > a['t'] or b2['id'] != a['id']) and b2['t'] > 0 and '/voice/p2_' in b2['src'], str({k: b2[k] for k in ('id', 'mode', 't', 'paused')}))
             rec(t + '.bgmDucked', b2['duck'] < .5, str(b2['duck']))
             pg.evaluate("Aud.setMuted(true)"); pg.wait_for_timeout(2500); m = pg.evaluate("WH.vo")
