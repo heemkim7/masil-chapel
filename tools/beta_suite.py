@@ -33,7 +33,7 @@ with sync_playwright() as p:
     if want('size'):
         for w, h in SIZES:
             t = f'size.{w}x{h}'; pg, errs, c = boot(b, w, h)
-            rec(t + '.instantGuest', pg.evaluate("getComputedStyle(document.querySelector('#title')).display") == 'none' and pg.evaluate("G.S.name").startswith('손님 ') and (pg.evaluate(VIS, '#gchip') == 'ok' or pg.evaluate("!!window.__resumed")), pg.evaluate(VIS, '#gchip'))
+            rec(t + '.instantGuest', pg.evaluate("getComputedStyle(document.querySelector('#title')).display") == 'none' and pg.evaluate("G.S.name").startswith('성도 ') and (pg.evaluate(VIS, '#gchip') == 'ok' or pg.evaluate("!!window.__resumed")), pg.evaluate(VIS, '#gchip'))
             start(pg); pg.screenshot(path=f'shots/beta/{w}x{h}_hud.png')
             mob = pg.evaluate(VIS, '#btn-menu') == 'ok' and pg.evaluate(VIS, '#btn-inv') != 'ok'
             for sel in (['#btn-set', '#btn-menu', '#btn-gacha', '#dongbtn', '#btn-act'] if mob else ['#btn-set', '#btn-wh', '#btn-gacha', '#btn-inv', '#dongbtn', '#btn-act']):

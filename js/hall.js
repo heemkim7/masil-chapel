@@ -122,8 +122,8 @@ function tapSeat(cx, cy) { // a drawn person wins (front rows first): show their
   if (!best) return; const nm = whoAt(best.i); if (nm) { tag = { seat: best.i, text: nm, t: performance.now() }; return; }
   me.seat = best.i; localStorage.setItem('h2_seat2', best.id); claim(); buildNpcs(); msg('빈자리로 옮겼어요'); }
 let tag = null;
-function whoAt(i) { const g = G(); if (i === me.seat) return (g.S?.name || '나') + ' (나)'; for (const p of peers.values()) if (p.seat === i) return p.name || '손님';
-  const n = npcs.find(q => q.seat === i && !q.out); return n ? '손님 ' + (1000 + hash('nick' + SEATS[i].id) % 9000) : null; }
+function whoAt(i) { const g = G(); if (i === me.seat) return (g.S?.name || '나') + ' (나)'; for (const p of peers.values()) if (p.seat === i) return p.name || '성도';
+  const n = npcs.find(q => q.seat === i && !q.out); return n ? '성도 ' + (1000 + hash('nick' + SEATS[i].id) % 9000) : null; }
 function drawTag(c) { if (!tag) return; const a = 1 - Math.max(0, (performance.now() - tag.t - 2200) / 400); if (a <= 0) { tag = null; return; } const f = FIGS.find(q => q.id === SEATS[tag.seat].id); if (!f) return;
   c.setTransform(dpr, 0, 0, dpr, 0, 0); c.globalAlpha = a; c.font = '700 13px Pretendard, sans-serif'; c.textAlign = 'center'; const w = c.measureText(tag.text).width + 18, x = f.x + f.w / 2, y = Math.max(16, f.headY - 10);
   c.fillStyle = 'rgba(255,250,243,.95)'; c.strokeStyle = 'rgba(62,42,38,.55)'; c.lineWidth = 1; c.beginPath(); c.roundRect(x - w / 2, y - 22, w, 22, 11); c.fill(); c.stroke(); c.fillStyle = '#4a3440'; c.fillText(tag.text, x, y - 7); c.globalAlpha = 1; }

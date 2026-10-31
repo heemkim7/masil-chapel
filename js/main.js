@@ -74,7 +74,7 @@ $('#pname').value = cuteNick();
 $('#newgame').onclick = () => { const n = $('#pname').value.trim() || '새싹'; St.wipe(); const sv = St.newSave(n, 'basic'); sv.av = selAv; startGame(sv); };
 $('#continue').onclick = () => { const s = St.load(); if (s) startGame(s); };
 
-function guestSave() { const sv = St.newSave('손님 ' + (1000 + Math.floor(Math.random() * 9000)), 'basic'); sv.av = AV.DEFAULT; return sv; }
+function guestSave() { const sv = St.newSave('성도 ' + (1000 + Math.floor(Math.random() * 9000)), 'basic'); sv.av = AV.DEFAULT; return sv; }
 const HAIR3 = { f: [[0, '단발'], [4, '긴 머리'], [3, '포니테일']], m: [[0, '숏컷'], [4, '앞머리'], [3, '곱슬']] };
 function genderChip() { // first screen: clear 여/남 choice + 3 hairstyles, same church outfit per gender, then 입장
   const d = document.createElement('div'); d.id = 'gpick'; let g = 'f', hs = 0;
@@ -88,7 +88,7 @@ function genderChip() { // first screen: clear 여/남 choice + 3 hairstyles, sa
 function cuteNick() { const A = ['포근한', '작은', '반짝이는', '말랑한', '다정한', '졸린', '용감한', '수줍은', '향긋한', '보송한'], B = ['양', '별', '구름', '토끼', '참새', '민들레', '곰돌이', '새싹', '달님', '솜사탕'];
   return A[Math.random() * A.length | 0] + ' ' + B[Math.random() * B.length | 0]; }
 function startGame(save) { touchSess();
-  S = save; S.decorInv ||= {}; if (!S.started) { Object.assign(S.decorInv, cfg.startDecor); S.started = 1; }
+  S = save; if (/^손님 \d+$/.test(S.name || '')) S.name = S.name.replace('손님', '성도'); S.decorInv ||= {}; if (!S.started) { Object.assign(S.decorInv, cfg.startDecor); S.started = 1; }
   $('#title').style.display = 'none'; $('#hud').style.display = 'block'; S.mode = null; document.body.classList.remove('decor', 'worship');
   player = new Char(SP, 'player', S.outfit, 0, 0, { name: S.name, tagColor: '#ffe38a', equip: S.equip, cfg });
   S.cos ||= []; S.av ||= `f.1.0.0.0.${['basic', 'choir', 'mint'].includes(S.outfit) ? S.outfit : 'basic'}.-.-.-.-`; AV.apply(player, S.av); AV.preload(AV.parse(S.av));
@@ -385,7 +385,7 @@ document.querySelectorAll('.close').forEach(b => b.onclick = closeModal);
 $('#btn-gacha').onclick = () => (window.P2 ? P2.openOffer(false) : openGacha()); $('#groll').onclick = doRoll; $('#btn-inv').onclick = openInv; $('#btn-decor').onclick = openDecor; $('#btn-board').onclick = openBoard;
 $('#btn-act').onclick = () => worship ? worshipTap() : interact(); $('#wtap').onclick = worshipTap;
 $('#minimap').onclick = () => openMap(); $('#dtext').onclick = () => dlgAdvance(); $('#btn-jump').onclick = doJump;
-$('#chlv') && ($('#chlv').onclick = () => window.P2?.openLevels()); $('#lvbox') && ($('#lvbox').style.cursor = 'pointer', $('#lvbox').onclick = () => window.P2?.openLevels()); $('#btn-set') && ($('#btn-set').onclick = () => window.P2?.openSet()); $('#btn-menu').onclick = () => dialog('🚪 나가기', '어떻게 나갈까요?\n· 잠깐 나가기: 이 기기에 저장이 남아 다음에 이어서 해요\n· 로그아웃: 이 기기의 세션·저장을 지우고 다음엔 새 손님으로 시작해요 (서버 기록은 남지만 손님 계정은 다시 찾을 수 없어요)', [['🚪 잠깐 나가기', () => { persist(); endSess(); net.leave(); location.reload(); }], ['🔓 로그아웃', () => dialog('🔓 로그아웃', '정말 로그아웃할까요?\n손님 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요.', [['로그아웃', () => { window.__RESETTING = true; try { net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]])], ['취소', null]]);
+$('#chlv') && ($('#chlv').onclick = () => window.P2?.openLevels()); $('#lvbox') && ($('#lvbox').style.cursor = 'pointer', $('#lvbox').onclick = () => window.P2?.openLevels()); $('#btn-set') && ($('#btn-set').onclick = () => window.P2?.openSet()); $('#btn-menu').onclick = () => dialog('🚪 나가기', '어떻게 나갈까요?\n· 잠깐 나가기: 이 기기에 저장이 남아 다음에 이어서 해요\n· 로그아웃: 이 기기의 세션·저장을 지우고 다음엔 새 성도으로 시작해요 (서버 기록은 남지만 성도 계정은 다시 찾을 수 없어요)', [['🚪 잠깐 나가기', () => { persist(); endSess(); net.leave(); location.reload(); }], ['🔓 로그아웃', () => dialog('🔓 로그아웃', '정말 로그아웃할까요?\n성도 계정이라 이 기기의 저장을 지우면 지금 캐릭터로 다시 돌아올 수 없어요.', [['로그아웃', () => { window.__RESETTING = true; try { net.leave(); } catch { } window.MaeulReset.logout(); }], ['취소', null]])], ['취소', null]]);
 let toastT; function toast(t) { const d = $('#toast'); d.textContent = t; d.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => d.classList.remove('show'), 2600); }
 function coinFx() { const d = $('#coinbox'); d.classList.remove('bump'); void d.offsetWidth; d.classList.add('bump'); }
 
