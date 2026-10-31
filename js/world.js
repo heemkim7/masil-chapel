@@ -149,7 +149,7 @@ export class Char {
     if (M) { const k2 = k * M[0]; ctx.drawImage(img, -M[1] * k2, -M[2] * k2, at.frameW * k2, at.frameH * k2); return ((img.top ?? 0) - M[2]) * k2; } ctx.drawImage(img, -at.frameW * k / 2, -at.baselineY * k, at.frameW * k, at.frameH * k); return ((img.top ?? 0) - at.baselineY) * k;
   }
   _layer(ctx, p, alpha) {
-    ctx.save(); ctx.translate(this.x, this.y - p.lift); // char-fix: no per-char integer snap (camera is already device-pixel snapped; double rounding = 1px stair-step jitter) if (p.rot) ctx.rotate(p.rot); ctx.scale(p.flip ? -p.sx : p.sx, p.sy);
+    ctx.save(); ctx.translate(this.x, this.y - p.lift); if (p.rot) ctx.rotate(p.rot); ctx.scale(p.flip ? -p.sx : p.sx, p.sy); // char-fix: no per-char integer snap (camera is already device-pixel snapped; double rounding = 1px stair-step jitter). h29b: this comment had swallowed the flip/scale → E/NE/SE showed the left-facing image
     const back = p.dir === 'N' || p.dir === 'NW' || p.dir === 'NE', side = p.dir === 'E' || p.dir === 'W';
     const acc = (front) => { if (!this.equip) return; for (const slot of ['back', 'hat', 'pet']) { const id = this.equip[slot]; if (!id) continue; const A = this.cfg.acc[id]; const ai = IMG[A.img]; if (!ai) continue;
       const isFront = A.back ? back : true; if (isFront !== front) continue;
