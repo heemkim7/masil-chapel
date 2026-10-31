@@ -85,3 +85,5 @@
 - [x] Title live badge: separate read-only Supabase client subscribes (never tracks) to `chapel:lobby` presence; QA uses `chapelqa:` so never mixed; NPC bots are not in presence. Hidden at 0/offline. Verified 2-client: 1 → shows, leave → hidden.
 - [ ] 감사 촛불 today badge: NOT added — no real candle data/table exists (btn-candle hidden, no Supabase source).
 - [x] test_v8 local: 0 page errors desktop/mobile. Screenshots: shots/fb5/{before,after}_{desktop,mobile}_{title,gacha,inv}.png, after_desktop_title_live1.png
+
+- [x] 2F worship hall (HYBRID v3) – 0c17549, live 2 clean passes 390/1366 (2026-10-31); voice mp3 + duck .25 verified live; suite 184/184
