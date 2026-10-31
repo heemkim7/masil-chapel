@@ -179,7 +179,8 @@ function objs(tm) { const p = S() && st(), key = 'in_' + today(), got = (p && p[
   // completed stained-glass windows glow on the interior wall
   GLASS.forEach((w, i) => { if ((p?.glass?.[w.id] || 0) < w.n) return; out.push({ y: -1, draw: g => { const x = 640 + i * 260, y = 150; g.save(); g.globalAlpha = .55 + .2 * Math.sin(tm * 2 + i); const gr = g.createRadialGradient(x, y, 10, x, y, 120); gr.addColorStop(0, 'rgba(255,240,170,.9)'); gr.addColorStop(1, 'rgba(255,240,170,0)'); g.fillStyle = gr; g.fillRect(x - 120, y - 120, 240, 240); g.globalAlpha = 1; g.drawImage(IMG('v7/ic_glass.webp'), x - 55, y - 70, 110, 140); g.restore(); } }); });
   return out; }
-const imgs = {}; function IMG(n) { if (!imgs[n]) { imgs[n] = new Image(); imgs[n].src = 'assets/' + n; } return imgs[n]; }
+const WEBP_OK = (() => { try { return document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp'); } catch { return false; } })(); const webp = s => WEBP_OK && /^assets\/.*\.png$/.test(s) && !/mask|bak|icon|\/og|diag_src/.test(s) ? s.slice(0, -4) + '.webp' : s;
+const imgs = {}; function IMG(n) { if (!imgs[n]) { const i = imgs[n] = new Image(), s = 'assets/' + n, w = webp(s); i.onerror = () => { if (w !== s && i.src.endsWith('.webp')) i.src = s; }; i.src = w; } return imgs[n]; }
 function fieldObjs(tm) { const out = []; const im = IMG('v7/ic_shard.webp');
   for (const o of shards) if (o.t < tm) out.push({ y: o.y, draw: g => { const b = Math.sin(tm * 3 + o.i) * 6; g.fillStyle = 'rgba(255,250,200,.35)'; g.beginPath(); g.ellipse(o.x, o.y, 20, 7, 0, 0, 7); g.fill(); g.drawImage(im, o.x - 20, o.y - 50 + b, 40, 40); } });
   // per-dong signboard + landmark label

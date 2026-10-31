@@ -90,7 +90,7 @@ export const Aud = {
   TRACKS: { old100: 'old100', newbrit: 'newbrit', nicaea: 'nicaea', ode: 'joy', joy: 'joy', stanne: 'stanne' },
   music(id) { // play a recorded hymn (loops); returns true if a recording is used, falls back to synth hymn()
     const p = this.P(); this.track = id; if (!p.bgm) return false; const f = this.TRACKS[id] || 'old100';
-    if (!this.el) { this.el = new Audio(); this.el.loop = true; this.el.preload = 'auto'; this.el.setAttribute('playsinline', ''); this.el.onerror = () => { this.elBad = true; this.track && this.hymn(this.track); }; }
+    if (!this.el) { this.el = new Audio(); this.el.loop = true; this.el.preload = 'none'; this.el.setAttribute('playsinline', ''); this.el.onerror = () => { this.elBad = true; this.track && this.hymn(this.track); }; }
     if (this.elBad) { this.hymn(id); return false; }
     const src = `assets/audio/${f}.mp3`; if (!this.el.src.endsWith(src)) this.el.src = src; this.el.currentTime = 0;
     if (!this.ambWant() && this.amb && this.amb.g.gain.value > .01) this.elFade = 0; const pr = this.el.play(); pr && pr.catch(() => { this.pending = true; }); return true; },

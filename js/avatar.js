@@ -47,7 +47,8 @@ export function parse(code) { const p = String(code || DEFAULT).split('.'); cons
   const cos = i => (COS[p[i]] && COS[p[i]].slot === SLOTS[i - 6]) ? p[i] : '-';
   return { g, a: p.length > 1 ? n(1, 3) : +d[1], s: n(2, SKIN.length - 1), hs: n(3, HAIRS[g].length - 1), hc: n(4, HAIRC.length - 1), o, hat: cos(6), face: cos(7), back: cos(8), held: cos(9) }; }
 export function encode(a) { return [a.g, a.a, a.s, a.hs, a.hc, a.o, a.hat, a.face, a.back, a.held].join('.'); }
-const loaded = {}; function img(src) { if (!loaded[src]) { const i = new Image(); i.src = src; loaded[src] = i; } return loaded[src].complete && loaded[src].naturalWidth ? loaded[src] : null; }
+const WEBP_OK = (() => { try { return document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp'); } catch { return false; } })(); const webp = s => WEBP_OK && /^assets\/.*\.png$/.test(s) && !/mask|bak|icon|\/og|diag_src/.test(s) ? s.slice(0, -4) + '.webp' : s;
+const loaded = {}; function img(src) { if (!loaded[src]) { const i = new Image(), w = webp(src); i.onerror = () => { if (w !== src && i.src.endsWith('.webp')) i.src = src; }; i.src = w; loaded[src] = i; } return loaded[src].complete && loaded[src].naturalWidth ? loaded[src] : null; }
 const tintCache = {};
 function tinted(id, rgb) { const k = id + rgb; if (tintCache[k]) return tintCache[k]; const im = img(`assets/cos/${id}.png`); if (!im) return null;
   const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0); const d = g.getImageData(0, 0, c.width, c.height), p = d.data;

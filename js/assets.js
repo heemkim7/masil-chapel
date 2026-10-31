@@ -1,7 +1,8 @@
 // Asset loading + character sprite atlas access
 export const IMG = {};
+const WEBP_OK = (() => { try { return document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp'); } catch { return false; } })(); export const webp = s => WEBP_OK && /^assets\/.*\.png$/.test(s) && !/mask|bak|icon|\/og|diag_src/.test(s) ? s.slice(0, -4) + '.webp' : s;
 export function loadImg(key, src) {
-  return new Promise((res, rej) => { const i = new Image(); i.onload = () => { IMG[key] = i; res(i); }; i.onerror = () => rej(new Error('img ' + src)); i.src = src; });
+  return new Promise((res, rej) => { const i = new Image(); i.onload = () => { IMG[key] = i; res(i); }; const w = webp(src); i.onerror = () => { if (i.src.endsWith('.webp')) { i.src = src; return; } rej(new Error('img ' + src)); }; i.src = w; });
 }
 // first row with visible pixels (used to place name tags/bubbles above the real head top, never over it)
 function contentTop(g, w, h) { const d = g.getImageData(0, 0, w, h).data; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) return y; return h; }

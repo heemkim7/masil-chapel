@@ -1,4 +1,7 @@
-// Realtime multiplayer via Supabase Realtime (Presence = who's here, Broadcast = 10Hz moves, chat, emotes, jumps).
+// Realtime multiplayer via Supabase Realtime (Presence = who's here, Broadcast = ≤2Hz moves, chat, emotes, jumps).
+// SYNC LAYER: this file is the ONLY module that talks to the realtime transport. The game uses just
+//   join(room,me) leave() tick(me) sample(peer) send(ev,payload) chat() on(ev,fn) lobby()/leaveLobby() peers/status/counts
+// To move to a dedicated WebSocket server, reimplement these methods here; nothing else needs to change.
 // Fully optional: if the CDN or Supabase is unreachable, the game keeps running single-player.
 // v6: Seoul project (ap-northeast-2). Rooms = 행정동 code + scene; a shared lobby presence channel gives per-dong head counts.
 export const SUPA_URL = 'https://gisykxqhticmdhmupnry.supabase.co';
@@ -8,6 +11,7 @@ export const NS = /[?&]qa=1/.test(location.search) || window.__QA || navigator.w
 const CDN = 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 export class Net {
+  static POS_MS = 500; static FAR_MS = 5000; static NEAR = 1400; // ≤2Hz near peers, 0.2Hz when nobody is near
   constructor() { this.sb = null; this.ch = null; this.room = null; this.id = Net.cid(); this.peers = new Map(); this.status = 'offline'; this.h = {}; this.me = null; this.lastSend = 0; this.lastPres = 0; }
   // v13: ONE stable presence key per user/device (persisted) → the same person can never appear as two peers (join/leave flapping after 혼자 모드 ↔ 함께)
   static cid() { try { let c = localStorage.getItem('maeul_cid'); if (!c) { c = Math.random().toString(36).slice(2, 10); localStorage.setItem('maeul_cid', c); } return c; } catch { return Math.random().toString(36).slice(2, 10); } }
@@ -52,15 +56,19 @@ export class Net {
     if (!fromPresence || !p.buf.length) { p.buf.push({ t: now, x: m.x, y: m.y, face: m.face, anim: m.anim }); if (p.buf.length > 20) p.buf.shift(); }
     this.emit('update', p);
   }
-  // called each frame; broadcasts at ~10Hz (and immediately on stop), presence refresh at ~0.5Hz
+  // Sync budget (v14 cost pass): idle/seated → 0 msgs; moving → ≤2Hz and only when a peer is near (same floor, ≤NEAR px),
+  // otherwise one keep-alive every 5s; +1 final stop update. Presence (track) only when appearance/floor/name changes.
   tick(me) {
     this.me = me; if (!this.ch || this.status !== 'online') return; const now = performance.now();
-    const st = this.state(), moved = !this.lastSt || st.x !== this.lastSt.x || st.y !== this.lastSt.y || st.face !== this.lastSt.face || st.anim !== this.lastSt.anim || st.fl !== this.lastSt.fl;
-    if (now - this.lastSend > 100 && moved) { this.lastSend = now; this.lastSt = st; this.ch.send({ type: 'broadcast', event: 'pos', payload: st }); }
-    if (now - this.lastPres > 2500 && (JSON.stringify([st.outfit, st.av, st.equip, st.fl]) !== this.lastPresK || st.name !== this.lastPresSt?.name || (now - this.lastPres > 15000 && (st.x !== this.lastPresSt?.x || st.y !== this.lastPresSt?.y || st.face !== this.lastPresSt?.face)))) { this.lastPres = now; this.lastPresSt = st; this.lastPresK = JSON.stringify([st.outfit, st.av, st.equip, st.fl]); this.ch.track(st); }
+    const st = this.state(), L = this.lastSt, moved = !L || st.x !== L.x || st.y !== L.y || st.face !== L.face || st.anim !== L.anim || st.fl !== L.fl;
+    if (moved) { const near = this.nearPeer(st), gap = near ? Net.POS_MS : Net.FAR_MS;
+      if (now - this.lastSend > gap) { this.lastSend = now; this.lastSt = st; this.sent = (this.sent || 0) + 1; this.ch.send({ type: 'broadcast', event: 'pos', payload: st }); } }
+    const K = JSON.stringify([st.outfit, st.av, st.equip, st.fl, st.name]);
+    if (K !== this.lastPresK && now - this.lastPres > 2500) { this.lastPres = now; this.lastPresK = K; this.ch.track(st); }
   }
-  // interpolated sample ~120ms in the past
-  sample(p) { const b = p.buf; if (!b.length) return null; const t = performance.now() - 120;
+  nearPeer(st) { for (const p of this.peers.values()) { const b = p.buf[p.buf.length - 1]; if (!b || p.goneAt) continue; if ((p.fl ?? null) !== (st.fl ?? null)) continue; if (Math.abs(b.x - st.x) < Net.NEAR && Math.abs(b.y - st.y) < Net.NEAR) return true; } return false; }
+  // interpolated sample ~420ms in the past (3Hz senders)
+  sample(p) { const b = p.buf; if (!b.length) return null; const t = performance.now() - 600;
     if (b.length === 1 || t <= b[0].t) return b[0];
     for (let i = b.length - 1; i > 0; i--) if (b[i - 1].t <= t) { const a = b[i - 1], c = b[i]; if (t >= c.t) return { ...c, stale: t - c.t }; const k = (t - a.t) / (c.t - a.t); return { x: a.x + (c.x - a.x) * k, y: a.y + (c.y - a.y) * k, face: c.face, anim: c.anim }; }
     return b[b.length - 1]; }

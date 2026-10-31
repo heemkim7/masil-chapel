@@ -67,7 +67,7 @@ export function leave() { if (!open) return; rest(false, 1); open = false; windo
 // Uses its own <audio> element (not WebAudio) so it keeps playing when the screen idles or the tab is backgrounded; Media Session gives lock-screen controls.
 const REST = [['old100', '만복의 근원 하나님 (Old Hundredth)'], ['stanne', '오 신실하신 주 (St. Anne)'], ['newbrit', '나 같은 죄인 살리신 (Amazing Grace)'], ['nicaea', '거룩 거룩 거룩 (Nicaea)']];
 let resting = false, restEl = null, restI = 0;
-function songEl() { if (!restEl) { restEl = new Audio(); restEl.preload = 'auto'; restEl.setAttribute('playsinline', ''); restEl.onended = () => { restI++; restPlay(); };
+function songEl() { if (!restEl) { restEl = new Audio(); restEl.preload = 'none'; restEl.setAttribute('playsinline', ''); restEl.onended = () => { restI++; restPlay(); };
     const ms = navigator.mediaSession; if (ms) { try { ms.setActionHandler('play', () => { restEl.play().catch(() => { }); ms.playbackState = 'playing'; }); ms.setActionHandler('pause', () => { restEl.pause(); ms.playbackState = 'paused'; }); ms.setActionHandler('nexttrack', () => { restI++; restPlay(); }); } catch { } } } return restEl; }
 function songPlay() { const A = window.Aud; try { A?.stopMusic?.(); A?.el?.pause(); } catch { } songEl(); restPlay(); }
 let fadeT = 0; function restPlay() { const [f, n] = TR[restI % TR.length], a = restEl, vol = Math.min(1, (window.Aud?.P?.().bgmVol ?? .5) * 1.1); const sel = $('#h2song'); if (sel) sel.value = restI % TR.length;

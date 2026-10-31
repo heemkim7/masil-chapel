@@ -356,7 +356,7 @@ function onPhase(P) { const g = G(), p = P.p; if (lastPh >= 0) { if (p.k === 'so
 // ---------------- pastor/staff voice: pre-generated Korean mp3 per subtitle line (tools/gen_voice.py), Web Speech ko-KR fallback; ducks BGM; respects mute/volume/voice pref
 const VO = { a: null, id: null, man: null, mode: '', tts: 0, err: 0,
   load() { if (this.man) return; this.man = {}; fetch('assets/audio/voice/manifest.json').then(r => r.json()).then(m => { this.man = m; }).catch(() => { }); },
-  prime() { this.load(); if (!this.a) { const a = this.a = new Audio(); a.preload = 'auto'; a.onended = a.onpause = () => this.duck(false); a.onplay = () => this.duck(true); a.onerror = () => { if (this.id && this.mode === 'mp3') { this.err++; this.speak(this.txt); } }; }
+  prime() { this.load(); if (!this.a) { const a = this.a = new Audio(); a.preload = 'none'; a.onended = a.onpause = () => this.duck(false); a.onplay = () => this.duck(true); a.onerror = () => { if (this.id && this.mode === 'mp3') { this.err++; this.speak(this.txt); } }; }
     try { const a = this.a; a.muted = true; a.src = 'assets/audio/voice/p1_3.mp3'; a.play().then(() => { a.pause(); a.muted = false; }).catch(() => { a.muted = false; }); } catch { } }, // called inside the entering tap so mobile unlocks playback
   on() { const A = window.Aud; return !!A && !A.muted && A.P().voice !== false; },
   duck(d) { const A = window.Aud; if (A) A.duck = d ? .25 : 1; },
