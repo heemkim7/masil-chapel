@@ -526,8 +526,8 @@ function render() {
     ctx.fillStyle = '#6b4f9a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lbl, at.x, at.y - 14 + b); ctx.textBaseline = 'alphabetic'; } }
   for (const o of objs) if (o.c) o.c.drawLabel(ctx);
   // interaction hint marker
-  const t = !modal && nearest(); if (t && t.type !== 'pew' && t.type !== 'shop') { const p = t.type === 'npc' ? t.n : t.type === 'seat' ? { x: inside.F().seats[t.j][0], y: inside.F().seats[t.j][1] } : t.type === 'stairs' ? t.st : t.type === 'spot' ? t.sp : t.type === 'sign' ? { x: P2.signPos().x, y: P2.signPos().y + 30 } : t.type === 'door' ? cfg.chapel.door : cfg.interior[{ exit: 'door', offering: 'offering', board: 'board' }[t.type]];
-    ctx.font = '30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('💬', p.x, p.y - (t.type === 'npc' ? 200 : 170) + Math.sin(tm * 4) * 5); }
+  const t = !modal && nearest(); if (t && t.type !== 'pew' && t.type !== 'shop') { const p = t.type === 'npc' ? t.n : t.type === 'seat' ? { x: inside.F().seats[t.j][0], y: inside.F().seats[t.j][1] } : t.type === 'stairs' ? t.st : t.type === 'spot' ? t.sp : t.type === 'sign' ? { x: P2.signPos().x, y: P2.signPos().y + 30 } : t.type === 'door' ? cfg.chapel.door : t.type === 'candle' ? inside.candle() : cfg.interior[{ exit: 'door', offering: 'offering', board: 'board' }[t.type]]; if (!p) { /* h29c: unknown hint target → skip marker instead of throwing every frame */ } else {
+    ctx.font = '30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('💬', p.x, p.y - (t.type === 'npc' ? 200 : 170) + Math.sin(tm * 4) * 5); } }
   if (scene === 'field') { const D = cfg.chapel.door; ctx.font = '700 18px Pretendard,sans-serif'; ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(80,60,100,.6)'; ctx.lineWidth = 4; ctx.textAlign = 'center'; const nm = `⛪ 마실채플 · ${V.current() ? V.current().name : '우리 동네'}`; ctx.strokeText(nm, D.x, D.y + 40); ctx.fillText(nm, D.x, D.y + 40); }
 }
 function sitDraw(g, c, sit) { if (!sit || scene !== 'inside') { c.draw(g); return; }
