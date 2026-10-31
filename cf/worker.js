@@ -77,7 +77,7 @@ export class Room extends DurableObject {
       if (e === 'pos' && p) { a.fl = p.fl ?? null; a.m = Object.assign(a.m || {}, { x: p.x, y: p.y, face: p.face, anim: p.anim, fl: p.fl }); if (Date.now() - (a.sv || 0) > 2000) { a.sv = Date.now(); this.save(w, a); } const s = JSON.stringify({ t: 'b', e, p }); for (const [x, b] of this.socks()) if (x !== w && b.q && (b.fl == null || a.fl == null || b.fl === a.fl)) this.tx(x, s); }
       else this.bc({ t: 'b', e, p }, w); }
     else if (m.t === 'tap' && a.q && /^(pray|candle)$/.test(m.k)) { const ok = this.tap(a, m.k, String(m.r ?? '').slice(0, 64)); this.tx(w, { t: 'tapok', k: m.k, r: m.r, dup: !ok }); }
-    else if (m.t === 'tr' && m.m && typeof m.m === 'object' && JSON.stringify(m.m).length < 1500) { const M = m.m, keep = ['name', 'outfit', 'av', 'equip', 'fl', 'x', 'y', 'face', 'anim', 'st', 'seat', 'g', 'hair'];
+    else if (m.t === 'tr' && m.m && typeof m.m === 'object' && JSON.stringify(m.m).length < 1500) { const M = m.m, keep = ['name', 'outfit', 'av', 'equip', 'fl', 'x', 'y', 'face', 'anim', 'st', 'seat', 'g', 'hair', 'dong', 'shard', 'act', 'at', 'seat_id', 'look', 'state', 'step', 'mode', 'joined_at'];
       a.m = { id: a.k }; for (const f of keep) if (M[f] !== undefined) a.m[f] = M[f]; if (typeof a.m.name === 'string') a.m.name = a.m.name.slice(0, 12); a.fl = a.m.fl ?? a.fl ?? null; this.save(w, a); if (a.q) this.bc({ t: 'pj', k: a.k, m: a.m }); }
     else if (m.t === 'ut') { a.m = null; this.save(w, a); if (a.q) this.leaveK(a.k, w); }
     this.scan(); this.meter(); }
