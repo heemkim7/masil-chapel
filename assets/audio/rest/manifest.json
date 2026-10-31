@@ -1,0 +1,162 @@
+{
+ "version": 1,
+ "loudness_lufs": -18,
+ "format": "mp3 128k CBR 44.1kHz stereo",
+ "loop_note": "1.5s fade-in, 5s fade-out; play as playlist/crossfade",
+ "tracks": [
+  {
+   "id": "bethany",
+   "file": "assets/audio/rest/01_bethany.mp3",
+   "title_ko": "내 주를 가까이 하게 함은",
+   "title_original": "Nearer, My God, to Thee (tune BETHANY)",
+   "composer": "Lowell Mason (1792–1872)",
+   "year": 1856,
+   "instrumentation": "piano",
+   "duration_s": 185.9,
+   "licence_basis": "Composition public domain (composer d. 1872, >70 years); score source: https://commons.wikimedia.org/wiki/File:Nearer_my_god_to_thee.MID [Public domain (Commons)]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "stille",
+   "file": "assets/audio/rest/02_stille.mp3",
+   "title_ko": "고요한 밤 거룩한 밤",
+   "title_original": "Stille Nacht, heilige Nacht",
+   "composer": "Franz Xaver Gruber (1787–1863)",
+   "year": 1818,
+   "instrumentation": "piano + strings",
+   "duration_s": 223.0,
+   "licence_basis": "Composition public domain (composer d. 1863, >70 years); score source: https://commons.wikimedia.org/wiki/File:Stille_Nacht,_heilige_Nacht.mid [CC0 1.0]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "toplady",
+   "file": "assets/audio/rest/03_toplady.mp3",
+   "title_ko": "만세 반석 열리니",
+   "title_original": "Rock of Ages (tune TOPLADY)",
+   "composer": "Thomas Hastings (1784–1872)",
+   "year": 1830,
+   "instrumentation": "organ + strings",
+   "duration_s": 207.2,
+   "licence_basis": "Composition public domain (composer d. 1872, >70 years); score source: https://commons.wikimedia.org/wiki/File:Rock_of_Ages_(Hastings_tune).mid [CC0 1.0]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "itiswell",
+   "file": "assets/audio/rest/04_itiswell.mp3",
+   "title_ko": "내 평생에 가는 길",
+   "title_original": "It Is Well with My Soul (tune VILLE DU HAVRE)",
+   "composer": "Philip P. Bliss (1838–1876)",
+   "year": 1876,
+   "instrumentation": "piano + strings",
+   "duration_s": 205.0,
+   "licence_basis": "Composition public domain (composer d. 1876, >70 years); score source: https://commons.wikimedia.org/wiki/File:It_Is_Well_with_My_Soul.mid [CC0 1.0]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "garden",
+   "file": "assets/audio/rest/05_garden.mp3",
+   "title_ko": "저 장미꽃 위에 이슬",
+   "title_original": "In the Garden (tune GARDEN)",
+   "composer": "C. Austin Miles (1868–1946)",
+   "year": 1912,
+   "instrumentation": "piano",
+   "duration_s": 155.8,
+   "licence_basis": "Composition public domain (composer d. 1946, >70 years); score source: https://commons.wikimedia.org/wiki/File:IntheGarden.MID [Public domain (Commons)]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "largo",
+   "file": "assets/audio/rest/06_largo.mp3",
+   "title_ko": "라르고 (옴브라 마이 푸)",
+   "title_original": "Largo – 'Ombra mai fù' from Serse, HWV 40",
+   "composer": "George Frideric Handel (1685–1759)",
+   "year": 1738,
+   "instrumentation": "strings",
+   "duration_s": 146.8,
+   "licence_basis": "Composition public domain (composer d. 1759, >70 years); score source: https://commons.wikimedia.org/wiki/File:Largo_(Händel).mid [CC0 1.0]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "wachet",
+   "file": "assets/audio/rest/07_wachet.mp3",
+   "title_ko": "깨어라, 부르는 소리 있도다",
+   "title_original": "Wachet auf, ruft uns die Stimme",
+   "composer": "Philipp Nicolai (1556–1608)",
+   "year": 1599,
+   "instrumentation": "organ",
+   "duration_s": 179.9,
+   "licence_basis": "Composition public domain (composer d. 1608, >70 years); score source: https://commons.wikimedia.org/wiki/File:Wachet_auf,_ruft_uns_die_Stimme.mid [CC0 1.0]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "nundanket",
+   "file": "assets/audio/rest/08_nundanket.mp3",
+   "title_ko": "다 감사드리세",
+   "title_original": "Nun danket alle Gott",
+   "composer": "Johann Crüger (1598–1662)",
+   "year": 1647,
+   "instrumentation": "organ + strings",
+   "duration_s": 134.9,
+   "licence_basis": "Composition public domain (composer d. 1662, >70 years); score source: https://commons.wikimedia.org/wiki/File:Nun_danket_alle_Gott_(EG,_spätere_Form).mid [CC0 1.0]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "festeburg",
+   "file": "assets/audio/rest/09_festeburg.mp3",
+   "title_ko": "내 주는 강한 성이요",
+   "title_original": "Ein feste Burg ist unser Gott",
+   "composer": "Martin Luther (1483–1546)",
+   "year": 1529,
+   "instrumentation": "organ",
+   "duration_s": 162.9,
+   "licence_basis": "Composition public domain (composer d. 1546, >70 years); score source: https://commons.wikimedia.org/wiki/File:Ein_feste_Burg_ist_unser_Gott_(EG_362_spätere_Form).mid [CC0 1.0]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "gordon",
+   "file": "assets/audio/rest/10_gordon.mp3",
+   "title_ko": "내 주 되신 주를 참 사랑하고",
+   "title_original": "My Jesus, I Love Thee (tune GORDON)",
+   "composer": "Adoniram J. Gordon (1836–1895)",
+   "year": 1876,
+   "instrumentation": "piano + strings",
+   "duration_s": 136.5,
+   "licence_basis": "Composition public domain (composer d. 1895, >70 years); score source: https://commons.wikimedia.org/wiki/File:My_Jesus,_I_Love_Thee.mid [CC0 1.0]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "passion",
+   "file": "assets/audio/rest/11_passion.mp3",
+   "title_ko": "오 거룩하신 주님 (수난 코랄)",
+   "title_original": "Passion Chorale 'O Haupt voll Blut und Wunden' (St Matthew Passion BWV 244 no. 62)",
+   "composer": "Hans Leo Hassler (1564–1612), harm. J. S. Bach (1685–1750)",
+   "year": 1601,
+   "instrumentation": "strings",
+   "duration_s": 213.3,
+   "licence_basis": "Composition public domain (composer d. 1750, >70 years); score source: music21 bundled Bach chorale corpus (bach/bwv244.62) – edition of a 1727 score [Public domain composition/score data]; recording: own render (additive synth, no samples), CC0 1.0"
+  },
+  {
+   "id": "canon",
+   "file": "assets/audio/rest/12_canon.mp3",
+   "title_ko": "파헬벨 캐논 (묵상)",
+   "title_original": "Canon in D (ground & canon lines) – free meditation arrangement",
+   "composer": "Johann Pachelbel (1653–1706); variations original",
+   "year": 1694,
+   "instrumentation": "piano + strings",
+   "duration_s": 199.6,
+   "licence_basis": "Composition public domain (Pachelbel d. 1706); ground bass ref: Commons 'Pachelbel Canon bass line (quarter notes).mid' [Public domain]; canon lines entered by us from the PD work, added variations original; recording: own render, CC0 1.0"
+  },
+  {
+   "id": "pad_stillwater",
+   "file": "assets/audio/rest/13_pad_stillwater.mp3",
+   "title_ko": "잔잔한 물가 (묵상 패드)",
+   "title_original": "Still Water – original meditation pad",
+   "composer": "마실채플 original (generated, 2026)",
+   "year": 2026,
+   "instrumentation": "strings pad + piano",
+   "duration_s": 227.6,
+   "licence_basis": "Original composition, dedicated CC0 1.0"
+  },
+  {
+   "id": "pad_morninglight",
+   "file": "assets/audio/rest/14_pad_morninglight.mp3",
+   "title_ko": "아침 빛 (묵상 패드)",
+   "title_original": "Morning Light – original meditation pad",
+   "composer": "마실채플 original (generated, 2026)",
+   "year": 2026,
+   "instrumentation": "strings pad + soft organ",
+   "duration_s": 219.8,
+   "licence_basis": "Original composition, dedicated CC0 1.0"
+  }
+ ]
+}
