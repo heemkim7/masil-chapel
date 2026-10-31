@@ -43,7 +43,7 @@ function ensureDom() { if (el) return; el = document.createElement('div'); el.id
 function sndIcon() { $('#h2snd').textContent = window.Aud?.muted ? '🔇' : '🔊'; }
 function resize() { vw = innerWidth; vh = innerHeight; dpr = Math.min(devicePixelRatio || 1, 2); cv.width = vw * dpr; cv.height = vh * dpr; cv.style.width = vw + 'px'; cv.style.height = vh + 'px';
   // fit so the front wall + all 11 rows show above the bottom card (card ≈ 25% of a phone screen)
-  const cardH = Math.min(230, vh * .26), s = Math.min(vw / BW, (vh) / (BH * .98)) ; const s2 = vw < vh ? Math.max(s, Math.min(vw / (BW * .9), (vh - cardH * .35) / (BH * .86))) : s;
+  const cardH = Math.min(230, vh * .26), s = Math.min(vw / BW, (vh) / (BH * .98)) ; const s2 = vw < vh ? Math.max(s, Math.min(vw / (BW * .985), (vh - cardH * .35) / (BH * .86))) : s;
   T.s = s2; T.x = (vw - BW * s2) / 2; T.y = vw < vh ? Math.min(0, (vh - cardH * .35) - 1130 * s2) : (vh - BH * s2) / 2; }
 // ---------------- enter / leave
 export function enter() { const g = G(); if (!g || !g.S || open) return; ensureDom(); VO.prime(); open = true; window.__h2Open = true; el.style.display = 'block'; document.body.classList.add('h2-open');
@@ -118,14 +118,16 @@ function frame(now) { if (window.Aud?.muted && (window.WH?.vo?.paused === false 
   const ppl = seated(); const byRow = Array.from({ length: ROWS }, () => []); for (const p of ppl) byRow[p.s.r].push(p);
   const glows = [];
   for (let r = 0; r < ROWS; r++) { const R = ROWY[r]; byRow[r].sort((a, b) => Math.abs(b.s.x - CX) - Math.abs(a.s.x - CX));
-    for (const p of byRow[r]) { const e = sprite(p.av, 'N', null, null, true); if (!e || !e.cv) continue; const k = p.s.k * .78, bow = (p.st === 'pray' && (p.me ? holding : 1) ? 2.5 : 0) * k;
-      c.globalAlpha = p.a; c.drawImage(e.cv, p.s.x - e.ax * k, p.s.y - e.ay * k + bow + Math.sin(t * .8 + p.ph) * .5 * k, e.cv.width * k, e.cv.height * k); c.globalAlpha = 1;
+    for (const p of byRow[r]) { const fc = hash('f' + p.s.id) % 3 ? 'N' : (p.s.x < CX ? 'NE' : 'NW'); const e = sprite(p.av, fc, null, null, true); if (!e || !e.cv || !e.ok) continue; // back views only; never draw a not-yet-settled (default front) frame
+      const k = p.s.k * .78, bow = (p.st === 'pray' && (p.me ? holding : 1) ? 2.5 : 0) * k, sink = (e.ay - e.top) * k * .3; // sink into the pew so its backrest covers the lower body
+      const pb = R.y + 27.5 * R.k * .45; c.save(); c.beginPath(); c.rect(p.s.x - 200, 0, 400, pb); c.clip();
+      c.globalAlpha = p.a; c.drawImage(e.cv, p.s.x - e.ax * k, p.s.y + sink - e.ay * k + bow + Math.sin(t * .8 + p.ph) * .5 * k, e.cv.width * k, e.cv.height * k); c.globalAlpha = 1; c.restore();
       // chest-height hand candle beside the near shoulder; never above the head
-      const hy = p.s.y - e.ay * k + (e.top + (e.ay - e.top) * .52) * k; p.hy = Math.max(hy, p.s.y - e.ay * k + (e.top + 22) * k); p.hx = p.s.x + 20 * p.s.k;
+      const hy = p.s.y + sink - e.ay * k + (e.top + (e.ay - e.top) * .4) * k; p.hy = Math.max(hy, p.s.y + sink - e.ay * k + (e.top + 22) * k); p.hx = p.s.x + 20 * p.s.k;
       const lv = .55 + (p.me ? prayGlow * .45 : (p.st === 'pray' ? .2 : 0)) + am * .6 * amU; candle(c, p.hx, p.hy, p.s.k, lv, t + p.ph, p.a); glows.push([p.hx, p.hy, p.s.k, lv, p.a]);
-      if (p.me) meMark(c, p.s.x, p.s.y - e.ay * k + e.top * k - 6, p.s.k); }
+      if (p.me) meMark(c, p.s.x, p.s.y + sink - e.ay * k + e.top * k - 6, p.s.k); }
     pew(c, R, r); }
-  c.globalCompositeOperation = 'lighter'; for (const [x, y, k, lv, a] of glows) { const rad = (22 + 26 * lv) * k; const gr = c.createRadialGradient(x, y - 3 * k, 1, x, y - 3 * k, rad); gr.addColorStop(0, `rgba(255,200,110,${.26 * lv * a})`); gr.addColorStop(1, 'rgba(255,170,80,0)'); c.fillStyle = gr; c.fillRect(x - rad, y - rad, rad * 2, rad * 2); } c.globalCompositeOperation = 'source-over';
+  c.globalCompositeOperation = 'lighter'; for (const [x, y, k, lv, a] of glows) { const rad = Math.max((22 + 26 * lv) * k, 15 + 6 * lv), boost = 1 + Math.max(0, .75 - k) * 1.4; const gr = c.createRadialGradient(x, y - 3 * k, 1, x, y - 3 * k, rad); gr.addColorStop(0, `rgba(255,200,110,${Math.min(.5, .26 * lv * a * boost)})`); gr.addColorStop(1, 'rgba(255,170,80,0)'); c.fillStyle = gr; c.fillRect(x - rad, y - rad, rad * 2, rad * 2); } c.globalCompositeOperation = 'source-over';
   // amen sparkles rise toward the cross
   c.globalCompositeOperation = 'lighter'; fx = fx.filter(f => t - f.t0 < f.d); for (const f of fx) { const u = (t - f.t0) / f.d; if (u < 0) continue; const x = f.x + (CX - f.x) * u * u, y = f.y + (200 - f.y) * u; c.fillStyle = `rgba(255,230,150,${(1 - u) * .9})`; c.beginPath(); c.arc(x, y, 2.2 * (1 - u * .5), 0, 7); c.fill(); } c.globalCompositeOperation = 'source-over';
   if (dimA > .01) { c.setTransform(dpr, 0, 0, dpr, 0, 0); c.fillStyle = `rgba(20,12,30,${dimA})`; c.fillRect(0, 0, vw, vh); } }
