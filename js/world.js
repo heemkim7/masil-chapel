@@ -133,6 +133,7 @@ export class Char {
       if (!window.AV.walkStill) { lift = as * 7 * U; rot = s * .03; const land = Math.pow(1 - as, 6); sy = 1 - land * .06 + as * .015; sx = 1 + land * .05; } } // char-fix: the walk frames carry their own 2-beat body bob + real legs, so no extra hop/squash/tilt (that |sin| hop read as 튕튕 bouncing)
     else { const br = Math.sin(this.t * 2.4); sy = 1 + br * .018; sx = 1 - br * .01; }
     if (this.emote === 'jump' || this.emote === 'happy') { const p = (this.emoteT * 2.2) % 1; lift = Math.sin(p * Math.PI) * 38; sy = p < .12 || p > .88 ? .9 : 1.05; sx = 2 - sy; }
+    else if (this.emote === 'eat') { const m = Math.max(0, Math.sin(this.emoteT * 16)); sy *= 1 - m * .05; sx *= 1 + m * .035; lift += m * 2; } /* h29 munch: quick chew squash */
     else if (this.emote) { sy *= 1 + Math.sin(this.emoteT * 9) * .03; if (this.emote === 'wave') rot = Math.sin(this.emoteT * 12) * .05; }
     if (this.jumpT != null) { const q = this.jumpT / .56; lift += Math.sin(q * Math.PI) * 48;
       if (q < .12) { sy *= .86; sx *= 1.12; } else if (q > .9) { sy *= .88; sx *= 1.1; } else { const st = 1 + Math.sin(q * Math.PI) * .07; sy *= st; sx /= Math.sqrt(st); } }

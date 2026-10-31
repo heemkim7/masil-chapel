@@ -110,7 +110,7 @@ let lastRoomOnline = null;
 net.on('update', p => { const c = remotes.get(p.id); if (!c) return; if (p.name) c.name = p.name; c.fl = p.fl; if (p.outfit && SP.has('player', p.outfit, 'walk_S')) c.outfit = p.outfit; c.equip = p.equip || null; if (p.av && p.av !== c.av) { AV.apply(c, String(p.av).slice(0, 80)); AV.preload(c._avp); } });
 net.on('status', s => { refreshOnline(); if (s === 'online' && net.room !== lastRoomOnline) { lastRoomOnline = net.room; Svc.joined(); } });
 net.on('chat', p => { const nm = String(p.name || '이웃').slice(0, 12); if (Safe.isBlocked(p.id, nm)) return; const c = remotes.get(p.id); const t = Safe.clean(String(p.text || '').slice(0, 80)); if (c) c.say(t); chatLog(nm, t, 0, p.id); });
-net.on('emote', p => { const c = remotes.get(p.id); if (c && ['wave', 'jump', 'pray'].includes(p.e)) c.doEmote(p.e); });
+net.on('emote', p => { const c = remotes.get(p.id); if (!c) return; if (['wave', 'jump', 'pray'].includes(p.e)) c.doEmote(p.e); else if (p.e === 'eat') window.P4?.eatFx?.(c, p.f === '🐟' ? '🐟' : '🍞', false); });
 net.on('jump', p => { const c = remotes.get(p.id); c && c.jump(); });
 net.on('praise', p => { const c = remotes.get(p.id); c && V.remotePraise(c, p.line); });
 net.on('prayer', () => { if (modal === '#board') V.renderPrayers(); });
