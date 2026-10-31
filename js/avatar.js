@@ -222,6 +222,33 @@ function drawFace(g, im, C, E, S0, d) { const D0 = S0[2] - S0[0], side = d === '
     else { put(s * (sw ? .7 : 1), s, 0, E[0] - (sw ? 0 : .1) * D0, E[1] + .42 * D0, hx, hy, C.cheek); put(s, s, 0, E[2] + .1 * D0, E[3] + .42 * D0, hx, hy, C.cheek); } }
   else if (C.at) { const [ax, ay, wf, yd, sdx = -.18] = C.at, s = wf * D0 / im.width; put(s * (side ? .55 : sq), s, th, ex + (side ? sdx : sw ? -.04 : 0) * D0, ey + yd * D0, ax, ay); }
   else return 0; return 1; }
+// char-fix (hair fit): hair layers were pasted as-is over the bald base → oversized/floating helmets, flat bottom edge in back views,
+// no rim or contact shadow tying them to the head. One pass per composed still: (1) scale the hair about the skull centre so its
+// upper width is ≤ 1.1× head width, (2) back/short hair: taper the lower corners into the nape, (3) shared dark rim (same family as the
+// body outline), (4) soft occlusion shadow on the skin right under the hair edge (forehead, temples, nape).
+function fitHair(hg, hd, bg, bd, o) { const { W, H, top, hw, hcx, back, hcol } = o, hp = hd.data, A = (x, y) => x < 0 || y < 0 || x >= W || y >= H ? 0 : hp[(y * W + x) * 4 + 3];
+  let ux0 = W, ux1 = 0, hy0 = H, hy1 = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (A(x, y) > 40) { if (y < hy0) hy0 = y; if (y > hy1) hy1 = y; if (y < top + 70 && y > top - 40) { if (x < ux0) ux0 = x; if (x > ux1) ux1 = x; } }
+  if (hy1 <= hy0) return; const uw = ux1 - ux0, k = Math.max(.84, Math.min(1, hw * 1.1 / Math.max(1, uw))), py = top + hw * .5;
+  if (k < .999) { const t = document.createElement('canvas'); t.width = W; t.height = H; t.getContext('2d').putImageData(hd, 0, 0);
+    let dy = 0; const nt = py + (hy0 - py) * k, lim = top - hw * .16; if (nt < lim) dy = (lim - nt) * .5; // crown never floats far above the skull
+    hg.clearRect(0, 0, W, H); hg.save(); hg.translate(hcx, hy1); hg.scale(k, k); hg.drawImage(t, -hcx, -hy1); hg.restore(); /* scale about the hair's lower edge: nape stays put, crown sinks onto skull */ hd.data.set(hg.getImageData(0, 0, W, H).data); }
+  hy0 = H; hy1 = 0; let bx0 = W, bx1 = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (A(x, y) > 40) { if (y < hy0) hy0 = y; if (y > hy1) hy1 = y; if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; }
+  const short = hy1 < top + hw * 1.15, hh = hy1 - hy0;
+  if (back && short) { const ys = hy1 - hh * .32, cx = (bx0 + bx1) / 2, half = (bx1 - bx0) / 2; // round the bottom into the nape instead of a flat helmet edge
+    for (let y = Math.max(0, Math.floor(ys)); y <= hy1; y++) { const t = (y - ys) / (hy1 - ys), lim = half * (1 - .34 * t * t);
+      for (let x = 0; x < W; x++) { const i = (y * W + x) * 4 + 3; if (!hp[i]) continue; const ex = Math.abs(x - cx) - lim; if (ex > 0) hp[i] = Math.max(0, hp[i] * (1 - Math.min(1, ex / 2))); } } }
+  if (back && short) { const cx = (bx0 + bx1) / 2, half = (bx1 - bx0) / 2, ext = hw * .2, bp0 = bd.data; // nape: grow the back hair down over the bare neck band (rounded hairline, no flat helmet edge)
+    for (let x = Math.round(cx - half * .8); x <= cx + half * .8; x++) { let yB = -1; for (let y = hy1; y > hy0; y--) if (A(x, y) > 160) { yB = y; break; } if (yB < 0) continue;
+      const q = (x - cx) / (half * .8), e = ext * Math.pow(Math.max(0, 1 - q * q), .7), si = ((yB - 3) * W + x) * 4;
+      for (let y = yB + 1; y <= yB + e && y < H; y++) { const i = (y * W + x) * 4; if (bp0[i + 3] < 60) break; const t = (y - yB) / (e + 1), sh = 1 - .22 * t, ri = ((Math.max(hy0, 2 * yB - y - 1)) * W + x) * 4, sj = hp[ri + 3] > 120 ? ri : si; for (let c = 0; c < 3; c++) hp[i + c] = hp[sj + c] * sh; /* mirrored rows keep the strand/curl texture */ hp[i + 3] = 255 * (t > .75 ? (1 - t) / .25 : 1); } } }
+  const a0 = Uint8ClampedArray.from({ length: W * H }, (_, j) => hp[j * 4 + 3]), RIM = [hcol[0] * .38 + 30, hcol[1] * .38 + 18, hcol[2] * .38 + 12];
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const j = y * W + x; if (a0[j] < 120) continue; let e = 0;
+    for (const q of [-1, 1, -W, W]) if (a0[j + q] < 40) e++; if (!e) continue; const i = j * 4, w = Math.min(.6, .3 + e * .12); for (let c = 0; c < 3; c++) hp[i + c] = hp[i + c] * (1 - w) + RIM[c] * w; }
+  hg.putImageData(hd, 0, 0);
+  const bp = bd.data, ylim = Math.min(H, top + hw * 1.35); // contact shadow on the skin/outfit just under the hair
+  for (let y = top; y < ylim; y++) for (let x = 0; x < W; x++) { const j = y * W + x, i = j * 4; if (bp[i + 3] < 40 || hp[i + 3] > 200) continue; let s = 0;
+    for (let d = 1; d <= 4; d++) { if (y - d < 0) break; if (hp[((y - d) * W + x) * 4 + 3] > 120) { s = 1 - (d - 1) / 4; break; } } if (s) for (let c = 0; c < 3; c++) bp[i + c] *= 1 - .16 * s; }
+  bg.putImageData(bd, 0, 0); }
 const lcache = new Map();
 function lpix(im) { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); return [c, g, g.getImageData(0, 0, c.width, c.height)]; }
 export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d = LDIR[d] || 'S'; const k = encode(a) + '|' + d; let c = lcache.get(k); if (c) return c;
@@ -241,6 +268,7 @@ export function still(ch, d) { const a = ch._avp || (ch._avp = parse(ch.av)); d 
     for (let i = 0; i < op.length; i += 4) { const w = tp[i + 3] / 255; if (!w) continue; const lum = (op[i] + op[i + 1] + op[i + 2]) / 765; for (let q = 0; q < 3; q++) op[i + q] = op[i + q] * (1 - w) + Math.min(255, t[q] * (.62 + .42 * lum)) * w; } og.putImageData(od, 0, 0); }
   // hair: neutral grey strands → hair colour by luminance
   const [hc2, hg, hd] = lpix(img(L.hair)), hp = hd.data; for (let i = 0; i < hp.length; i += 4) { if (!hp[i + 3]) continue; const l = Math.min(1.3, (hp[i] + hp[i + 1] + hp[i + 2]) / 3 / 165); for (let q = 0; q < 3; q++) hp[i + q] = Math.min(255, hcol[q] * l); } hg.putImageData(hd, 0, 0);
+  fitHair(hg, hd, bg, bd, { W, H, top, hw, hcx, back, hcol }); // char-fix: hair hugs the skull (size, nape taper, rim, contact shadow)
   let htop = H; for (let i = 3, j = 0; i < hp.length; i += 4, j++) if (hp[i] > 40) { htop = (j / W) | 0; break; }
   const cos = (slot, over) => { const id = a[slot]; if (!id || id === '-' || !COS[id]) return; const C = COS[id], im = img(`assets/cos/${id}.png`); if (!im) return; let w, cx = hcx + (C.dx || 0) * hw * (back ? -1 : 1), cy, h;
     if (slot === 'hat') { w = hw * (C.w || 1) * .95; h = w * im.height / im.width; cy = Math.min(htop, top) + hh * (C.sink || 0) * .9 - h / 2; }
@@ -269,28 +297,55 @@ export function walkStill(ch, d, f) { const st = still(ch, d); if (!st) return n
     let ym = yb - 4, wm = 1e9; for (let yy = yb - 4; yy > bt + BH * .6; yy--) { const n = wd(yy); if (n < wm) { wm = n; ym = yy; } } // narrowest ankle/leg row
     let y = ym; while (y > bt + BH * .6 && wd(y) <= wm * 1.25 + 3) y--;
     const yh = Math.min(y, yb - 7); y0 = hasGap ? Math.max(y0, yh) : yh; if (side && y0 < bt + BH * .72) y0 = Math.round(bt + BH * .78); }
-  const L = yb - y0, hem = y0; // hem/crotch row
-  const u = f / WALK_N, s = Math.sin(u * 2 * Math.PI), tri = 1 - 4 * Math.abs(((u + .25) % 1) - .5); // tri: constant-speed stance (planted foot moves with the ground)
-  const skirt = !hasGap;
+  // char-fix walk cycle: the still's own legs are cut at the hem and REAL legs are drawn per frame — hip→knee→ankle with 2-bone IK,
+  // planted stance foot sliding with the ground, swing foot lifting through the passing pose, far leg shaded; colours sampled
+  // from the still (trouser/skin/sock + shoe) so every outfit keeps its look. The upper body rides a 2-beat bob (low at contact).
+  if (hasGap) { let yc = yb - 2; while (yc > bt + BH * .5 && A_(cx, yc) <= 40) yc--; y0 = Math.min(y0, yc + 2); } // legs start at the crotch, not the ankles
+  const L = yb - y0, hem = y0, u = f / WALK_N, s = Math.sin(u * 2 * Math.PI), skirt = !hasGap;
   c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), od = g.createImageData(W, H), op = od.data;
-  const cp = (x, y, sx, sy, dk) => { if (x < 0 || x >= W || y < 0 || y >= H || sx < 0 || sx >= W || sy < 0 || sy >= H) return; const i = (sy * W + sx) * 4, a = sp[i + 3]; if (!a) return; const o = (y * W + x) * 4, b = op[o + 3] / 255, kk = a / 255, oa = kk + b * (1 - kk);
-    for (let q = 0; q < 3; q++) op[o + q] = (sp[i + q] * dk * kk + op[o + q] * b * (1 - kk)) / oa; op[o + 3] = 255 * oa; };
-  const sm = t => (t = Math.max(0, Math.min(1, t)), t * t * (3 - 2 * t)), E = y => sm((y - y0) / L);
-  // upper body (with hem sway + arm swing in front/back views)
+  const sm = t => (t = Math.max(0, Math.min(1, t)), t * t * (3 - 2 * t));
+  const px = (x, y) => { let r = 0, gg = 0, b = 0, n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = Math.round(x) + dx, Y = Math.round(y) + dy; if (A_(X, Y) < 200) continue; const i = (Y * W + X) * 4; r += sp[i]; gg += sp[i + 1]; b += sp[i + 2]; n++; } return n ? [r / n, gg / n, b / n] : null; };
+  const blobs = y => { const out = []; let a = -1; for (let x = 0; x <= W; x++) { const o = x < W && A_(x, y) > 120; if (o && a < 0) a = x; if (!o && a >= 0) { out.push([a, x - 1]); a = -1; } } return out; };
+  const bob = 2.4 * Math.pow(Math.sin(u * 2 * Math.PI * 2 - Math.PI / 2) * .5 + .5, 1.3); // 0 at passing … max at contact (u=0,.5)
+  const up = Math.round(-2.4 + bob); // body offset: highest at passing, lowest at double-support
+  // upper body (rows above the hem) with the existing gentle arm swing / hem sway
   let tl = W, tr = 0; for (let x = 0; x < W; x++) if (A_(x, y0 - 2) > 40) { if (x < tl) tl = x; if (x > tr) tr = x; }
+  if (side) { const yT = Math.round(y0 - BH * .1); let l2 = cx, r2 = cx; while (l2 > 0 && A_(l2 - 1, yT) > 40) l2--; while (r2 < W - 1 && A_(r2 + 1, yT) > 40) r2++; // side views: the still's frozen mid-stride thighs flare out below the waist — clip them to the torso column
+    if (r2 > l2) { for (let y = yT; y < H; y++) { const e = (y - yT) * .25; for (let x = 0; x < W; x++) if (x < l2 - e * .08 || x > r2 + e * .08) sp[(y * W + x) * 4 + 3] = 0; } tl = Math.max(tl, l2); tr = Math.min(tr, r2); } }
   const ya = bt + BH * .36, swayRows = Math.max(6, BH * .1);
-  for (let y = 0; y <= y0; y++) { const hs = sm((y - (hem - swayRows)) / swayRows), sway = (side ? (skirt ? 2.2 : 1) : (skirt ? 3 : 1.6)) * s * hs;
-    for (let x = 0; x < W; x++) { let sy = y; if (!side && y > ya && (x < tl + 1 || x > tr - 1)) { const left = x < cx; sy = Math.round(y - (left ? -s : s) * 4.5 * sm((y - ya) / (y0 - ya))); } if (skirt && !side && hs > 0) sy = Math.round(sy + 2.5 * hs * Math.max(0, (x < cx ? 1 : -1) * s)); cp(x, y, Math.round(x - sway), sy, 1); } }
-  const OUT = [92, 58, 40];
-  if (side) { const A = Math.min(STRIDE_HALF, skirt ? L * 1.1 : L * .62) * tri, SL = 5 * s; // SL: swing-leg lift // scissor: back leg (darker) then front leg with chocolate rim
-    const leg = (sel, dx, dk, rim) => { for (let y = y0 + 1; y < H; y++) { const e = E(y), ddx = Math.round(dx * e), lift = Math.round(Math.max(0, (dk < 1 ? -SL : SL)) * e); for (let x = 0; x < W; x++) { const sx = x - ddx; if (!sel(sx)) continue; cp(x, y, sx, y - lift, dk); } }
-      if (rim) for (let y = y0 + 3; y < H; y++) { const e = E(y), ddx = Math.round(dx * e); for (let x = 1; x < W - 1; x++) { const sx = x - ddx; if (!sel(sx) || A_(sx, y) < 120) continue; for (const nx of [-1, 1]) { const qx = sx + nx; if (sel(qx) && A_(qx, y) >= 60) continue; const o = (y * W + x) * 4; for (let q = 0; q < 3; q++) op[o + q] = op[o + q] * .55 + OUT[q] * .45; } } } };
-    if (split) { leg(x => x >= cx, -A, .9, false); leg(x => x < cx, A, 1, true); } else { leg(() => true, -A, .88, false); leg(() => true, A, 1, true); } }
-  else { const fw0 = D === 'SW' ? -4 : D === 'NW' ? 4 : 0, lift = Math.min(L * .75, Math.max(L * .26, 8)); // alternate lift with leg shortening (top fixed, foot rises)
-    const half = left => { const sw = left ? Math.max(0, s) : Math.max(0, -s); for (let y = y0 + 1; y < H; y++) { const e = E(y), dy = lift * sw * e, dx = fw0 * sw * e;
-      for (let x = 0; x < W; x++) { const sx = Math.round(x - dx), sy = Math.round(y + dy); if ((sx < cx) !== left) continue; cp(x, y, sx, sy, 1 - .05 * sw * e); } } };
-    const lu = s > 0; half(!lu); half(lu); }
-  g.putImageData(od, 0, 0); c.lay = 1; c.top = st.top; c.bodyTop = st.bodyTop; c.meta = { y0, yb, split, hasGap }; if (wcache.size > 900) wcache.clear(); wcache.set(k, c); return c; }
+  const cp = (x, y, sx, sy) => { if (x < 0 || x >= W || y < 0 || y >= H || sx < 0 || sx >= W || sy < 0 || sy >= H) return; const i = (sy * W + sx) * 4, a = sp[i + 3]; if (!a) return; const o = (y * W + x) * 4; op[o] = sp[i]; op[o + 1] = sp[i + 1]; op[o + 2] = sp[i + 2]; op[o + 3] = side && sy > y0 - 2 ? a * Math.max(0, (y0 + 1 - sy) / 3) : a; };
+  for (let y = 0; y <= y0 + 1; y++) { const hs = sm((y - (hem - swayRows)) / swayRows), sway = (side ? (skirt ? 1.6 : .6) : (skirt ? 2 : 1)) * s * hs;
+    for (let x = 0; x < W; x++) { let sy = y; if (!side && y > ya && (x < tl + 1 || x > tr - 1)) { const left = x < cx; sy = Math.round(y - (left ? -s : s) * 3.5 * sm((y - ya) / (y0 - ya))); } cp(x, y + up, Math.round(x - sway), sy); } }
+  const UB = document.createElement('canvas'); UB.width = W; UB.height = H; UB.getContext('2d').putImageData(od, 0, 0);
+  // leg geometry + colours from the still
+  const ym = Math.round(y0 + L * .55), bm = blobs(ym), bt3 = blobs(Math.round(y0 + L * .2)), bf = blobs(yb - 3);
+  let legW = bm.length >= 2 ? Math.min(...bm.map(b => b[1] - b[0] + 1)) : bm.length ? (bm[0][1] - bm[0][0] + 1) * (side ? .62 : .45) : 16; legW = Math.max(11, Math.min(side ? 17 : 22, legW));
+  const shoeH = Math.max(7, Math.round(legW * .62)), C0 = [92, 58, 40];
+  const hipsX = side ? [cx, cx] : (bt3.length >= 2 ? [(bt3[0][0] + bt3[0][1]) / 2, (bt3[bt3.length - 1][0] + bt3[bt3.length - 1][1]) / 2] : [cx - legW * .62, cx + legW * .62]);
+  const footX = bf.length >= 2 ? [(bf[0][0] + bf[0][1]) / 2, (bf[bf.length - 1][0] + bf[bf.length - 1][1]) / 2] : hipsX;
+  const colAt = (xs, y, fb) => px(xs, y) || px(xs - 3, y) || px(xs + 3, y) || fb;
+  const legCol = i => { const x = side ? cx : footX[i], th = colAt(side ? cx : hipsX[i], y0 + L * .3, [40, 45, 70]), sh = skirt ? colAt(x, yb - shoeH - L * .18, th) : th, sh2 = colAt(x, yb - 2, [235, 235, 235]); return { th, sh, shoe: sh2 }; };
+  const LC = [legCol(0), legCol(1)];
+  const fwd = { S: [0, .2], SW: [-.78, .14], W: [-1, 0], NW: [-.78, -.14], N: [0, -.2] }[D] || [0, .2];
+  const S = Math.min(STRIDE_HALF, side ? L * .9 : L * .8), lift0 = Math.max(6, L * .28), hipY = y0 - (skirt ? L * .15 : legW * (side ? 1 : .45)) + up;
+  const rgb = (c, k = 1) => `rgb(${c[0] * k | 0},${c[1] * k | 0},${c[2] * k | 0})`, dark = c => [c[0] * .35 + C0[0] * .3, c[1] * .35 + C0[1] * .3, c[2] * .35 + C0[2] * .3];
+  const gait = ph => { ph = ((ph % 1) + 1) % 1; if (ph < .5) return { off: S * (1 - 4 * ph), lift: 0 }; const v = (ph - .5) / .5; return { off: -S + 2 * S * sm(v), lift: lift0 * Math.sin(Math.PI * v) }; };
+  const leg = (i, ph, k) => { const G = gait(ph), hx = hipsX[i] + (side ? fwd[0] * -1.5 : 0), fx = (side ? cx : footX[i]) + fwd[0] * G.off, fy = yb - shoeH * .45 + fwd[1] * G.off - G.lift;
+    const Ll = (yb - shoeH * .45) - hipY, a = Ll / 2, dx = fx - hx, dy = fy - hipY, d = Math.min(Ll * .999, Math.hypot(dx, dy)), bend = Math.sqrt(Math.max(0, a * a - d * d / 4));
+    const nx = -dy / (Math.hypot(dx, dy) || 1), ny = dx / (Math.hypot(dx, dy) || 1), sg = side || D === 'SW' || D === 'NW' ? (nx * fwd[0] > 0 ? 1 : -1) : 0;
+    const kx = hx + dx / 2 + nx * bend * sg, ky = hipY + dy / 2 + ny * bend * sg - (sg ? 0 : bend * .15), col = LC[side ? 0 : i];
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = rgb(dark(col.th), k); g.lineWidth = legW + 2.4; g.beginPath(); g.moveTo(hx, hipY); g.lineTo(kx, ky); g.lineTo(fx, fy); g.stroke();
+    g.strokeStyle = rgb(col.th, k); g.lineWidth = legW; g.beginPath(); g.moveTo(hx, hipY); g.lineTo(kx, ky); g.stroke();
+    g.strokeStyle = rgb(col.sh, k); g.beginPath(); g.moveTo(kx, ky); g.lineTo(fx, fy - 1); g.stroke();
+    g.strokeStyle = `rgba(255,255,255,${.16 * k})`; g.lineWidth = legW * .28; g.beginPath(); g.moveTo(hx - legW * .22, hipY + 2); g.lineTo(kx - legW * .22, ky); g.lineTo(fx - legW * .22, fy - 3); g.stroke(); // soft highlight
+    const sw = side ? legW * .95 : legW * (.9 + (fwd[1] ? .06 * G.off / S * Math.sign(fwd[1]) : 0)) * .62, sx = fx + fwd[0] * legW * .35, sy = fy + shoeH * .1, tilt = side ? fwd[0] * -.18 * (G.lift / lift0) : 0;
+    g.save(); g.translate(sx, sy); g.rotate(tilt); g.fillStyle = rgb(dark(col.shoe)); g.beginPath(); g.ellipse(0, 0, sw + 1.4, shoeH * .55 + 1.4, 0, 0, 7); g.fill();
+    g.fillStyle = rgb(col.shoe, k); g.beginPath(); g.ellipse(0, 0, sw, shoeH * .55, 0, 0, 7); g.fill(); g.restore(); };
+  if (side) { leg(1, u + .5, .78); leg(0, u, 1); } else { const back2 = D === 'N' || D === 'NW', a0 = gait(u).lift, a1 = gait(u + .5).lift; // the lifted (swing) foot draws in front when facing the camera
+    const order = (a0 > a1) !== back2 ? [[1, u + .5], [0, u]] : [[0, u], [1, u + .5]]; for (const [i, ph] of order) leg(i, ph, 1); }
+  g.drawImage(UB, 0, 0);
+  c.lay = 1; c.top = st.top; c.bodyTop = st.bodyTop; c.meta = { y0, yb, split, hasGap }; if (wcache.size > 900) wcache.clear(); wcache.set(k, c); return c; }
 export function preloadLayers(a) { for (const d of Object.keys(LDIR)) { const L = layerSrcs(a, d); img(L.base); img(L.out); img(L.hair); if (L.tint) img(L.tint); } }
 const SHEET_OK = { player: ['basic', 'mint', 'choir'], boy: ['basic', 'mint'] };
 export function apply(ch, code) { const a = parse(code); ch.av = encode(a); ch._avp = a; ch.char = GENDER[a.g].char; ch.outfit = SHEET_OK[ch.char]?.includes(OUTFITS[a.g].find(x => x[0] === a.o)[2]) ? OUTFITS[a.g].find(x => x[0] === a.o)[2] : 'basic'; ch.drawH = Math.round(150 * AGE[a.a].k); preloadLayers(a); }

@@ -130,13 +130,13 @@ export class Char {
     if (!window.AV.still(this, d0)) return null;
     const walking = this.speedNow > 0, U = this.drawH / 150; let sx = 1, sy = 1, lift = 0, rot = 0;
     if (walking) { const ph = this._ph = this.dist / ((this.cfg?.player?.stepLen || 38) * U * CK.k), s = Math.sin(ph * Math.PI), as = Math.abs(s);
-      lift = as * 7 * U; rot = s * .03; const land = Math.pow(1 - as, 6); sy = 1 - land * .06 + as * .015; sx = 1 + land * .05; }
+      if (!window.AV.walkStill) { lift = as * 7 * U; rot = s * .03; const land = Math.pow(1 - as, 6); sy = 1 - land * .06 + as * .015; sx = 1 + land * .05; } } // char-fix: the walk frames carry their own 2-beat body bob + real legs, so no extra hop/squash/tilt (that |sin| hop read as 튕튕 bouncing)
     else { const br = Math.sin(this.t * 2.4); sy = 1 + br * .018; sx = 1 - br * .01; }
     if (this.emote === 'jump' || this.emote === 'happy') { const p = (this.emoteT * 2.2) % 1; lift = Math.sin(p * Math.PI) * 38; sy = p < .12 || p > .88 ? .9 : 1.05; sx = 2 - sy; }
     else if (this.emote) { sy *= 1 + Math.sin(this.emoteT * 9) * .03; if (this.emote === 'wave') rot = Math.sin(this.emoteT * 12) * .05; }
     if (this.jumpT != null) { const q = this.jumpT / .56; lift += Math.sin(q * Math.PI) * 48;
       if (q < .12) { sy *= .86; sx *= 1.12; } else if (q > .9) { sy *= .88; sx *= 1.1; } else { const st = 1 + Math.sin(q * Math.PI) * .07; sy *= st; sx /= Math.sqrt(st); } }
-    let key = 'L:' + d0, fl = flip; if (walking && !this.emote && window.AV.walkStill) { const N = window.AV.WALK_N || 8, ph2 = (this._ph || 0) / 2; key += ':' + (((Math.floor(ph2 * N) % N) + N) % N); rot *= .4; }
+    let key = 'L:' + d0, fl = flip; if (walking && !this.emote && window.AV.walkStill) { const N = window.AV.WALK_N || 8, ph2 = (this._ph || 0) / 2; key += ':' + (((Math.floor(ph2 * N) % N) + N) % N); rot = 0; }
     if (this.blendT < 1 && this.prevFace && face === (this.dface || this.face)) { const e = this.blendT, pf = this.prevFace; // paper flip
       // direct still-to-still turn at full width (no paper-thin x-squash, regression from e3e5ecc): hold the old still for a beat, then swap
       if (e < .3) { key = 'L:' + SOL(MIR[pf] || pf); fl = !!MIR[pf]; if (!window.AV.still(this, SOL(MIR[pf] || pf))) { key = 'L:' + d0; fl = flip; } } }
@@ -148,7 +148,7 @@ export class Char {
     if (M) { const k2 = k * M[0]; ctx.drawImage(img, -M[1] * k2, -M[2] * k2, at.frameW * k2, at.frameH * k2); return ((img.top ?? 0) - M[2]) * k2; } ctx.drawImage(img, -at.frameW * k / 2, -at.baselineY * k, at.frameW * k, at.frameH * k); return ((img.top ?? 0) - at.baselineY) * k;
   }
   _layer(ctx, p, alpha) {
-    ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y) - p.lift); if (p.rot) ctx.rotate(p.rot); ctx.scale(p.flip ? -p.sx : p.sx, p.sy);
+    ctx.save(); ctx.translate(this.x, this.y - p.lift); // char-fix: no per-char integer snap (camera is already device-pixel snapped; double rounding = 1px stair-step jitter) if (p.rot) ctx.rotate(p.rot); ctx.scale(p.flip ? -p.sx : p.sx, p.sy);
     const back = p.dir === 'N' || p.dir === 'NW' || p.dir === 'NE', side = p.dir === 'E' || p.dir === 'W';
     const acc = (front) => { if (!this.equip) return; for (const slot of ['back', 'hat', 'pet']) { const id = this.equip[slot]; if (!id) continue; const A = this.cfg.acc[id]; const ai = IMG[A.img]; if (!ai) continue;
       const isFront = A.back ? back : true; if (isFront !== front) continue;

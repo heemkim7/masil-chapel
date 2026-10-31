@@ -1,0 +1,22 @@
+<!doctype html><meta charset=utf-8><body style="margin:0;background:#9fc48a"><canvas id=c></canvas>
+<script type=module>
+import { Char } from './js/world.js'; import { AV } from './js/avatar.js';
+const Q=new URLSearchParams(location.search);
+const cfg=await (await fetch('config.json')).json(); const atlas=await (await fetch('assets/characters/atlas.json')).json(); AV.init(atlas);
+const sprites={a:atlas,get:()=>({frames:['x'],flip:false,dir:'S'}),has:()=>false};
+const codes=(Q.get('codes')||'m.1.0.0.1.formal.-.-.-.-').split(',');
+const chars=codes.map(c=>{const ch=new Char(sprites,'player','basic',0,0,{cfg,drawH:150}); AV.apply(ch,c); return ch;});
+const cv=document.getElementById('c'), Z=+(Q.get('z')||2), CW=230, CH=260; cv.width=CW*Z*chars.length; cv.height=CH*Z; const g=cv.getContext('2d');
+window.__ready=async()=>{for(let i=0;i<200;i++){if(chars.every(c=>['S','SW','W','NW','N'].every(d=>AV.still(c,d))))return true; await new Promise(r=>setTimeout(r,50));} return false;};
+// step(dir angle, dt): moves each char via real move()+update(); draws in a camera following the char (like the game)
+const world={walkable:()=>true};
+window.__step=(ang,dt,remote)=>{ g.setTransform(1,0,0,1,0,0); g.fillStyle='#9fc48a'; g.fillRect(0,0,cv.width,cv.height);
+ chars.forEach((ch,i)=>{ const ix=Math.cos(ang), iy=Math.sin(ang); ch.move(world,ix,iy,dt,cfg.player.speed,cfg.player.accel); ch.update(dt);
+  g.save(); g.beginPath(); g.rect(i*CW*Z,0,CW*Z,CH*Z); g.clip(); g.translate(i*CW*Z+CW*Z/2, CH*Z-30*Z); g.scale(Z,Z);
+  // ground ticks so motion is readable; camera locked to char
+  g.fillStyle='rgba(0,0,0,.15)'; for(let k=-10;k<10;k++){const gx=(k*40-ch.x%40); g.fillRect(gx,8,3,3);} g.translate(-ch.x,-ch.y); ch.draw(g); g.restore(); }); };
+</script>
+<script type=module>
+import { AV } from './js/avatar.js';
+window.__sheet=(code,d)=>{const ch={};AV.apply(ch,code);const N=AV.WALK_N,c=document.createElement('canvas');c.width=200*N;c.height=284;const g=c.getContext('2d');for(let f=0;f<N;f++){const im=AV.walkStill(ch,d,f);if(im)g.drawImage(im,f*200,0);}return c.toDataURL();};
+</script>
