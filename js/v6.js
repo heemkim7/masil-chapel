@@ -42,7 +42,7 @@ export const V = {
   // no dong yet => everyone shares '모두의 광장' (GPS is optional, never a gate)
   current() { const S = this.S; if (!S || S.solo) return null; return S.visit || S.dong || PLAZA; },
   // shard 1 keeps the legacy id d{cd}:{scene}; shard n>1 => d{cd}-{n}:{scene}. CAP users per shard (presence counts).
-  cap() { return window.__shardCap || 20; },
+  cap() { return window.__shardCap || 100; },
   shard() { return this.S?.shard || 1; },
   room(scene) { const d = this.current(); return d ? `d${d.cd}${this.shard() > 1 ? '-' + this.shard() : ''}:${scene}` : null; },
   shardCounts(cd) { return (A.net.shards || {})[cd] || {}; },
@@ -55,7 +55,7 @@ export const V = {
       L.push([`${n === this.shard() ? '📍' : '🚪'} ${n}번 방 · ${k}/${cap}명${k >= cap ? ' (가득)' : ''}`, () => k >= cap && n !== this.shard() ? A.toast('이 방은 가득 찼어요') : this.setShard(n)]); }
     L.push(['🔗 이 방 링크 복사', () => window.shareLink(this.link())], ['닫기', null]);
     A.dialog(`🏠 ${d.name} 방 목록`, '같은 동네라도 100명씩 방이 나뉘어요. 원하는 방으로 옮길 수 있어요.', L); },
-  dongLabel() { const S = this.S; if (!S) return ''; if (S.solo) return '🌙 혼자 모드'; const d = this.current(); if (!d) return '📍 동네 선택'; return (d.cd === '0' ? '🌈 ' : S.visit ? '🧳 ' : '📍 ') + d.name + (this.shard() > 1 ? ` ${this.shard()}번 방` : ''); },
+  dongLabel() { const S = this.S; if (!S) return ''; if (S.solo) return '🌙 혼자 모드'; const d = this.current(); if (!d) return '📍 동네 선택'; return (d.cd === '0' ? '🌈 ' : S.visit ? '🧳 ' : '📍 ') + d.name + ` · ${this.shard()}번 방`; },
   async setDong(cd, opt = {}) { const S = this.S, d = await this.byCode(cd); if (!d) return false; S.solo = false;
     if (opt.visit && S.dong && S.dong.cd !== cd) S.visit = d; else { S.dong = d; S.visit = null; } if (!opt.keepShard) { S.shard = 1; S.shardLock = false; }
     if (S.visit) S.recent = [{ cd: d.cd, name: d.name, sgg: d.sgg }, ...(S.recent || []).filter(r => r.cd !== d.cd)].slice(0, 4);
@@ -113,10 +113,10 @@ export const V = {
   async openPrayers() { A.openModal('#board'); $('#bpub').checked = true; await this.renderPrayers(); },
   async renderPrayers() { const d = this.current(), L = $('#blist'); $('#bhead').textContent = d ? `${d.name} 기도벽` : '기도벽 (오프라인 · 이 기기에만 저장)';
     if (d && A.net.sb) { try { const r = await A.net.prayers(d.cd); const all = [...r.mine, ...r.list].sort((a, b) => b.created_at.localeCompare(a.created_at));
-        L.innerHTML = all.length ? all.map(p => `<div class="post ${p.is_public ? '' : 'priv'}"><div><b>${esc(p.name)}</b> <small>${p.is_public ? '🙏 기도제목' : '🔒 나만 보기'}${p.mine ? ' · 내 글' : ''}</small></div><p>${esc(p.body)}</p>${p.is_public ? `<button data-id="${p.id}">🙏 함께 기도 <b>${p.amen_count}</b></button>` : ''}</div>`).join('') : '<p class="mnote">아직 기도제목이 없어요. 첫 기도제목을 올려 보세요 🙏</p>';
+        L.innerHTML = all.length ? all.map(p => `<div class="post ${p.is_public ? '' : 'priv'}"><div><b>${esc(p.name)}</b> <small>${p.is_public ? '🙏 기도제목' : '🔒 나만 보기'}${p.mine ? ' · 내 글' : ''}</small></div><p>${esc(p.body)}</p>${p.is_public ? `<button data-id="${p.id}">🙏 함께 기도했어요 <b>${p.amen_count}</b></button>` : ''}</div>`).join('') : '<p class="mnote">아직 기도제목이 없어요. 첫 기도제목을 올려 보세요 🙏</p>';
         L.querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => { try { const n = await A.net.prayWith(+b.dataset.id); b.querySelector('b').textContent = n; b.disabled = true; this.done('pray'); A.toast('🙏 함께 기도했어요'); } catch (e) { A.toast(rl(e) ? '잠시 후 다시 해 주세요' : '함께 기도를 기록하지 못했어요'); } });
         return; } catch (e) { console.warn('[prayers]', e.message); } }
-    const P = await A.board.list(); L.innerHTML = P.map(p => `<div class="post ${p.kind}"><div><b>${esc(p.author)}</b> <small>${p.kind === 'notice' ? '📢 공지' : '🙏 기도제목'}</small></div><p>${esc(p.text)}</p><button data-lid="${p.id}">🙏 함께 기도 ${p.prayers}</button></div>`).join('');
+    const P = await A.board.list(); L.innerHTML = P.map(p => `<div class="post ${p.kind}"><div><b>${esc(p.author)}</b> <small>${p.kind === 'notice' ? '📢 공지' : '🙏 기도제목'}</small></div><p>${esc(p.text)}</p><button data-lid="${p.id}">🙏 함께 기도했어요 ${p.prayers}</button></div>`).join('');
     L.querySelectorAll('button[data-lid]').forEach(b => b.onclick = async () => { await A.board.pray(b.dataset.lid); this.done('pray'); this.renderPrayers(); }); },
   async postPrayer() { const t = $('#btext').value.trim(), pub = $('#bpub').checked; if (!t) return; const d = this.current(); const btn = $('#bpost'); btn.disabled = true;
     try { if (d && A.net.sb) await A.net.postPrayer(d.cd, this.S.name, t.slice(0, 60), pub); else await A.board.post(this.S.name, t);

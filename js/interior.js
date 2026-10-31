@@ -15,7 +15,7 @@ export class Interior {
   F() { return (this.I.floors || []).find(f => f.id === this.floor) || { id: '1F' }; }
   view() { return this.on1 ? (this.I.view1 || { x: 0, y: 0, w: this.W, h: this.H }) : { x: 0, y: 0, w: this.W, h: this.H }; }
   get on1() { return this.floor === '1F'; }
-  stairs() { return this.on1 ? (this.I.stairs1 || []) : [{ ...this.F().stairs, label: '1층 본당으로' }]; }
+  stairs() { return this.on1 ? (this.I.stairs1 || []) : [{ ...this.F().stairs, label: '1층 기도실로' }]; }
   cs() { return this.on1 ? 1 : (this.F().cs || 1); }
   spots() { return this.on1 ? [] : (this.F().spots || []); }
   walkable(x, y) {
@@ -47,13 +47,17 @@ export class Interior {
     if (part === 'front') { const f = this.I.frontFrac, sy = im.height * f; ctx.drawImage(im, 0, sy, im.width, im.height - sy, x0, y0 + h * f, w, h * (1 - f)); return; }
     ctx.fillStyle = 'rgba(70,40,30,.18)'; ctx.beginPath(); ctx.ellipse(x, y - 2, w * .55, 7, 0, 0, 7); ctx.fill(); ctx.drawImage(im, x0, y0, w, h);
   }
+  candle() { const b = this.I.board; return this.I.candle || { x: b.x - 190, y: b.y }; }
   objects() {
     const I = this.I, out = []; if (!this.on1) return out;
     I.pews.forEach((p, i) => out.push({ y: this.td ? p[1] : p[1] - .5, draw: ctx => this.drawPew(ctx, i, 'all') }));
     const o = I.offering; out.push({ y: o.y, draw: ctx => { const im = IMG.in_offering, w = 84, h = w * im.height / im.width; ctx.drawImage(im, o.x - w / 2, o.y - h + 8, w, h);
       ctx.fillStyle = '#4a2b78'; ctx.font = '800 14px Pretendard,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('헌금함', o.x, o.y + 26); } });
+    const cd = this.candle(); out.push({ y: cd.y, draw: ctx => { const t = performance.now() / 1000, n = Math.min(9, 3 + (this.lit || 0)); ctx.fillStyle = '#8a5a3a'; ctx.fillRect(cd.x - 62, cd.y - 34, 124, 12); ctx.fillStyle = '#6b4128'; ctx.fillRect(cd.x - 56, cd.y - 22, 8, 22); ctx.fillRect(cd.x + 48, cd.y - 22, 8, 22);
+      for (let i = 0; i < n; i++) { const x = cd.x - 52 + i * 13, lit = i < (this.lit || 0) + 2; ctx.fillStyle = '#fff6e0'; ctx.fillRect(x - 3, cd.y - 52, 6, 18); if (lit) { const f = 1 + Math.sin(t * 9 + i) * .15; ctx.fillStyle = 'rgba(255,200,80,.35)'; ctx.beginPath(); ctx.arc(x, cd.y - 58, 9 * f, 0, 7); ctx.fill(); ctx.fillStyle = '#ffb02e'; ctx.beginPath(); ctx.ellipse(x, cd.y - 58, 2.6, 5 * f, 0, 0, 7); ctx.fill(); } }
+      ctx.fillStyle = '#4a2b78'; ctx.font = '800 14px Pretendard,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🕯 촛불', cd.x, cd.y + 18); } });
     const b = I.board; out.push({ y: b.y, draw: ctx => { const im = IMG.in_board, w = 96, h = w * im.height / im.width; ctx.drawImage(im, b.x - w / 2, b.y - h + 6, w, h);
-      ctx.fillStyle = '#4a2b78'; ctx.font = '800 14px Pretendard,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('기도 게시판', b.x, b.y + 24); } });
+      ctx.fillStyle = '#4a2b78'; ctx.font = '800 14px Pretendard,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('기도제목', b.x, b.y + 24); } });
     return out;
   }
 }

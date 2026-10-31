@@ -362,3 +362,4 @@ body.inchapel .cl.npc{display:none}
 @media (max-width:760px){body.inchapel #toast{top:calc(252px + env(safe-area-inset-top))}}
 #eulam{pointer-events:none;background:rgba(40,20,70,.18)!important}#eulam .panel{pointer-events:auto}
 @media (max-width:760px){#eulam{align-items:flex-start!important;padding-top:calc(64px + env(safe-area-inset-top))}#eulam .panel{max-height:58vh;overflow:auto}}
+body.nochat #chatform{display:none!important}
