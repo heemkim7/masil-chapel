@@ -19,7 +19,7 @@ export function apply(d) { const G = window.G; if (!G?.wanderers || !G.cfg) retu
   // villagers: reuse the configured wanderer slots plus 2–4 extra 산책하는 주민
   const extra = d ? 2 + Math.floor(r() * 3) : 0; G.wanderers.length = base.n;
   for (let i = 0; i < extra; i++) G.addWanderer()._dn = key;
-  G.wanderers.forEach((w, i) => { if (w.pilgrim) return; if (!d && i < base.n) { w.av = null; w._avp = null; w.lines = null; w.name = cfg.wanderers[i]?.name || w.name; w.char = 'player'; w.outfit = cfg.wanderers[i]?.outfit || 'basic'; w.drawH = 145; return; }
+  G.wanderers.forEach((w, i) => { if (w.pilgrim) return; if (!d && i < base.n) { w.av = null; w._avp = null; w.lines = null; w.name = cfg.wanderers[i]?.name || w.name; w.char = 'player'; w.outfit = cfg.wanderers[i]?.outfit || 'basic'; w.drawH = 145; if (w.wav) try { AV.apply(w, w.wav); } catch { } return; }
     const A = avatarFor(r); AV.apply(w, A.code); AV.preload(AV.parse(A.code)); w.drawH = Math.round(w.drawH * .97); w.name = personName(r, A.g, A.a);
     const L = WALK(dn); w.lines = [L[Math.floor(r() * L.length)], L[Math.floor(r() * L.length)], L[Math.floor(r() * L.length)]]; });
   // shopkeepers
