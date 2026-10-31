@@ -125,7 +125,7 @@ export class Char {
     return { key: sel.frames[fi], next: walking && !this.emote ? sel.frames[(fi + 1) % sel.frames.length] : null, mix, flip: sel.flip, sx, sy, lift, dir: sel.dir };
   }
   // v17 layered 2D: ONE still image per direction; motion is procedural — step bob, side tilt, jelly squash at footfalls,
-  // idle breathing, and a paper-flip (x-scale through 0) when the displayed direction changes.
+  // idle breathing; direction changes swap stills directly at full width.
   _lpose(face) { const MIR = { E: 'W', SE: 'SW', NE: 'NW' }, d0 = MIR[face] || face, flip = !!MIR[face];
     if (!window.AV.still(this, d0)) return null;
     const walking = this.speedNow > 0, U = this.drawH / 150; let sx = 1, sy = 1, lift = 0, rot = 0;
@@ -138,8 +138,8 @@ export class Char {
       if (q < .12) { sy *= .86; sx *= 1.12; } else if (q > .9) { sy *= .88; sx *= 1.1; } else { const st = 1 + Math.sin(q * Math.PI) * .07; sy *= st; sx /= Math.sqrt(st); } }
     let key = 'L:' + d0, fl = flip; if (walking && !this.emote && window.AV.walkStill) { const N = window.AV.WALK_N || 8, ph2 = (this._ph || 0) / 2; key += ':' + (((Math.floor(ph2 * N) % N) + N) % N); rot *= .4; }
     if (this.blendT < 1 && this.prevFace && face === (this.dface || this.face)) { const e = this.blendT, pf = this.prevFace; // paper flip
-      if (e < .5) { key = 'L:' + (MIR[pf] || pf); fl = !!MIR[pf]; if (!window.AV.still(this, MIR[pf] || pf)) { key = 'L:' + d0; fl = flip; } }
-      sx *= Math.max(.06, Math.abs(Math.cos(e * Math.PI))); }
+      // direct still-to-still turn at full width (no paper-thin x-squash, regression from e3e5ecc): hold the old still for a beat, then swap
+      if (e < .3) { key = 'L:' + (MIR[pf] || pf); fl = !!MIR[pf]; if (!window.AV.still(this, MIR[pf] || pf)) { key = 'L:' + d0; fl = flip; } } }
     return { key, next: null, mix: 0, flip: fl, sx, sy, lift, rot, dir: d0, lay: 1 }; }
   _img(ctx, key, alpha) {
     const img = (this.av && window.AV?.frame(this, key)) || IMG[key]; if (!img || alpha <= 0.01) return 0;
