@@ -161,12 +161,17 @@ function talkTo(npc) {
 function addXp(n) { const before = St.levelInfo(cfg, S.xp).lv; S.xp = Math.max(0, S.xp + n); const after = St.levelInfo(cfg, S.xp).lv; if (after > before) toast(`🎉 예배당 레벨 업! Lv.${after}`); refreshHud(); }
 
 // ---------- scenes ----------
-function enterChapel(silent) { scene = 'inside'; inside.floor = '1F'; try { window.Aud?.music('old100'); } catch { } player.x = cfg.interior.spawn.x; player.y = cfg.interior.spawn.y; player.face = 'N'; sitting = null; snapCam(); if (!silent) toast('⛪ 예배당 안으로 들어왔어요'); persist(); refreshHud(); }
+function enterChapel(silent) { scene = 'inside'; inside.floor = '1F'; try { window.Aud?.music('old100'); } catch { } player.x = cfg.interior.spawn.x; player.y = cfg.interior.spawn.y; player.face = 'N'; sitting = null; snapCam(); if (!silent) toast('⛪ 1층 본당 · ' + FPURP['1F']); persist(); refreshHud(); }
 function exitChapel() { scene = 'field'; try { if (!document.body.classList.contains('worship')) window.Aud?.stopMusic(); } catch { } player.x = cfg.chapel.door.x; player.y = cfg.chapel.door.y + 80; player.face = 'S'; sitting = null; snapCam(); persist(); refreshHud(); }
 function goFloor(to) { const I = cfg.interior, from = inside.floor; inside.floor = to; sitting = null;
   if (to === '1F') { const st = (I.stairs1 || []).find(s => s.to === from) || I.spawn; player.x = st.x - 70; player.y = st.y + 20; if (!inside.walkable(player.x, player.y)) { player.x = I.spawn.x; player.y = I.spawn.y; } }
   else { const f = inside.F(); player.x = f.spawn.x; player.y = f.spawn.y; }
-  snapCam(); try { window.P2?.sfx?.('step'); } catch { } toast(`🪜 ${to === '1F' ? '1층 본당' : inside.F().name}(으)로 이동했어요`); }
+  snapCam(); try { window.P2?.sfx?.('step'); } catch { } toast(`🪜 ${to === '1F' ? '1층 본당' : inside.F().name} · ${FPURP[to] || ''}`); }
+const FPURP = { '1F': '자유롭게 걷고, 자리에 앉고, 헌금·기도 게시판을 이용해요', B1: '차 한 잔 하며 이웃과 이야기하고, 조용히 기도해요', HALL: '함께 예배드려요 · 목사님 말씀 · 찬양 · 아멘' };
+function floorBar() { let b = document.getElementById('flbar'); if (!b) { b = document.createElement('div'); b.id = 'flbar'; b.innerHTML = '<button data-f="HALL">2층 예배홀</button><button data-f="1F">1층 본당</button><button data-f="B1">지하 친교실</button><button data-f="OUT" class="out">🚪 나가기</button>'; document.body.appendChild(b);
+    b.querySelectorAll('button').forEach(x => x.onclick = e => { e.stopPropagation(); const f = x.dataset.f; if (f === 'OUT') return exitChapel(); if (f === 'HALL') { window.HALL ? HALL.enter() : window.WH?.enter(); return; } if (inside.floor !== f) goFloor(f); }); }
+  const on = scene === 'inside' && !modal && !document.body.classList.contains('worship') && !document.body.classList.contains('h2-open') && !document.body.classList.contains('wh-open'); b.style.display = on ? '' : 'none'; if (on) b.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.f === inside.floor)); }
+
 const SPOTMSG = { organ: '🎹 찬양팀 키보드와 드럼이 준비돼 있어요 (찬양 모드는 🎵 버튼)', choir: '🎶 성가대석이에요. 함께 찬양해요!', cafe: '☕ 따뜻한 차 한 잔 하며 이웃과 이야기해요', prayer: '🕯 조용히 기도하는 방이에요. 잠시 마음을 모아요' };
 function spotAct(sp) { if (sp.t === 'choir' && window.WH) { window.WH.enter(); return; } if (sp.t === 'choir' || sp.t === 'organ') { startWorship(); return; } if (sp.t === 'prayer') emote('pray'); toast(SPOTMSG[sp.t] || sp.label); }
 window.__goFloor = goFloor;
@@ -174,15 +179,15 @@ const cur = () => scene === 'field' ? world : inside;
 const npcList = () => scene === 'field' ? fieldNpcs : inNpcs;
 
 // B: top-down floor plan on entering from the plaza door. Floors/rooms mirror cfg.interior (B1/1F/2F) so names match inside.
-const CP = { B1: { tab: '지하', rooms: [['cafe', '☕', '친교 카페', '차 마시며 교제', 6, 8, 52, 50], ['prayer', '🕯', '기도실', '조용한 기도', 62, 8, 32, 50], ['st1', '🪜', '1층 본당으로', '계단', 6, 64, 30, 22, 'stair']] },
-  '1F': { tab: '1층 본당', rooms: [['hall', '⛪', '본당 예배실', '예배 · 찬양 · 말씀', 14, 6, 72, 54, 'main'], ['pulpit', '📋', '로비 · 헌금함', '게시판 · 안내 (예배는 본당)', 4, 64, 34, 20], ['stb', '🪜', '지하 친교실', '계단 ▼', 41, 64, 26, 20, 'stair'], ['st2', '🪜', '2층 성가대석', '계단 ▲', 70, 64, 26, 20, 'stair']] },
-  '2F': { tab: '2층 성가대석', rooms: [['choir', '🎶', '성가대 찬양', '성가대석', 6, 8, 52, 50], ['band', '🎹', '찬양팀 악기', '키보드 · 드럼', 62, 8, 32, 50], ['st1', '🪜', '1층 본당으로', '계단', 6, 64, 30, 22, 'stair']] } };
+const CP = { B1: { tab: '지하 친교실', rooms: [['cafe', '☕', '지하 친교실', '차 한 잔 · 이웃과 이야기 · 조용한 기도', 6, 8, 88, 76, 'main']] },
+  '1F': { tab: '1층 본당', rooms: [['pulpit', '⛪', '1층 본당', '자유롭게 걷기 · 자리에 앉기 · 헌금 · 기도 게시판', 6, 8, 88, 76, 'main']] },
+  '2F': { tab: '2층 예배홀', rooms: [['hall', '🙏', '2층 예배홀', '함께 예배 · 목사님 말씀 · 찬양 · 아멘', 6, 8, 88, 76, 'main']] } };
 const CPGO = { hall: () => { enterChapel(true); window.HALL ? HALL.enter() : window.WH ? WH.enter() : toast('⛪ 예배당 안으로 들어왔어요'); }, pulpit: () => enterChapel(), st1: () => enterChapel(), st2: () => cpFloor('2F'), stb: () => cpFloor('B1'), cafe: () => cpFloor('B1', 0), prayer: () => cpFloor('B1', 1), choir: () => cpFloor('2F', 1), band: () => cpFloor('2F', 0) };
 function cpFloor(f, si) { enterChapel(true); goFloor(f); const sp = (inside.F().spots || [])[si]; if (sp) { player.x = sp.x; if (inside.walkable(sp.x, player.y) === false) player.x = inside.F().spawn.x; snapCam(); } }
 let cpTab = '1F';
 function cpRender() { const P = $('#chplan'), T = P.querySelector('.cp-tabs'), L = P.querySelector('.cp-plan');
   T.innerHTML = ['2F', '1F', 'B1'].map(k => `<button data-f="${k}" class="${k === cpTab ? 'on' : ''}">${CP[k].tab}</button>`).join('');
-  L.innerHTML = CP[cpTab].rooms.map(([id, ic, nm, sub, x, y, w, h, cls]) => `<button class="cp-room ${cls || ''}" data-room="${id}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><span class="ic">${ic}</span>${nm}<small>${sub}</small>${id === 'hall' ? '<span class="cp-rows">' + '<i></i>'.repeat(8) + '</span>' : ''}</button>`).join('') + (cpTab === '1F' ? '<span class="cp-you">▲ 지금 여기 (정문)</span><span class="cp-door">🚪 정문</span>' : '');
+  L.innerHTML = CP[cpTab].rooms.map(([id, ic, nm, sub, x, y, w, h, cls]) => `<button class="cp-room ${cls || ''}" data-room="${id}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><span class="ic">${ic}</span>${nm}<small>${sub}</small></button>`).join('') + '';
   T.querySelectorAll('button').forEach(b => b.onclick = () => { cpTab = b.dataset.f; cpRender(); });
   L.querySelectorAll('.cp-room').forEach(b => b.onclick = () => cpPick(b.dataset.room)); }
 function cpPick(id) { if (performance.now() - (+$('#chplan').dataset.t0 || 0) < 450) return; closeModal(); (CPGO[id] || enterChapel)(); }
@@ -197,7 +202,7 @@ function nearest() {
     { let bz = 1e9; for (const [p, type, r] of [[I.offering, 'offering', 80], [I.board, 'board', 80], [I.door, 'exit', 110]]) { const d = Math.hypot(p.x - player.x, p.y - player.y); if (d < r && d < bz) { bz = d; best = { type }; } } } // nearest object only; zones never overlap
     for (const st of inside.stairs()) if (Math.hypot(st.x - player.x, st.y - player.y) < 100) best = { type: 'stairs', st };
     I.pews.forEach((p, i) => { const r = inside.pewRect(i); if (Math.abs(player.x - r.cx) < (inside.td ? r.w / 2 + 10 : 58) && Math.abs(player.y - r.cy) < 60 && !best) best = { type: 'pew', i }; });
-    if (!best || best.type === 'pew') for (const n of inNpcs) if (Math.hypot(n.x - player.x, n.y - player.y) < 140) best = { type: 'npc', n }; }
+    if (!best || best.type === 'pew') for (const n of inNpcs) if (!(best && best.type === 'pew' && n.sit) && Math.hypot(n.x - player.x, n.y - player.y) < 140) best = { type: 'npc', n }; }
   if (scene === 'field' && window.P2?.signPos) { const sp = P2.signPos(); if (Math.hypot(sp.x - player.x, sp.y + 20 - player.y) < 120) best = { type: 'sign' }; }
   if (!best && scene === 'field') { let wd = 110; for (const w of wanderers) { const d = Math.hypot(w.x - player.x, w.y - player.y); if (d < wd) { wd = d; best = { type: 'npc', n: w }; } } }
   return best;
@@ -348,11 +353,11 @@ const _oldPost = async () => { const t = $('#btext').value.trim(); if (!t) retur
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- chat + emotes ----------
-function chatLog(who, txt, me, rid) { const d = document.createElement('div'); d.className = 'cl' + (me ? ' me' : ''); d.innerHTML = `<b>${esc(who)}</b> ${esc(txt)}`; if (rid) { d.dataset.id = rid; const f = document.createElement('button'); f.className = 'flag'; f.title = '신고 · 차단'; f.textContent = '🚩'; f.onclick = e => { e.stopPropagation(); Safe.menu(rid, who, txt); }; d.append(f); } const L = $('#chatlog'); L.append(d); while (L.children.length > 30) L.firstChild.remove(); L.scrollTop = 1e6; }
+function chatLog(who, txt, me, rid, npc) { const d = document.createElement('div'); d.className = 'cl' + (me ? ' me' : '') + (npc ? ' npc' : ''); d.innerHTML = `<b>${esc(who)}</b> ${esc(txt)}`; if (rid) { d.dataset.id = rid; const f = document.createElement('button'); f.className = 'flag'; f.title = '신고 · 차단'; f.textContent = '🚩'; f.onclick = e => { e.stopPropagation(); Safe.menu(rid, who, txt); }; d.append(f); } const L = $('#chatlog'); L.append(d); while (L.children.length > 30) L.firstChild.remove(); L.scrollTop = 1e6; }
 function sayLine(t) { if (!player) return; if (Safe.bad(t)) toast('바른 말을 사용해 주세요 🙏 (일부 단어는 가려져요)'); t = Safe.clean(t); player.say(t); chatLog(S.name, t, 1); net.chat(S.name, t); V.onChat(t); }
 $('#chatform').onsubmit = e => { e.preventDefault(); const t = $('#chatin').value.trim(); if (!t) return; if (!Safe.accepted()) { $('#chatin').blur(); return Safe.need(() => $('#chatform').requestSubmit()); } $('#chatin').value = ''; $('#chatin').blur(); sayLine(t);
   const pool = scene === 'field' ? wanderers : inNpcs; const near = pool.filter(w => Math.hypot(w.x - player.x, w.y - player.y) < 600); const r = near[Math.random() * near.length | 0];
-  if (r) setTimeout(() => { const a = ['반가워요 ' + S.name + '님!', '맞아요 ㅎㅎ', '좋아요 😊', '같이 가요~', '아멘 🙏'][Math.random() * 5 | 0]; r.say(a); chatLog(r.name, a); }, 900); };
+  if (r && scene === 'field') setTimeout(() => { const a = ['반가워요 ' + S.name + '님!', '맞아요 ㅎㅎ', '좋아요 😊', '같이 가요~', '아멘 🙏'][Math.random() * 5 | 0]; r.say(a); chatLog(r.name, a, 0, 0, 1); }, 900); };
 function emote(e) { if (!player || modal) return; if (sitting && e !== 'pray') standUp(); player.doEmote(e); net.send('emote', { e }); const lbl = { wave: '👋', jump: '🙌', pray: '🙏' }[e]; chatLog(S.name, lbl + ' (이모트)', 1); V.onEmote(e); }
 document.querySelectorAll('[data-emote]').forEach(b => b.onclick = () => emote(b.dataset.emote));
 
@@ -427,7 +432,7 @@ function update(dt) {
       if (!A.tgt && (A.t -= dt) <= 0) A.tgt = w.pilgrim && Math.random() < .5 ? { x: cfg.chapel.door.x + (Math.random() - .5) * 160, y: cfg.chapel.door.y + 90 + Math.random() * 60 } : Math.random() < .75 ? world.pathPoint() : world.randomPoint();
       if (A.tgt) { const dx = A.tgt.x - w.x, dy = A.tgt.y - w.y, d = Math.hypot(dx, dy); if (d < 20) { A.tgt = null; A.t = 1 + Math.random() * 4; if (Math.random() < .3) w.doEmote('wave'); w.move(world, 0, 0, dt, 120, 8); } else { const ox = w.x, oy = w.y; w.move(world, dx / d, dy / d, dt, 120, 6); if (Math.hypot(w.x - ox, w.y - oy) < .01) A.tgt = null; } }
       else w.move(world, 0, 0, dt, 120, 8);
-      if ((A.chat -= dt) <= 0) { A.chat = 5 + Math.random() * 8; const t = w.lines && Math.random() < .6 ? w.lines[Math.random() * w.lines.length | 0] : cfg.chats[Math.random() * cfg.chats.length | 0]; w.say(t); if (Math.hypot(w.x - player.x, w.y - player.y) < 900) chatLog(w.name, t); } }
+      if ((A.chat -= dt) <= 0) { A.chat = 5 + Math.random() * 8; const t = w.lines && Math.random() < .6 ? w.lines[Math.random() * w.lines.length | 0] : cfg.chats[Math.random() * cfg.chats.length | 0]; w.say(t); if (Math.hypot(w.x - player.x, w.y - player.y) < 900) chatLog(w.name, t, 0, 0, 1); } }
     for (let i = pickups.length - 1; i >= 0; i--) { const p = pickups[i]; if (Math.hypot(p.x - player.x, p.y - player.y) < 60) { pickups.splice(i, 1); S.quest.got.push(p.i); toast(`⭐ 축복의 별을 찾았어요! (${S.quest.got.length}/${cfg.quest.needStars})`);
       if (S.quest.got.length >= cfg.quest.needStars) { S.quest.stage = 3; toast('모두 찾았어요! 예배당 안 목사님께 가요'); } refreshHud(); persist(); } }
   } else for (const n of inNpcs) { n.update(dt); n.speedNow = 0; if (!n.sit && !n.emote && Math.random() < dt * .05) n.doEmote('wave'); }
@@ -436,6 +441,7 @@ function update(dt) {
   if ((mmT -= dt) <= 0) { mmT = .1; drawMinimap(); if (modal === '#map') drawMap(); }
   const t = nearest(); const b = $('#btn-act'); b.textContent = worship ? '♪' : sitting ? '일어나기' : t ? ACTLBL[t.type] : '대화'; b.classList.toggle('glow', !!t || !!sitting || !!worship);
   // camera
+  document.body.classList.toggle('inchapel', scene === 'inside'); floorBar(); // quiet chapel: NPC chatter hidden inside
   const Wd = cur(), Vw = scene === 'field' ? { x: 0, y: 0, w: Wd.W, h: Wd.H } : inside.view(), zc = Math.min(1, innerWidth / Vw.w, innerHeight / Vw.h), z0 = scene === 'field' ? Math.max(.55, Math.min(1, Math.min(innerWidth, innerHeight * 1.4) / 1200)) : innerHeight > innerWidth * 1.2 ? Math.max(zc, Math.min(1, innerHeight * .55 / Vw.h, innerWidth / (Vw.w * .42))) : zc; CK.k = scene === 'field' ? 1 : inside.cs(); // v11: portrait phones fit room HEIGHT (≈42% of width visible, camera follows) so characters stay readable; else CONTAIN. v10 interior: CONTAIN-fit (whole room visible, never zoomed past 1:1 so sprites never upscale)
   let tx = player.x, ty = player.y - 60, z = z0;
   cam.cf = 0; if (scene === 'field' && world && world.chapelBox) { const F = chapelFrame(); cam.cf = F.f; if (F.f > 0) { const zt = Math.max(F.z, z0 * .87); z = z0 + (zt - z0) * F.f; const g2 = chapelGeom(), ly = Math.max(F.cy, g2.door.y + 40 - innerHeight * .36 / zt); tx += (F.cx - tx) * F.f; ty += (ly - ty) * F.f; ty = Math.max(ty, player.y - innerHeight * (innerHeight > innerWidth ? .24 : .28) / zt); } } { const nw = performance.now(), dtz = Math.min(.1, (nw - (cam.zt || nw)) / 1000); cam.zt = nw; cam.zs = cam.zs == null || scene !== cam.zsc ? z : cam.zs + (z - cam.zs) * (1 - Math.exp(-dtz / .3)); cam.zsc = scene; z = cam.zs; } cam.z = z; // zoom change near the chapel capped at -13% and time-eased (~1s); look-up offset keeps the door low and the building filling the view // A: chapel framing — near the chapel the camera eases out so the WHOLE chapel (roof+cross) is on screen

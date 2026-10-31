@@ -10,20 +10,20 @@ function pilgrims(dt) { const g = G(); if (!g?.S) return; pt -= dt; if (pt > 0) 
   while (pil.length > want) { const c = pil.pop(), i = g.wanderers.indexOf(c); i >= 0 && g.wanderers.splice(i, 1); }
   for (const c of pil) if (Math.random() < .2) c.say?.(PLINES[Math.random() * PLINES.length | 0], 3); }
 function btn() { let b = document.getElementById('btn-obi'); if (!b) { b = document.createElement('button'); b.id = 'btn-obi'; b.className = 'obibtn'; b.textContent = '🍞🐟 오병이어'; b.title = '방 안 모두에게 빵과 물고기 비를 내려요'; b.onclick = () => start(true); document.body.appendChild(b); }
-  const g = G(); b.style.display = g?.S && g.scene === 'inside' && g.inside?.floor === '1F' && !g.modalOpen ? '' : 'none'; b.disabled = Date.now() < obiCd; }
+  const g = G(); b.style.display = g?.S && g.scene === 'field' && !g.modalOpen && !g.worship ? '' : 'none'; b.disabled = Date.now() < obiCd; }
 export function start(mine, seed) {
-  const g = G(); if (rain) return; if (mine) { if (Date.now() < obiCd) return; obiCd = Date.now() + 10 * 60e3; g.net?.send('obi', { name: g.S?.name || '이웃' }); g.toast?.('🍞🐟 오병이어! 떨어지는 빵과 물고기를 눌러 모아요'); }
-  const cv = document.createElement('canvas'); cv.id = 'obicv'; document.body.appendChild(cv); const pr = Math.min(2, devicePixelRatio || 1);
+  const g = G(); if (rain || g?.scene !== 'field' || g?.worship) return; if (mine) { if (Date.now() < obiCd) return; obiCd = Date.now() + 10 * 60e3; g.net?.send('obi', { name: g.S?.name || '이웃' }); g.toast?.('🍞🐟 오병이어! 떨어지는 빵과 물고기를 눌러 모아요'); }
+  const cv = document.createElement('canvas'); cv.id = 'obicv'; cv.style.pointerEvents = 'none'; document.body.appendChild(cv); const pr = Math.min(2, devicePixelRatio || 1);
   const fit = () => { cv.width = innerWidth * pr; cv.height = innerHeight * pr; }; fit();
   rain = { cv, t: 0, got: 0, P: [], end: 7 }; for (let i = 0; i < 26; i++) rain.P.push({ x: Math.random() * innerWidth, y: -Math.random() * innerHeight * 1.2 - 30, v: 90 + Math.random() * 90, e: Math.random() < .6 ? '🍞' : '🐟', r: Math.random() * 6, on: 1 });
-  const tap = ev => { const p0 = ev.touches?.[0] || ev, x = p0.clientX, y = p0.clientY; for (const p of rain.P) if (p.on && Math.hypot(p.x - x, p.y - y) < 34) { p.on = 0; rain.got++; try { window.Aud?.play?.('coin'); } catch { } ev.preventDefault(); break; } };
-  cv.addEventListener('pointerdown', tap); let last = performance.now();
-  const f = now => { if (!rain) return; const dt = Math.min(.05, (now - last) / 1000); last = now; rain.t += dt; const c = cv.getContext('2d'); c.setTransform(pr, 0, 0, pr, 0, 0); c.clearRect(0, 0, innerWidth, innerHeight);
+  const tap = ev => { const p0 = ev.touches?.[0] || ev, x = p0.clientX, y = p0.clientY; for (const p of rain.P) if (p.on && Math.hypot(p.x - x, p.y - y) < 34) { p.on = 0; rain.got++; try { window.Aud?.play?.('coin'); } catch { } ev.preventDefault(); ev.stopPropagation(); break; } };
+  addEventListener('pointerdown', tap, true); rain.tap = tap; let last = performance.now();
+  const f = now => { if (!rain) return; const dt = Math.min(.05, (now - last) / 1000); last = now; rain.t += dt; if (g.scene !== 'field') rain.t = rain.end; const c = cv.getContext('2d'); c.setTransform(pr, 0, 0, pr, 0, 0); c.clearRect(0, 0, innerWidth, innerHeight);
     c.font = '40px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; for (const p of rain.P) { if (!p.on) continue; p.y += p.v * dt; p.r += dt; if (p.y > innerHeight + 40) p.y = -40; c.save(); c.translate(p.x + Math.sin(p.r * 2) * 10, p.y); c.rotate(Math.sin(p.r) * .4); c.fillText(p.e, 0, 0); c.restore(); }
     c.font = '800 20px Pretendard,sans-serif'; c.fillStyle = '#7a4b00'; c.strokeStyle = '#fff'; c.lineWidth = 4; const s = `🍞🐟 ${rain.got}개 모았어요 · ${Math.max(0, Math.ceil(rain.end - rain.t))}초`; const cy = innerWidth < 760 ? 228 : 128; c.strokeText(s, innerWidth / 2, cy); c.fillText(s, innerWidth / 2, cy);
     if (rain.t < rain.end) requestAnimationFrame(f); else finish(); };
   requestAnimationFrame(f); }
-async function finish() { const r = rain; rain = null; r.cv.remove(); const g = G(); if (r.got > 0) { const d = await window.W?.earn?.('obi'); g?.toast?.(d && d.granted ? `🙌 ${r.got}개를 모아 달란트 +${d.granted}! 나눔의 기적이에요` : `🙌 ${r.got}개를 모았어요! (오늘 보상은 이미 받았어요)`); g?.refreshHud?.(); } }
+async function finish() { const r = rain; rain = null; r.cv.remove(); removeEventListener('pointerdown', r.tap, true); const g = G(); if (r.got > 0) { const d = await window.W?.earn?.('obi'); g?.toast?.(d && d.granted ? `🙌 ${r.got}개를 모아 달란트 +${d.granted}! 나눔의 기적이에요` : `🙌 ${r.got}개를 모았어요! (오늘 보상은 이미 받았어요)`); g?.refreshHud?.(); } }
 // gold pillars: churches with the biggest (free 달란트) offering totals rise as golden pillars on the map
 let tops = null, topsAt = 0;
 export async function churchTops() { if (tops && Date.now() - topsAt < 60e3) return tops; const sb = G()?.net?.sb; if (!sb) return tops || []; topsAt = Date.now(); try { const r = await sb.from('churches').select('dong,total').gt('total', 0).order('total', { ascending: false }).limit(300); if (r.error) { topsAt = 0; return tops || []; } tops = r.data || []; } catch { topsAt = 0; tops = tops || []; } return tops; }

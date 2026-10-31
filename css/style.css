@@ -348,3 +348,9 @@ body{word-break:keep-all;overflow-wrap:anywhere}
 .maplist button{display:flex;align-items:center;gap:6px;min-height:40px;padding:6px 10px;border-radius:12px;background:#fff;border:1.5px solid #e4d8f2;font:600 14px Pretendard,sans-serif;color:#3b2a52;text-align:left}
 .maplist button i{font-style:normal;flex:none;width:22px;height:22px;border-radius:50%;background:#efe6fa;color:#4a2b78;font-weight:800;font-size:12px;display:grid;place-items:center}
 .maplist button.on{border-color:#ff4f93;background:#fff0f6}.maplist button.on i{background:#ff4f93;color:#fff}
+
+body.inchapel .cl.npc{display:none}
+#flbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(196px + env(safe-area-inset-top));z-index:45;display:flex;gap:6px;background:rgba(255,255,255,.88);padding:5px;border-radius:999px;box-shadow:0 4px 14px rgba(74,43,120,.18)}
+#flbar button{border:0;border-radius:999px;padding:7px 11px;font:800 13px Pretendard,sans-serif;color:#4a2b78;background:#f1e8ff;min-height:36px;white-space:nowrap}
+#flbar button.on{background:#8a5cd6;color:#fff}#flbar button.out{background:#ffe1e1;color:#a8323c}
+@media (min-width:761px){#flbar{top:auto;bottom:calc(18px + env(safe-area-inset-bottom))}}
