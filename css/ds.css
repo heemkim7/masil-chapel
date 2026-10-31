@@ -117,3 +117,5 @@ body.h2-open .obibtn,body.wh-open .obibtn,body.modal-open .obibtn{display:none!i
 #blist .bsum{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 10px;margin-bottom:8px;border-radius:12px;background:#fff6e6;font-size:12.5px;color:#5a4030}#blist .bsum b{color:#c26a00}#blist .bsum button{border:0;border-radius:99px;padding:5px 10px;background:#ffe2a8;font-weight:800;font-size:12px;cursor:pointer}
 #blist .post .bhide{margin-left:6px;background:transparent!important;border:0;color:#998;font-size:11.5px;cursor:pointer}
 #blist .bempty{text-align:center;padding:26px 10px;color:#7a6a80}#blist .bempty .e{font-size:64px;line-height:1;margin-bottom:8px}
+#btn-candle{display:none!important}
+@media (max-width:760px){#decor-items{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}}
