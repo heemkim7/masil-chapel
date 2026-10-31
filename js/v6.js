@@ -74,7 +74,7 @@ export const V = {
     L.push([S.solo ? '🌙 혼자 모드 · 지금 여기' : '🌙 혼자 모드', () => S.solo ? A.closeModal() : this.goSolo()], ['닫기', null]);
     A.dialog('📍 장소 이동', `지금: ${this.dongLabel().replace(/^\S+ /, '')}`, L); },
   goHome() { const S = this.S; if (S.visit) { S.visit = null; A.persist(); this.hud(); A.toast(`🏠 우리 동네 ${S.dong.name}(으)로 돌아왔어요`); } },
-  tickRoom(scene) { const net = A.net; if (!net.sb) return; if (document.getElementById('title')?.style.display === 'flex') { if (net.lb) net.leaveLobby(); return; } // no lobby presence on the title screen const r = this.room(scene);
+  tickRoom(scene) { const net = A.net; if (!net.sb) return; if (document.getElementById('title')?.style.display === 'flex') { if (net.lb) net.leaveLobby(); return; } /* no lobby presence on the title screen */ const r = this.room(scene);
     if (!r) { if (net.room) { net.room = null; net.leave(); } return; }
     const h = this.current(); if (!net.lobbyMe || net.lobbyMe.dong !== h.cd || net.lobbyMe.shard !== this.shard()) { net.lobby(h.cd, this.S.name, this.shard()); this.lbWait ||= Date.now(); }
     if (!net.lbSynced && Date.now() - (this.lbWait || 0) < 2500) return; // wait for head counts before choosing a shard

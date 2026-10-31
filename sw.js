@@ -1,4 +1,4 @@
-const BUILD = 'd2dc3a93e7';
+const BUILD = '9da57f1302';
 // 마실채플 service worker (cost pass). Same-origin /assets/* only; HTML/JS/CSS/config go straight to the network (no-cache headers).
 // - every asset request is rewritten to /assets/X?v=<content hash> from asset-manifest.json → immutable URL, new file = new URL
 // - images/json: cache-first after first fetch. Audio: cached on FIRST PLAY only (never prefetched), then served from Cache API with
@@ -18,6 +18,7 @@ self.addEventListener('fetch', e => { const u = new URL(e.request.url); if (e.re
   e.respondWith((async () => { const m = await man(), p = decodeURIComponent(u.pathname.slice(1)), h = m[p]; if (!h) return fetch(e.request);
     const key = '/' + p + '?v=' + h, audio = /\.(mp3|m4a|ogg)$/.test(p), cn = audio ? C_AUD : C_IMG, c = await caches.open(cn);
     let hit = await c.match(key);
-    if (!hit) { const r = await fetch(key); if (!r.ok) return r; await c.put(key, r.clone()); if (!audio) return r; hit = await c.match(key); }
+    if (!hit) { // revalidate the plain URL (304 → body from HTTP cache, ~0 bytes) instead of re-downloading under the versioned key
+      let r = await fetch('/' + p, { cache: 'no-cache' }).catch(() => null); if (!r || !r.ok || r.status === 206) r = await fetch(key); if (!r.ok) return r; await c.put(key, r.clone()); if (!audio) return r; hit = await c.match(key); }
     if (audio) { const rg = e.request.headers.get('range'); if (rg) return rangeResp(hit, rg); }
     return hit; })()); });
