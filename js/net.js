@@ -18,7 +18,7 @@ const CELL = 900, KEEP = 2; // cell size (world px); drop a cell only when ≥KE
 // v15 Cloudflare transport: on *.workers.dev (or ?rt=do) realtime goes to SQLite Durable Objects over one WebSocket per channel.
 // The shim mimics the small part of supabase-js RealtimeChannel this game uses, so the rest of the file is unchanged.
 // Supabase stays for auth, DB and RPCs. Any failure → solo mode (game keeps working single-player).
-export const DO_MODE = /\.workers\.dev$/.test(location.hostname) || /[?&]rt=do/.test(location.search);
+export const DO_MODE = /(^|\.)masilchapel\.[a-z0-9-]+\.workers\.dev$/.test(location.hostname) || /[?&]rt=do/.test(location.search); // Worker "masilchapel"
 const DO_TRY = [800, 2000, 4500, 8000];
 class DOChan {
   constructor(rt, topic, cfg) { this.rt = rt; this.topic = topic; this.key = cfg?.config?.presence?.key || ('w' + Math.random().toString(36).slice(2, 10)); this.hs = []; this.st = {}; this.state = 'closed'; this.mine = null; this.tries = 0; }
