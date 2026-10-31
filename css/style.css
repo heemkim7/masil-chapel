@@ -363,3 +363,7 @@ body.inchapel .cl.npc{display:none}
 #eulam{pointer-events:none;background:rgba(40,20,70,.18)!important}#eulam .panel{pointer-events:auto}
 @media (max-width:760px){#eulam{align-items:flex-start!important;padding-top:calc(64px + env(safe-area-inset-top))}#eulam .panel{max-height:58vh;overflow:auto}}
 body.nochat #chatform{display:none!important}
+#gatewait{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(40,24,70,.55);backdrop-filter:blur(3px)}
+#gatewait .gw-card{background:#fff;border-radius:22px;padding:26px 22px;max-width:320px;width:86%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.25);font-family:Pretendard,sans-serif;color:#4a2b78}
+#gatewait .gw-ic{font-size:40px}#gatewait .gw-t{display:block;font-size:20px;margin:8px 0}#gatewait .gw-s{margin:6px 0;font-size:14px}#gatewait .gw-n{display:block;color:#8a7aa8;font-size:12px;margin-bottom:14px}
+#gatewait .gw-solo{border:0;border-radius:14px;padding:10px 18px;background:#efe6ff;color:#4a2b78;font-weight:800;font-size:15px}

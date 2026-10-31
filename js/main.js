@@ -22,7 +22,7 @@ import { initPhase4 } from './phase4.js';
 // session: 30-min sliding TTL; same presence key on reload => no ghost duplicate of ourselves
 const SESS = 'maeul_sess_v6', TTL = 30 * 60 * 1000;
 const sess = (() => { try { const o = JSON.parse(localStorage.getItem(SESS)); if (o && Date.now() - o.t < TTL) return o; } catch { } return null; })();
-const net = new Net(), remotes = new Map(); let netReady = null;
+const net = new Net(), remotes = new Map(); let netReady = null; import('./gate_ui.js').then(m => m.gateUI(net, () => { try { V?.goSolo?.(); } catch { } })).catch(() => { });
 import('./account.js').catch(e => console.warn('acct', e));
 import('./worship.js').then(() => import('./hall.js')).then(() => { const b = document.getElementById('btn-wh'); if (b) b.onclick = () => window.HALL.enter(); }).catch(e => console.warn('worship', e));
 // returning from a magic link / OAuth redirect: start the client now so it can pick the session out of the URL, then restore

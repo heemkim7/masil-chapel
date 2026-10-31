@@ -56,13 +56,13 @@ export const V = {
     L.push(['🔗 이 방 링크 복사', () => window.shareLink(this.link())], ['닫기', null]);
     A.dialog(`🏠 ${d.name} 방 목록`, '같은 동네라도 100명씩 방이 나뉘어요. 원하는 방으로 옮길 수 있어요.', L); },
   dongLabel() { const S = this.S; if (!S) return ''; if (S.solo) return '🌙 혼자 모드'; const d = this.current(); if (!d) return '📍 동네 선택'; return (d.cd === '0' ? '🌈 ' : S.visit ? '🧳 ' : '📍 ') + d.name + ` · ${this.shard()}번 방`; },
-  async setDong(cd, opt = {}) { const S = this.S, d = await this.byCode(cd); if (!d) return false; S.solo = false;
+  async setDong(cd, opt = {}) { const S = this.S, d = await this.byCode(cd); if (!d) return false; S.solo = false; A.net.solo = false; A.net.gateDown = false;
     if (opt.visit && S.dong && S.dong.cd !== cd) S.visit = d; else { S.dong = d; S.visit = null; } if (!opt.keepShard) { S.shard = 1; S.shardLock = false; }
     if (S.visit) S.recent = [{ cd: d.cd, name: d.name, sgg: d.sgg }, ...(S.recent || []).filter(r => r.cd !== d.cd)].slice(0, 4);
     A.persist(); this.hud(); A.toast(S.visit ? `🧳 ${d.sgg} ${d.name}에 놀러 왔어요` : `📍 ${d.sgg} ${d.name} 예배당에 들어왔어요`); A.chatLog('📍', `${d.sido} ${d.sgg} ${d.name} 방`); return true; },
-  goSolo() { const S = this.S; S.solo = true; S.visit = null; A.net.leave(); A.net.leaveLobby(); A.persist(); this.hud(); A.toast('🌙 혼자 모드: 다른 사람 없이 조용히 플레이해요'); A.closeModal(); },
+  goSolo() { const S = this.S; S.solo = true; S.visit = null; A.net.leave(); A.net.gateLeave?.(); A.net.leaveLobby(); A.persist(); this.hud(); A.toast('🌙 혼자 모드: 다른 사람 없이 조용히 플레이해요'); A.closeModal(); },
   // top-bar place switcher: current place + 광장 / 우리 동네 / recent visits / search; tickRoom() reconnects to the new room on the next frame
-  goPlace(k) { const S = this.S; S.solo = false; S.shard = 1; S.shardLock = false;
+  goPlace(k) { const S = this.S; S.solo = false; A.net.solo = false; A.net.gateDown = false; S.shard = 1; S.shardLock = false;
     if (k === 'plaza') S.visit = S.dong ? PLAZA : null; else if (k === 'home') S.visit = null;
     A.persist(); this.hud(); A.closeModal(); const d = this.current(); A.toast(`${d.cd === '0' ? '🌈' : '📍'} ${d.name}(으)로 이동했어요`); },
   openPlaces() { const S = this.S, d = this.current(), here = d ? d.cd : null, L = [];
