@@ -199,7 +199,7 @@ function cpRender() { const P = $('#chplan'), T = P.querySelector('.cp-tabs'), L
   T.querySelectorAll('button').forEach(b => b.onclick = () => { cpTab = b.dataset.f; cpRender(); });
   L.querySelectorAll('.cp-room').forEach(b => b.onclick = () => cpPick(b.dataset.room)); }
 function cpPick(id) { if (performance.now() - (+$('#chplan').dataset.t0 || 0) < 450) return; closeModal(); (CPGO[id] || enterChapel)(); }
-function openChPlan() { cpTab = '1F'; cpRender(); const P = $('#chplan'); const t0 = performance.now(), ok = () => performance.now() - t0 > 450; /* ignore the touch ghost-click that follows the opening tap */ P.querySelector('.cp-go').onclick = () => ok() && cpPick(CP[cpTab].rooms[0][0]); P.querySelector('.cp-stay').onclick = () => ok() && closeModal(); P.querySelector('.close').onclick = () => ok() && closeModal(); P.dataset.t0 = t0; openModal('#chplan'); clickTarget = null; cpPending = false; }
+function openChPlan() { cpTab = '2F'; cpRender(); const P = $('#chplan'); const t0 = performance.now(), ok = () => performance.now() - t0 > 450; /* ignore the touch ghost-click that follows the opening tap */ P.querySelector('.cp-go').onclick = () => ok() && cpPick(CP[cpTab].rooms[0][0]); P.querySelector('.cp-stay').onclick = () => ok() && closeModal(); P.querySelector('.close').onclick = () => ok() && closeModal(); P.dataset.t0 = t0; openModal('#chplan'); clickTarget = null; cpPending = false; }
 let cpPending = false;
 function nearest() {
   let best = null, bd = 140;

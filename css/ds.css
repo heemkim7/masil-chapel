@@ -105,3 +105,5 @@ button.mini{padding:4px 10px;font-size:12px;border-radius:999px;min-height:28px}
 .rkm.md{width:30px;height:30px;margin:0 2px;border-radius:50%;display:grid;place-items:center;font-size:14px;color:#fff;box-shadow:0 2px 0 rgba(0,0,0,.12),inset 0 -3px 0 rgba(0,0,0,.12)}
 .rkm.m1{background:radial-gradient(circle at 35% 30%,#fff3a8,#f5b800)}.rkm.m2{background:radial-gradient(circle at 35% 30%,#f4f6fb,#a9b3c6)}.rkm.m3{background:radial-gradient(circle at 35% 30%,#ffd8b0,#cd7f32)}
 .rkempty .e svg,.rkempty .e img{width:44px;height:44px}
+/* h29: keep the top chip row clear of the absolutely-placed ☰ menu button (⚙ was hidden under it at 701–1100px) */
+@media (min-width:701px){#top{padding-right:calc(var(--sr,0px) + 72px)!important;box-sizing:border-box;flex-wrap:nowrap!important}#top>*{white-space:nowrap;flex-shrink:0}#top>*:not(button):not(#coinbox){min-width:0;flex-shrink:1;overflow:hidden;text-overflow:ellipsis}#top #scene{flex-shrink:0!important;min-width:max-content!important}#top #dongbtn{flex-shrink:1!important;min-width:0!important;overflow:hidden;text-overflow:ellipsis}}

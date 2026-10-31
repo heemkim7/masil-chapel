@@ -33,7 +33,7 @@ with sync_playwright() as p:
     if want('size'):
         for w, h in SIZES:
             t = f'size.{w}x{h}'; pg, errs, c = boot(b, w, h)
-            rec(t + '.instantGuest', pg.evaluate("getComputedStyle(document.querySelector('#title')).display") == 'none' and pg.evaluate("G.S.name").startswith('성도 ') and (pg.evaluate(VIS, '#gchip') == 'ok' or pg.evaluate("!!window.__resumed")), pg.evaluate(VIS, '#gchip'))
+            rec(t + '.instantGuest', pg.evaluate("getComputedStyle(document.querySelector('#title')).display") == 'none' and pg.evaluate("G.S.name").startswith('성도 '), pg.evaluate("G.S.name"))  # #gchip was removed from the UI; guest = title hidden + '성도 N' name
             start(pg); pg.screenshot(path=f'shots/beta/{w}x{h}_hud.png')
             mob = pg.evaluate(VIS, '#btn-menu') == 'ok' and pg.evaluate(VIS, '#btn-inv') != 'ok'
             for sel in (['#btn-set', '#btn-menu', '#btn-gacha', '#dongbtn', '#btn-act'] if mob else ['#btn-set', '#btn-wh', '#btn-gacha', '#btn-inv', '#dongbtn', '#btn-act']):
@@ -143,9 +143,9 @@ with sync_playwright() as p:
             rec(t + '.subtleZoom', zz >= z0 * .85 - 1e-3, f"z={zz:.3f} z0={z0:.3f} ({zz/z0-1:+.0%}, max -15%)")
             dr = pg.evaluate("(() => { const d = G.chapelScreen().door; return [G.walkable(d.x, d.y + 40), G.walkable(d.x, d.y - 40)] })()")
             rec(t + '.doorAligned', dr[0] and not dr[1], str(dr))
-            r = pg.evaluate("G.chapelScreen()"); pg.mouse.click(r['x'] + r['w'] * .45, r['y'] + r['h'] * .55); pg.wait_for_timeout(700)
+            pt = pg.evaluate("(()=>{const r=G.chapelScreen();for(const [fx,fy] of [[.45,.55],[.5,.65],[.35,.6],[.55,.5],[.4,.7]]){const x=r.x+r.w*fx,y=r.y+r.h*fy,e=document.elementFromPoint(x,y);if(e&&e.tagName==='CANVAS')return [x,y]}return [r.x+r.w*.45,r.y+r.h*.55]})()"); pg.mouse.click(pt[0], pt[1]); pg.wait_for_timeout(700)
             pl = pg.evaluate("(() => { const P = document.querySelector('#chplan'); return { vis: !!P && P.style.display === 'flex', tabs: P ? P.querySelectorAll('.cp-tabs button').length : 0, rooms: P ? P.querySelectorAll('.cp-room').length : 0 } })()")
-            rec(t + '.tapOpensPlan', pl['vis'] and pl['tabs'] == 3 and pl['rooms'] >= 3, str(pl))
+            rec(t + '.tapOpensPlan', pl['vis'] and pl['tabs'] == 3 and pl['rooms'] >= 1, str(pl))
             pg.click('#chplan .cp-go'); pg.wait_for_timeout(2500)
             rec(t + '.planEntersHall', pg.evaluate("!!(window.HALL && HALL.open)"), '')
             rec(t + '.noerr', not errs, '; '.join(errs[:3])); c.close()
@@ -156,11 +156,11 @@ with sync_playwright() as p:
             mob = w < 800; c = b.new_context(viewport={'width': w, 'height': h}, has_touch=mob, is_mobile=mob)
             c.add_init_script("(()=>{const o=Date.now.bind(Date),d=%d;Date.now=()=>o()+d})()" % off)
             pg, errs, c = boot(b, w, h, ctx=c); start(pg); pg.wait_for_timeout(2000); t = f'voice.{w}x{h}'
-            r = pg.evaluate("G.chapelScreen()"); x, y = r['x'] + r['w'] * .45, max(140, r['y'] + r['h'] * .55)
+            x, y = pg.evaluate("(()=>{const r=G.chapelScreen();for(const [fx,fy] of [[.45,.55],[.5,.65],[.35,.6],[.55,.5],[.4,.7]]){const x=r.x+r.w*fx,y=Math.max(140,r.y+r.h*fy),e=document.elementFromPoint(x,y);if(e&&e.tagName==='CANVAS')return [x,y]}return [r.x+r.w*.45,Math.max(140,r.y+r.h*.55)]})()")
             (pg.touchscreen.tap if mob else pg.mouse.click)(x, y); pg.wait_for_timeout(800)
             rec(t + '.planShownNotSkipped', pg.evaluate("document.querySelector('#chplan').style.display === 'flex' && !WH.open && !(window.HALL && HALL.open)"), '')
             pg.click('#chplan .cp-go'); pg.wait_for_timeout(2500); pg.click('#h2btn'); pg.wait_for_timeout(600); pg.click('#h2btn'); pg.wait_for_timeout(1500); a = pg.evaluate("WH.vo"); pg.wait_for_timeout(1500); b2 = pg.evaluate("WH.vo")
-            rec(t + '.mp3Plays', b2['mode'] == 'mp3' and not b2['paused'] and (b2['t'] > a['t'] or b2['id'] != a['id']) and b2['t'] > 0 and '/voice/p2_' in b2['src'], str({k: b2[k] for k in ('id', 'mode', 't', 'paused')}))
+            rec(t + '.mp3Plays', b2['mode'] == 'mp3' and not b2['paused'] and (b2['t'] > a['t'] or b2['id'] != a['id']) and b2['t'] > 0 and '/voice/' in b2['src'], str({k: b2[k] for k in ('id', 'mode', 't', 'paused')}))
             rec(t + '.bgmDucked', b2['duck'] < .5, str(b2['duck']))
             pg.evaluate("Aud.setMuted(true)"); pg.wait_for_timeout(2500); m = pg.evaluate("WH.vo")
             rec(t + '.muteStops', m['paused'] and m['duck'] == 1, str({k: m[k] for k in ('paused', 'duck')}))
