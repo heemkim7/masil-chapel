@@ -157,13 +157,22 @@ function openCol() { const p = st(), m = modal('p2col', '🏅 수집 도감 · �
   G().openModal('#p2col'); }
 
 // ---------- leaderboard ----------
-async function openLead() { G().openModal('#church'); const d = G().V?.current?.(); $('#chname').textContent = d ? `${d.name} 예배당` : '우리 동네 예배당'; G().V?.index?.().then(I => { let e = $('#chregion'); if (!e) { e = document.createElement('p'); e.id = 'chregion'; e.className = 'mnote'; $('#chtier').before(e); } e.innerHTML = `📍 ${esc(regionOf(I, d?.cd) || '지역을 아직 고르지 않았어요')} <button id="chregbtn" class="mini">지역 바꾸기</button>`; $('#chregbtn').onclick = () => { G().closeModal(); $('#dongbtn')?.click(); }; }).catch(() => {});
-  const nx = [0, 1000, 5000, 20000, 80000, 1e9][tier]; $('#chtier').innerHTML = `<b>Tier ${tier}</b> · 동네 달란트 ${TAL}${total.toLocaleString()}달란트`; $('#chbar').style.width = Math.min(100, total / nx * 100) + '%'; $('#chnext').textContent = tier < 5 ? `다음 단계까지 ${(nx - total).toLocaleString()}달란트` : '최고 단계예요!';
-  document.querySelectorAll('.chg').forEach(b => { b.textContent = b.dataset.g + ' 달란트'; b.onclick = () => { G().closeModal(); openOffer(false); }; });
-  let sc = 'dong', pe = 'week'; const run = async () => { const L = $('#lblist'), sb = G().net?.sb; L.innerHTML = '<li class="mnote">불러오는 중…</li>';
-    try { let rows; if (sc === 'church') { const I = await G().V.index().catch(() => []); rows = (await sb.rpc('church_rank', { p_period: pe })).data.map(r => [r.name + ' 예배당', r.total, regionOf(I, r.dong)]); } else rows = (await sb.rpc('leaderboard', { p_scope: sc, p_dong: d?.cd || '', p_period: pe })).data.map(r => [r.name, r.total]);
-      L.innerHTML = rows.length ? rows.map(([n, t, rg], i) => `<li><b>${['🥇', '🥈', '🥉'][i] || i + 1}</b> <span class="lbn">${esc(n)}${rg !== undefined ? `<small class="lbrg">${esc(rg || '지역 정보 없음')}</small>` : ''}</span> <span>헌금 ${(+t).toLocaleString()}달란트</span></li>`).join('') : '<li class="mnote">아직 기록이 없어요 · 첫 헌금을 드려 보세요</li>'; }
-    catch { L.innerHTML = '<li class="mnote">오프라인이에요</li>'; } };
+async function openLead() { G().openModal('#church'); const d = G().V?.current?.(), me = S()?.name || ''; let reg = ''; $('#chname').textContent = d ? `${d.name} 예배당` : '우리 동네 예배당';
+  const R = $('#chregion'); R.innerHTML = '📍 지역 확인 중…';
+  const regP = (G().V?.index?.() || Promise.resolve([])).then(I => { reg = regionOf(I, d?.cd) || ''; R.innerHTML = `📍 ${esc(reg || '지역을 아직 고르지 않았어요')} <button id="chregbtn" class="mini">지역 바꾸기</button>`; $('#chregbtn').onclick = () => { G().closeModal(); $('#dongbtn')?.click(); }; return I; }).catch(() => []);
+  const nx = [0, 1000, 5000, 20000, 80000, 1e9][tier], pv = [0, 0, 1000, 5000, 20000, 80000][tier]; $('#rktier').textContent = tier; $('#rkbadge').className = 'rkbadge t' + tier;
+  $('#chtier').innerHTML = `동네 달란트 ${TAL}<b>${total.toLocaleString()}</b>`; requestAnimationFrame(() => { $('#chbar').style.width = (tier >= 5 ? 100 : Math.max(3, Math.min(100, (total - pv) / (nx - pv) * 100))) + '%'; });
+  $('#chnext').textContent = tier < 5 ? `Tier ${tier + 1}까지 ${(nx - total).toLocaleString()}달란트 남았어요` : '최고 단계예요! 🎉';
+  document.querySelectorAll('.chg').forEach(b => { b.innerHTML = `${TAL}${b.dataset.g}`; b.onclick = () => { G().closeModal(); openOffer(false); }; });
+  const lv = t => 1 + Math.floor(Math.sqrt(Math.max(0, +t) / 40)), MED = ['🥇', '🥈', '🥉'];
+  const row = (n, t, rg, i, mine) => `<li class="rkr${mine ? ' me' : ''}"><span class="rkm${i < 3 ? ' md m' + (i + 1) : ''}">${i + 1}</span><span class="rkav">${esc([...(n || '?')][0])}</span><span class="rkn"><b>${esc(n)}${mine ? '<i class="rkme">나</i>' : ''}</b><small>📍 ${esc(rg || '지역 정보 없음')}</small></span><span class="rklv">Lv.${lv(t)}</span><span class="rkp">${(+t).toLocaleString()}<small>달란트</small></span></li>`;
+  let sc = 'dong', pe = 'week'; const run = async () => { const L = $('#lblist'), sb = G().net?.sb; L.innerHTML = '<li class="rkempty"><span class="e">⏳</span>불러오는 중…</li>';
+    try { const I = await regP; let rows; if (sc === 'church') rows = (await sb.rpc('church_rank', { p_period: pe })).data.map(r => [r.name + ' 예배당', r.total, regionOf(I, r.dong), d && r.dong === d.cd]);
+      else rows = (await sb.rpc('leaderboard', { p_scope: sc, p_dong: d?.cd || '', p_period: pe })).data.map(r => [r.name, r.total, r.dong ? regionOf(I, r.dong) : sc === 'dong' ? reg : '전국', !!me && r.name === me]);
+      L.innerHTML = rows.length ? rows.map(([n, t, rg, m], i) => row(n, t, rg, i, m)).join('') : `<li class="rkempty"><span class="e">🌱</span><b>아직 ${pe === 'week' ? '이번 주' : pe === 'month' ? '이번 달' : ''} 기록이 없어요</b>첫 헌금을 드리고 1등 자리를 차지해 보세요!<br><button class="rkgo">💝 첫 헌금 드리기</button></li>`;
+      L.querySelector('.rkgo')?.addEventListener('click', () => { G().closeModal(); openOffer(false); });
+      L.querySelector('.me')?.scrollIntoView?.({ block: 'nearest' }); }
+    catch { L.innerHTML = '<li class="rkempty"><span class="e">📡</span><b>지금은 오프라인이에요</b>연결되면 순위를 다시 불러올게요</li>'; } };
   document.querySelectorAll('.lbt').forEach(b => b.onclick = () => { sc = b.dataset.s; document.querySelectorAll('.lbt').forEach(x => x.classList.toggle('on', x === b)); run(); });
   document.querySelectorAll('.lbp').forEach(b => b.onclick = () => { pe = b.dataset.p; document.querySelectorAll('.lbp').forEach(x => x.classList.toggle('on', x === b)); run(); });
   run(); }

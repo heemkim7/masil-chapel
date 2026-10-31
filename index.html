@@ -52,14 +52,19 @@
   <div class="svbtns"><button id="svamen">아멘 🙏</button><button id="svnext">다음 순서 ›</button><button id="svclose" title="예배 나가기">✕</button></div></div>
 <div id="shotm" class="modal"><div class="panel"><button class="close">✕</button><h2>📸 장면 담기</h2><img id="shotimg" alt="장면 카드"><div class="row"><button id="shotsave" class="big">💾 이미지 저장</button><button id="shotlink" class="big">🔗 링크 복사</button></div><small class="mnote">링크를 받은 친구는 바로 같은 방으로 들어와요</small></div></div>
 <div id="candle" class="modal"><div class="panel"><button class="close">✕</button><h2>🕯 감사 촛불</h2><p class="mnote">촛불을 톡톡 누르며 오늘의 감사를 세어 봐요. 100번이면 촛불이 환하게 켜져요.</p><canvas id="ccv"></canvas><div id="ccount">0 / 100</div><input id="cnote" maxlength="40" placeholder="오늘 감사한 일 한 줄 (선택)"></div></div>
-<div id="church" class="modal"><div class="panel wide"><button class="close">✕</button><h2>🏆 동네 예배당 성장 순위 · ⛪ <span id="chname">우리 동네 교회</span></h2><div id="chtier"></div><div class="bar big"><i id="chbar"></i></div><p id="chnext" class="mnote"></p>
-  <div class="row"><button class="chg" data-g="50">50 달란트</button><button class="chg" data-g="200">200 달란트</button><button class="chg" data-g="500">500 달란트</button></div><small class="mnote">헌금은 게임에서 모은 달란트로만 드려요 (실제 결제 없음)</small>
-  <div class="tabs"><button class="lbt on" data-s="dong">우리 동네</button><button class="lbt" data-s="all">전국</button><button class="lbt" data-s="church">예배당 성장 순위</button><span class="sp"></span><button class="lbp on" data-p="week">이번 주</button><button class="lbp" data-p="month">이번 달</button><button class="lbp" data-p="all">전체</button></div><ol id="lblist"></ol></div></div>
+<div id="church" class="modal"><div class="panel wide rk"><button class="close">✕</button>
+  <div class="rkhead"><div class="rkbadge" id="rkbadge"><span id="rktier">1</span><small>TIER</small></div>
+   <div class="rkinfo"><small class="rkk">🏆 성장 순위</small><h2>⛪ <span id="chname">우리 동네 교회</span></h2><div id="chregion" class="rkreg"></div>
+    <div id="chtier"></div><div class="rkbar"><i id="chbar"></i></div><p id="chnext"></p></div></div>
+  <div class="rkoff"><b>💝 헌금으로 함께 키우기</b><div class="rkoffb"><button class="chg" data-g="50">50</button><button class="chg" data-g="200">200</button><button class="chg" data-g="500">500</button></div><small>게임 달란트로만 드려요 · 실제 결제 없음</small></div>
+  <div class="rktabs"><div class="seg" role="tablist"><button class="lbt on" data-s="dong">🏘 우리 동네</button><button class="lbt" data-s="all">🇰🇷 전국</button><button class="lbt" data-s="church">⛪ 예배당</button></div>
+   <div class="seg sm" role="tablist"><button class="lbp on" data-p="week">이번 주</button><button class="lbp" data-p="month">이번 달</button><button class="lbp" data-p="all">전체</button></div></div>
+  <ol id="lblist"></ol></div></div>
 <div id="fanfare"></div>
 <div id="worship"><canvas id="wcv"></canvas><button id="wtap">♪ 찬양!</button></div>
 <div id="toast"></div>
 <script src="js/share.js"></script>
-<script type="module" src="js/main.js?v=h28"></script>
+<script type="module" src="js/main.js?v=h29"></script>
 <script src="js/ui_fb5.js?v=fb5"></script>
 <script>if('serviceWorker' in navigator&&!/[?&]nosw=1/.test(location.search))addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));</script>
 </body></html>
